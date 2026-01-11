@@ -10,6 +10,7 @@ import lombok.Data;
 public class Roles extends AbstractModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "role_id")
     private Long rolesId;
     @Column(name = "code", nullable = false, unique = true, length = 50)
     private String code;
