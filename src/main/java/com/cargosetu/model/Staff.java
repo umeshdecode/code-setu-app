@@ -1,14 +1,16 @@
 package com.cargosetu.model;
 
+import com.cargosetu.abstracts.AbstractModel;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblm_staff")
 @Data
-public class Staff {
+public class Staff extends AbstractModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,7 +27,7 @@ public class Staff {
 
     private String lastName;
 
-    private Long mobileNumber;
+    private String mobileNumber;
 
     private String mobileCode;
 
@@ -40,5 +42,19 @@ public class Staff {
             joinColumns = @JoinColumn(name = "staff_if"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private HashSet<Role> roles;
+    private Set<Role> roles = new HashSet<>();
+    public Staff(){
+    }
+
+    public Staff(String uuid, String userName, String firstName, String lastName, String mobileCode, String mobileNumber, String email, String password, HashSet<Role> roles) {
+        this.uuid = uuid;
+        this.userName = userName;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.mobileCode = mobileCode;
+        this.mobileNumber = mobileNumber;
+        this.email = email;
+        this.password = password;
+        this.roles = roles;
+    }
 }

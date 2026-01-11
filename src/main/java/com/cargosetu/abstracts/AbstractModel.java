@@ -1,12 +1,16 @@
 package com.cargosetu.abstracts;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-public class AbstractModel {
+@MappedSuperclass
+public abstract class AbstractModel {
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 
@@ -18,6 +22,11 @@ public class AbstractModel {
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    private void setCreateDate(){
+        createdAt = LocalDateTime.now();
+    }
     @Column(name = "updated_at", updatable = false)
     private LocalDateTime updatedAt;
 }

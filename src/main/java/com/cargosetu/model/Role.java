@@ -21,7 +21,13 @@ public class Role extends AbstractModel {
     @Column(name = "scope", nullable = false, length = 50)
     private String scope;
 
+    public Role(){}
 
-
+    public Role(String code, String roleName, String discription, String scope) {
+        this.code = code;
+        this.roleName = roleName;
+        this.discription = discription;
+        this.scope = scope;
+    }
 
 }
