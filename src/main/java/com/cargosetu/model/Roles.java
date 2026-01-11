@@ -9,7 +9,8 @@ import lombok.Data;
 public class Roles {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long rolesId;
+    @Column(name = "role_id")
+    private Long roleId;
     private String code;
     private String roleName;
     private String discription;
