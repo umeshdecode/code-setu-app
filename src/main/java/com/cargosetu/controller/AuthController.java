@@ -33,7 +33,6 @@ public class AuthController {
 
     @PostMapping(UrlConstants.LOGIN_URL)
     public ResponseEntity<?> login(@RequestBody LoginRequest loginDto, HttpServletRequest request){
-        try {
             TokenResponse tokenResponse = new TokenResponse();
             boolean validRequest = authService.isValidRequest(loginDto);
             if(validRequest){
@@ -44,11 +43,7 @@ public class AuthController {
                 }
                 return  ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
             }
-        } catch (Exception e) {
-            log.error("error while login; Message: {}",e.getMessage());
-            e.printStackTrace();
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(HttpStatus.UNAUTHORIZED);
+        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wromg");
     }
 
     public ApiResponseDto generateResponse(Integer responseCode,String responseMessage,Object responseBody){
