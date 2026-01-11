@@ -42,7 +42,7 @@ public class SeedSuperAdmin implements ApplicationRunner {
                 role = seedDefaultRole();
             }
             roles.add(role);
-            Staff staff = new Staff("abcs123",SuperAdminConstants.SUPERADMIN,"super admin","super admin","+91","+++","superadmin@cargosetu","superadmin",roles);
+            Staff staff = new Staff("31201SUPERADMIN31201",SuperAdminConstants.SUPERADMIN,"super admin","super admin","+91","+++","superadmin@cargosetu","$2a$10$c6yl2E/iNR99hiHKlg6zkOTJJAD48lhDxQzG5/3ByTMrdg/7XGrbm",roles);
             staffRepository.save(staff);
             log.info("SuperAdmin has been saved successfully");
         }

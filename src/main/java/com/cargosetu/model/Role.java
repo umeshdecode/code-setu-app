@@ -4,6 +4,9 @@ import com.cargosetu.abstracts.AbstractModel;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tblm_roles")
 @Data
@@ -20,6 +23,14 @@ public class Role extends AbstractModel {
     private String discription;
     @Column(name = "scope", nullable = false, length = 50)
     private String scope;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "tblm_role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private Set<Permission> permissions = new HashSet<>();
 
     public Role(){}
 
