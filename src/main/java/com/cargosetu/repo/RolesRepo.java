@@ -1,9 +1,9 @@
 package com.cargosetu.repo;
 
-import com.cargosetu.model.Roles;
+import com.cargosetu.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface RolesRepo extends JpaRepository<Roles,Long> {
+public interface RolesRepo extends JpaRepository<Role,Long> {
 }

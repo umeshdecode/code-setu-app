@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "tblm_staff")
@@ -41,5 +40,5 @@ public class Staff {
             joinColumns = @JoinColumn(name = "staff_if"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private HashSet<Roles> roles;
+    private HashSet<Role> roles;
 }

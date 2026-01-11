@@ -7,7 +7,7 @@ import lombok.Data;
 @Entity
 @Table(name = "tblm_roles")
 @Data
-public class Roles extends AbstractModel {
+public class Role extends AbstractModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "role_id")
