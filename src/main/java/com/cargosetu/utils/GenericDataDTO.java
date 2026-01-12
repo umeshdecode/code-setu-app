@@ -1,7 +1,9 @@
 package com.cargosetu.utils;
 
 import lombok.Data;
-import org.hibernate.mapping.List;
+
+import java.util.List;
+
 
 @Data
 public class GenericDataDTO {

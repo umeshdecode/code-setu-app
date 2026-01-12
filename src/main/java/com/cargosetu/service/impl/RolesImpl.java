@@ -32,7 +32,7 @@ public class RolesImpl implements RolesService {
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());
-            responseDTO.setDataList((org.hibernate.mapping.List) roles);   // Correct way
+            responseDTO.setDataList(roles);   // Correct way
         } catch (Exception e) {
             responseDTO.setResponseMessege("Failed to fetch roles");
         }
