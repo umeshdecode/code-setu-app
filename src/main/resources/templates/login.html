@@ -181,6 +181,10 @@ Body: ${JSON.stringify(data.responseBody, null, 2)}`;
         </div>
 
         <button type="submit">Login</button>
+        <button type="button" onclick="googleLogin()" style="margin-top:10px;background:#db4437">
+            Sign in with Google
+        </button>
+
     </form>
 
     <div id="response"></div>
@@ -205,5 +209,11 @@ Body: ${JSON.stringify(data.responseBody, null, 2)}`;
         emailField.value = '';
     });
 </script>
+<script>
+    function googleLogin() {
+        window.location.href = "/oauth2/authorization/google";
+    }
+</script>
+
 </body>
 </html>

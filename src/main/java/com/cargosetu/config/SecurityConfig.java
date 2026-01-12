@@ -1,8 +1,12 @@
 package com.cargosetu.config;
 
+import com.cargosetu.utils.GoogleRoleMapper;
 import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,19 +21,20 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
+    private final GoogleRoleMapper googleRoleMapper;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
-        this.jwtFilter = jwtFilter;
-    }
+//    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+//        this.jwtFilter = jwtFilter;
+//    }
 
     @Bean
     public BCryptPasswordEncoder bCryptPasswordEncoder(){
         return new BCryptPasswordEncoder();
     }
-
-//    @Bean
+    //    @Bean
 //    public UserDetailsService userDetailsService() {
 //       return new UserDetailsServiceImpl();
 //    }
@@ -52,15 +57,23 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login.html", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers("/pages/login").permitAll()
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/demo/**").hasRole("SUPERADMIN")
+                                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                                .requestMatchers("/demo/**").hasRole("SUPERADMIN")
 //                        .requestMatchers("/**").hasRole("SUPERADMIN")
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth -> oauth
+                        .loginPage("/pages/login")
+                        .userInfoEndpoint(userInfo ->
+                                userInfo.userAuthoritiesMapper(googleRoleMapper))
+                        .defaultSuccessUrl("/demo", true)
+                )
+
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
