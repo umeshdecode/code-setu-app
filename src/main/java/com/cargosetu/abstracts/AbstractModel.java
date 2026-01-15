@@ -1,6 +1,5 @@
 package com.cargosetu.abstracts;
 
-import com.cargosetu.utils.ApplicationUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;

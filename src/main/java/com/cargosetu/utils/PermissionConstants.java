@@ -31,5 +31,11 @@ public class PermissionConstants {
     public static final String STAFF_CREATE  = PERM_PREFIX + "STAFF_CREATE";
     public static final String STAFF_READ  = PERM_PREFIX + "STAFF_READ";
     public static final String STAFF_UPDATE_DELETE  = PERM_PREFIX + "STAFF_UPDATE_DELETE";
+    public static final String COMPANY_READ  = PERM_PREFIX + "COMPANY_READ";
+    public static final String COMPANY_CREATE  = PERM_PREFIX + "COMPANY_CREATE";
+    public static final String COMPANY_DELETE = PERM_PREFIX + "COMPANY_DELETE";
+    public static final String COMPANY_UPDATE  = PERM_PREFIX + "COMPANY_UPDATE";
+
+
 
 }
