@@ -5,6 +5,7 @@ import com.cargosetu.service.impl.RolesImpl;
 import com.cargosetu.urls.BaseURL;
 import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RequestMapping(BaseURL.BASE_URL+BaseURL.ROLES)
@@ -22,6 +23,9 @@ public class RoleController {
         return roleService.getRoleById(id);
     }
 
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_CREATE)"
+    )
     @PostMapping
     public GenericDataDTO createRole(@RequestBody RolesDTO role) {
         return roleService.createRole(role);

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -49,7 +50,7 @@ public class RolesImpl implements RolesService {
             if (role.isPresent() && !role.get().getIsDeleted()) {
                 response.setResponseMessege("Role found");
                 response.setResponseCode(200);
-                response.setDate(role.get());
+                response.setData(role.get());
             } else {
                 response.setResponseMessege("Role not found");
                 response.setResponseCode(404);
@@ -73,6 +74,18 @@ public class RolesImpl implements RolesService {
 
             if (optionalRole.isPresent()) {
                 Role role = optionalRole.get();
+
+                if(!role.getCode().equals(pojo.getCode())) {
+                    Optional<Role> roleOptional = rolesRepo.findByCodeAndIsDeletedIsFalse(pojo.getCode());
+                    if (roleOptional.isPresent()) {
+                        if(!Objects.equals(roleOptional.get().getRolesId(), id)){
+                            response.setResponseCode(HttpStatus.CONFLICT.value());
+                            response.setResponseMessege("please use different Role code,this code is already present");
+                            return response;
+                        }
+                    }
+                }
+
                 role.setRoleName(pojo.getRoleName());
                 role.setDiscription(pojo.getDiscription());
                 role.setCode(pojo.getCode());
@@ -83,7 +96,7 @@ public class RolesImpl implements RolesService {
 
                 response.setResponseMessege("Role updated successfully");
                 response.setResponseCode(200);
-                response.setDate(role);
+                response.setData(role);
 
                 log.info("Role updated successfully for ID: {}", id);
             } else {
@@ -136,6 +149,14 @@ public class RolesImpl implements RolesService {
     public GenericDataDTO createRole(RolesDTO pojo) {
         GenericDataDTO response = new GenericDataDTO();
         try {
+            boolean roleExistsByCode = rolesRepo.existsByCode(pojo.getCode());
+            if (roleExistsByCode) {
+                response.setResponseMessege("Role already exists, cannot create duplicate!");
+                response.setResponseCode(HttpStatus.CONFLICT.value());
+                response.setData(null);
+                return response;
+            }
+
             log.info("Creating new role with name: {} ", pojo.getRoleName());
 
             Role role = new Role();
@@ -145,13 +166,12 @@ public class RolesImpl implements RolesService {
             role.setScope(pojo.getScope());
             role.setIsActive(true);
             role.setIsDeleted(false);
-            role.setCreatedAt(LocalDateTime.now());
 
             role = rolesRepo.save(role);
 
             response.setResponseMessege("Role Created Successfully");
             response.setResponseCode(201);
-            response.setDate(role);
+            response.setData(role);
 
             log.info("Role created successfully with ID: {} ", role.getRolesId());
         } catch (Exception e) {

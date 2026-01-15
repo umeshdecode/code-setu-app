@@ -3,8 +3,12 @@ package com.cargosetu.service.impl;
 
 import com.cargosetu.dto.PermissionDTO;
 import com.cargosetu.model.Permission;
+import com.cargosetu.model.Role;
 import com.cargosetu.repo.PermissionRepo;
+import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.service.PermissionService;
+import com.cargosetu.utils.ApplicationUtils;
+import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -21,6 +26,9 @@ public class PermissionImpl implements PermissionService {
 
     @Autowired
     private PermissionRepo permissionRepo;
+
+    @Autowired
+    private RolesRepo rolesRepo;
 
 
     @Override
@@ -49,7 +57,7 @@ public class PermissionImpl implements PermissionService {
             if (permission.isPresent() && !permission.get().getIsDeleted()) {
                 response.setResponseMessege("Permission found");
                 response.setResponseCode(200);
-                response.setDate(permission.get());
+                response.setData(permission.get());
             } else {
                 response.setResponseMessege("Permission not found");
                 response.setResponseCode(404);
@@ -79,12 +87,12 @@ public class PermissionImpl implements PermissionService {
                 permission.setCode(pojo.getCode());
                 permission.setDescription(pojo.getDescription());
                 permission.setUpdatedAt(LocalDateTime.now());
-
                 permissionRepo.save(permission);
+
 
                 response.setResponseMessege("Permission updated successfully");
                 response.setResponseCode(200);
-                response.setDate(permission);
+                response.setData(permission);
 
                 log.info("Permission updated successfully for ID: {}", id);
             } else {
@@ -147,14 +155,22 @@ public class PermissionImpl implements PermissionService {
             permission.setDescription(pojo.getDescription());
             permission.setModule(pojo.getModule());
             permission.setIsActive(true);
-            permission.setIsDeleted(false);
-            permission.setCreatedAt(LocalDateTime.now());
+            permission.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getUserId().toString()));
 
             permission = permissionRepo.save(permission);
 
+            // bind each permission with superadmin role
+
+            Optional<Role> roleOptional = rolesRepo.findByCode(CommonConstants.SUPERADMIN);
+            if(roleOptional.isPresent()){
+                roleOptional.get().getPermissions().add(permission);
+                rolesRepo.save(roleOptional.get());
+                log.debug("new permission bind with superadmin role successfully");
+            }
+
             response.setResponseMessege("Permission Created Successfully");
             response.setResponseCode(201);
-            response.setDate(permission);
+            response.setData(permission);
 
             log.info("Permission created successfully with ID: {} ", permission.getId());
         } catch (Exception e) {

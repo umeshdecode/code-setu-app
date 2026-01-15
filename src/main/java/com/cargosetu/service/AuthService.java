@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -52,7 +53,7 @@ public class AuthService {
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
         }
-        if(!loginDto.getEmail().isEmpty() && loginDto.getEmail() !=null ){
+        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
             boolean validEmail = isValidEmail(loginDto.getEmail());
             if(!validEmail){
                 throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");

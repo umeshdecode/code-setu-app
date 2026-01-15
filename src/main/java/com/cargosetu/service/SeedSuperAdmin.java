@@ -1,7 +1,9 @@
 package com.cargosetu.service;
 
+import com.cargosetu.model.Permission;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
+import com.cargosetu.repo.PermissionRepo;
 import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.repository.StaffRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +11,13 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.HashSet;
-import java.util.Optional;
+import java.util.*;
 
 @Configuration
 @Slf4j
 public class SeedSuperAdmin implements ApplicationRunner {
+
+    private final PermissionRepo permissionRepo;
 
     public interface SuperAdminConstants {
         String SUPERADMIN = "SUPERADMIN";
@@ -23,9 +26,10 @@ public class SeedSuperAdmin implements ApplicationRunner {
     private final StaffRepository staffRepository;
     private final RolesRepo rolesRepo;
 
-    public SeedSuperAdmin(StaffRepository staffRepository, RolesRepo rolesRepo) {
+    public SeedSuperAdmin(StaffRepository staffRepository, RolesRepo rolesRepo, PermissionRepo permissionRepo) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
+        this.permissionRepo = permissionRepo;
     }
 
 
@@ -52,9 +56,34 @@ public class SeedSuperAdmin implements ApplicationRunner {
         Optional<Role> roleByCodeSuperAdmin = rolesRepo.findByCode(SuperAdminConstants.SUPERADMIN);
         if(roleByCodeSuperAdmin.isEmpty()){
             Role role = new Role(SuperAdminConstants.SUPERADMIN,"Super admin","this is super admin role","PLATFORM");
+
+            List<Permission> permissions = new ArrayList<>();
+            permissions.add(createPermission("ROLE_CREATE","Role Create","permission for create roles","Role Module"));
+            permissions.add(createPermission("ROLE_READ","Role READ","permission for read roles","Role Module"));
+            permissions.add(createPermission("ROLE_UPDATE_DELETE","Role Update Delete","permission for update/delete roles","Role Module"));
+            permissions.add(createPermission("STAFF_CREATE","Staff Create","permission for create staffs","Staff Module"));
+            permissions.add(createPermission("STAFF_READ","Staff Read","permission for read staffs","Staff Module"));
+            permissions.add(createPermission("STAFF_UPDATE_DELETE","Staff Update Delete","permission for update/delete staffs","Staff Module"));
+            Set<Permission> defaultPermissions = createDefaultPermissions(permissions);
+            role.setPermissions(defaultPermissions);
             role = rolesRepo.save(role);
             log.info("SuperAdmin Role has been saved successfully");
             return role;
         }else return roleByCodeSuperAdmin.get();
+    }
+
+    public Set<Permission> createDefaultPermissions(List<Permission> permissions){
+        List<Permission> savedPermissions = permissionRepo.saveAllAndFlush(permissions);
+        return new HashSet<>(savedPermissions);
+    }
+    public Permission createPermission(String code,String permissionName,String description,String module){
+        Permission permission = new Permission();
+        permission.setCode(code);
+        permission.setName(permissionName);
+        permission.setDescription(description);
+        permission.setModule(module);
+        permission.setIsActive(true);
+        permission.setCreatedByName("SYSTEM-DEFAULT");
+        return permission;
     }
 }

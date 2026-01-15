@@ -1,5 +1,6 @@
 package com.cargosetu.abstracts;
 
+import com.cargosetu.utils.ApplicationUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
@@ -20,13 +21,20 @@ public abstract class AbstractModel {
     @Column(name = "created_by")
     private Long createdBy;
 
+    @Column(name = "created_by_name")
+    private String createdByName;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     private void setCreateDate(){
         createdAt = LocalDateTime.now();
+        createdByName = ApplicationUtils.getCurrentUser().getFirstName() +  " " + ApplicationUtils.getCurrentUser().getLastName();
+        createdBy = ApplicationUtils.getCurrentUser().getUserId().longValue();
     }
     @Column(name = "updated_at", updatable = false)
     private LocalDateTime updatedAt;
+
+
 }

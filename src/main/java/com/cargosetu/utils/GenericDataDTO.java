@@ -10,5 +10,5 @@ public class GenericDataDTO {
     private String responseMessege;
     private Integer responseCode;
     private List dataList;
-    private Object date;
+    private Object data;
 }
