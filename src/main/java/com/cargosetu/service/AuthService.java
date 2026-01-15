@@ -52,7 +52,7 @@ public class AuthService {
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
         }
-        if(loginDto.getEmail() !=null){
+        if(!loginDto.getEmail().isEmpty() && loginDto.getEmail() !=null ){
             boolean validEmail = isValidEmail(loginDto.getEmail());
             if(!validEmail){
                 throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
@@ -66,7 +66,7 @@ public class AuthService {
         if(loginDto.getUserName() != null){
              staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
         }
-        if(loginDto.getEmail() != null){
+        else if(loginDto.getEmail() != null){
             staff = loginWithEmailAndPassword(loginDto.getEmail(),loginDto.getPassword());
         }
         if(staff == null){
