@@ -4,6 +4,7 @@ import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.model.Role;
 import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.service.RolesService;
+import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -181,5 +182,22 @@ public class RolesImpl implements RolesService {
         }
         return response;
     }
-
+    public Role createCompanyAdminDefaultRole(){
+        Optional<Role> roleOptional = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
+        if(roleOptional.isPresent()){
+            return roleOptional.get();
+        }else {
+            // for temporary purpose only
+            Role role = new Role();
+            role.setCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
+            role.setRoleName("Company Admin");
+            role.setDiscription("Has full access to manage company operations");
+            role.setScope("COMPANY");
+            role.setIsActive(true);
+            role.setIsDeleted(false);
+            role.setCreatedAt(LocalDateTime.now());
+            role.setCreatedByName("SYSTEM");
+            return rolesRepo.save(role);
+        }
+    }
 }

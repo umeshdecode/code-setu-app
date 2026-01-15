@@ -67,6 +67,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers(
                                 "/auth/login",
+                                "/auth/user/register",
                                 "/auth/google",
                                 "/auth/refresh",
                                 "/login.html",
