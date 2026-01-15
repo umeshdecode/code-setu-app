@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="English">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - CargoSetu</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f6fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-card {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+
+        .login-card h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2f3640;
+        }
+
+        .login-card div {
+            margin-bottom: 15px;
+        }
+
+        .login-card label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #353b48;
+        }
+
+        .login-card input[type="text"],
+        .login-card input[type="password"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #dcdde1;
+        }
+
+        .login-card button {
+            width: 100%;
+            padding: 10px;
+            background: #273c75;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .login-card button:hover {
+            background: #192a56;
+        }
+
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        #response.success {
+            background-color: #dff9fb;
+            color: #22a6b3;
+            border: 1px solid #22a6b3;
+        }
+
+        #response.error {
+            background-color: #ffcccc;
+            color: #c23616;
+            border: 1px solid #c23616;
+        }
+
+        .selector {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .selector label {
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+        }
+
+        .selector input[type="radio"] {
+            margin-right: 5px;
+        }
+    </style>
+
+    <script>
+        async function login(event) {
+            event.preventDefault();
+
+            const loginType = document.querySelector('input[name="loginType"]:checked').value;
+            const emailField = document.getElementById('email');
+            const usernameField = document.getElementById('userName');
+            const password = document.getElementById('password').value;
+            const responseDiv = document.getElementById('response');
+
+            const payload = {
+                email: loginType === 'email' ? emailField.value : null,
+                userName: loginType === 'username' ? usernameField.value : null,
+                password: password
+            };
+
+            responseDiv.innerText = "Processing...";
+            responseDiv.className = '';
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // 200 OK → generate token info
+                    responseDiv.className = 'success';
+                    responseDiv.innerText =
+                        `Login Success
+Access Token: ${data.accessToken}
+Token Type: ${data.tokenType}
+Expires In: ${data.expiresIn}ms`;
+
+                    // Save token for future use
+                    localStorage.setItem('jwtToken', data.accessToken);
+
+                } else {
+                    // Validation or error response
+                    responseDiv.className = 'error';
+                    responseDiv.innerText =
+                        `Login Failed
+Response Code: ${data.responseCode || res.status}
+Message: ${data.responseMessage || data.message || 'Unknown error'}
+Body: ${JSON.stringify(data.responseBody, null, 2)}`;
+                }
+
+            } catch (err) {
+                responseDiv.className = 'error';
+                responseDiv.innerText = `Network Error ❌\n${err.message}`;
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="login-card">
+    <h2>CargoSetu Login</h2>
+
+    <form onsubmit="login(event)">
+        <div class="selector">
+            <label><input type="radio" name="loginType" value="email" checked>Email</label>
+            <label><input type="radio" name="loginType" value="username">Username</label>
+        </div>
+
+        <div id="emailDiv">
+            <label>Email:</label>
+            <input type="text" id="email" placeholder="Enter your email">
+        </div>
+
+        <div id="usernameDiv">
+            <label>Username:</label>
+            <input type="text" id="userName" placeholder="Enter your username" disabled>
+        </div>
+
+        <div>
+            <label>Password:</label>
+            <input type="password" id="password" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit">Login</button>
+        <button type="button" onclick="googleLogin()" style="margin-top:10px;background:#db4437">
+            Sign in with Google
+        </button>
+
+    </form>
+
+    <div id="response"></div>
+</div>
+
+<script>
+    // Enable/disable fields based on selected login type
+    const emailRadio = document.querySelector('input[value="email"]');
+    const usernameRadio = document.querySelector('input[value="username"]');
+    const emailField = document.getElementById('email');
+    const usernameField = document.getElementById('userName');
+
+    emailRadio.addEventListener('change', () => {
+        emailField.disabled = false;
+        usernameField.disabled = true;
+        usernameField.value = '';
+    });
+
+    usernameRadio.addEventListener('change', () => {
+        usernameField.disabled = false;
+        emailField.disabled = true;
+        emailField.value = '';
+    });
+</script>
+<script>
+    function googleLogin() {
+        window.location.href = "/oauth2/authorization/google";
+    }
+</script>
+
+</body>
+</html>

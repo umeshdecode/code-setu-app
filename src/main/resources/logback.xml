@@ -1,0 +1,45 @@
+<configuration>
+
+    <!-- ===================== -->
+    <!-- Log Pattern Variable  -->
+    <!-- ===================== -->
+    <property name="LOG_PATTERN"
+              value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","thread":"%thread","level":"%-5level","className":"%logger","lineNo":"%line","message":"%msg"}%n'/>
+
+
+    <!-- ===================== -->
+    <!-- Console Appender      -->
+    <!-- ===================== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== -->
+    <!-- File Appender         -->
+    <!-- ===================== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>myapp.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- Daily rollover + size based -->
+            <fileNamePattern>myapp.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ===================== -->
+    <!-- Root Logger           -->
+    <!-- ===================== -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+<!--        <appender-ref ref="FILE"/>-->
+    </root>
+
+</configuration>
