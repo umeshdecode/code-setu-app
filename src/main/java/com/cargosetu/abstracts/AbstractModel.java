@@ -30,8 +30,6 @@ public abstract class AbstractModel {
     @PrePersist
     private void setCreateDate(){
         createdAt = LocalDateTime.now();
-        createdByName = ApplicationUtils.getCurrentUser().getFirstName() +  " " + ApplicationUtils.getCurrentUser().getLastName();
-        createdBy = ApplicationUtils.getCurrentUser().getUserId().longValue();
     }
     @Column(name = "updated_at", updatable = false)
     private LocalDateTime updatedAt;
