@@ -1,13 +1,51 @@
 package com.cargosetu.controller;
 
 import com.cargosetu.config.utils.UrlConstants;
+import com.cargosetu.dto.StaffDTO;
+import com.cargosetu.service.StaffService;
 import com.cargosetu.urls.BaseURL;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.cargosetu.utils.GenericDataDTO;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping(value = BaseURL.BASE_URL +UrlConstants.StaffUrlConstants.STAFF)
 public class StaffController {
 
+
+    private final StaffService staffService;
+
+    public StaffController(StaffService staffService) {
+        this.staffService = staffService;
+    }
+
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ)"
+    )
+    @GetMapping("/{id}")
+    public GenericDataDTO getStaff(@PathVariable("id") Integer staffId){
+        GenericDataDTO dto = new GenericDataDTO();
+        StaffDTO staffById = staffService.getStaffById(staffId);
+        if (Objects.nonNull(staffById)) {
+            dto.setData(staffById);
+            dto.setResponseCode(HttpStatus.OK.value());
+            dto.setResponseMessege("Staffed fetched successfully");
+        }else {
+            dto.setResponseCode(HttpStatus.NOT_FOUND.value());
+            dto.setResponseMessege("Staff not found");
+        }
+        return dto;
+    }
+
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_CREATE)"
+    )
+    @PostMapping
+    public GenericDataDTO createStaff(@RequestBody  StaffDTO staffDTO){
+        return null;
+    }
 
 }

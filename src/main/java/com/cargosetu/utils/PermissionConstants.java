@@ -32,5 +32,4 @@ public class PermissionConstants {
     public static final String STAFF_READ  = PERM_PREFIX + "STAFF_READ";
     public static final String STAFF_UPDATE_DELETE  = PERM_PREFIX + "STAFF_UPDATE_DELETE";
 
-
 }

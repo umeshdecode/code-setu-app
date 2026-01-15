@@ -43,7 +43,7 @@ public class AuthController {
                 }
                 return  ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
             }
-        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wromg");
+        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
     }
 
     public ApiResponseDto generateResponse(Integer responseCode,String responseMessage,Object responseBody){

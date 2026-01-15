@@ -1,8 +1,14 @@
 package com.cargosetu.dto;
 
 
+import lombok.Data;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Data
 public class StaffDTO {
-        private Long id;
+        private Long staffId;
         private String uuid;
         private String userName;
         private String firstName;
@@ -10,6 +16,6 @@ public class StaffDTO {
         private String mobileCode;
         private String mobileNumber;
         private String email;
-        private String password;
-
+        private Set<RolesDTO> roles = new HashSet<>();
+        private Boolean isActive = false;
 }
