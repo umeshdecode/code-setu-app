@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 @Service
 @Slf4j
@@ -56,15 +57,43 @@ public class CompanyServImpl implements CompanyService {
                 return response;
             }
 
-            existing.setCompanyName(company.getCompanyName());
-            existing.setCompanyEmail(company.getCompanyEmail());
-            existing.setWhatsappNumber(company.getWhatsappNumber());
-            existing.setContactNo1(company.getContactNo1());
-            existing.setContactNo2(company.getContactNo2());
-            existing.setAddress(company.getAddress());
-            existing.setCity(company.getCity());
-            existing.setState(company.getState());
-            existing.setCountry(company.getCountry());
+            if (company.getCompanyName() != null) {
+                existing.setCompanyName(company.getCompanyName());
+            }
+
+            if (company.getCompanyEmail() != null) {
+                existing.setCompanyEmail(company.getCompanyEmail());
+            }
+
+            if (company.getWhatsappNumber() != null) {
+                existing.setWhatsappNumber(company.getWhatsappNumber());
+            }
+
+            if (company.getContactNo1() != null) {
+                existing.setContactNo1(company.getContactNo1());
+            }
+
+            if (company.getContactNo2() != null) {
+                existing.setContactNo2(company.getContactNo2());
+            }
+
+            if (company.getAddress() != null) {
+                existing.setAddress(company.getAddress());
+            }
+
+            if (company.getCity() != null) {
+                existing.setCity(company.getCity());
+            }
+
+            if (company.getState() != null) {
+                existing.setState(company.getState());
+            }
+
+            if (company.getCountry() != null) {
+                existing.setCountry(company.getCountry());
+            }
+
+            existing.setUpdatedAt(LocalDateTime.now());
 
             Company updated = companyRepository.save(existing);
 
