@@ -2,6 +2,7 @@ package com.cargosetu.service.impl;
 
 
 import com.cargosetu.dto.PermissionDTO;
+import com.cargosetu.mapper.PermissionMapper;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Role;
 import com.cargosetu.repo.PermissionRepo;
@@ -29,6 +30,9 @@ public class PermissionImpl implements PermissionService {
 
     @Autowired
     private RolesRepo rolesRepo;
+
+    @Autowired
+    private PermissionMapper permissionMapper;
 
 
     @Override
@@ -82,10 +86,19 @@ public class PermissionImpl implements PermissionService {
 
             if (optionalPermission.isPresent()) {
                 Permission permission = optionalPermission.get();
-                permission.setName(pojo.getName());
-                permission.setModule(pojo.getModule());
-                permission.setCode(pojo.getCode());
-                permission.setDescription(pojo.getDescription());
+
+                if(!permission.getCode().equals(pojo.getCode())) {
+                    Optional<Permission> permissionOptional = permissionRepo.findByCodeAndIsDeletedIsFalse(pojo.getCode());
+                    if (permissionOptional.isPresent()) {
+                        if(!Objects.equals(permissionOptional.get().getId(), id)){
+                            response.setResponseCode(HttpStatus.CONFLICT.value());
+                            response.setResponseMessege("please use different Permission code,this code is already present");
+                            return response;
+                        }
+                    }
+                }
+
+                permissionMapper.updateFromDto(pojo, permission);
                 permission.setUpdatedAt(LocalDateTime.now());
                 permissionRepo.save(permission);
 
@@ -147,6 +160,15 @@ public class PermissionImpl implements PermissionService {
     public GenericDataDTO createPermission(PermissionDTO pojo) {
         GenericDataDTO response = new GenericDataDTO();
         try {
+
+            boolean permissionExistsByCode = permissionRepo.existsByCode(pojo.getCode());
+            if (permissionExistsByCode) {
+                response.setResponseMessege("Permission already exists, cannot create duplicate!");
+                response.setResponseCode(HttpStatus.CONFLICT.value());
+                response.setData(null);
+                return response;
+            }
+
             log.info("Creating new Permission with name: {} ", pojo.getName());
 
             Permission permission = new Permission();
