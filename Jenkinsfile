@@ -2,32 +2,23 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "code-setu-app"                   // Local image name
-        CONTAINER_NAME = "code-setu-app"               // Container name on EC2
-        DOCKERHUB_USER = "decode200"            // Your Docker Hub username
-        DOCKERHUB_REPO = "${DOCKERHUB_USER}/code-setu-app" // Docker Hub repo
-        DOCKER_HUB_PASS = credentials('DOCKER_HUB_PASS')   // Jenkins secret
+        IMAGE_NAME = "decode200/code-setu-app"
+        BUILD_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build Spring Boot JAR') {
-            steps {
-                sh './gradlew clean build -x test'
-            }
-        }
-
-        stage('Stop Old Container') {
+        stage('Build App') {
             steps {
                 sh '''
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
+                chmod +x gradlew
+                ./gradlew clean build -x test
                 '''
             }
         }
@@ -35,44 +26,28 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                # Build local Docker image
                 docker build -t $IMAGE_NAME:latest .
-
-                # Tag for Docker Hub
-                docker tag $IMAGE_NAME:latest $DOCKERHUB_REPO:latest
-
-                # Clean up unused images to save EC2 space
-                docker image prune -f
+                docker tag $IMAGE_NAME:latest $IMAGE_NAME:$BUILD_TAG
                 '''
             }
         }
 
-        stage('Push Docker Image to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
-                sh '''
-                echo $DOCKER_HUB_PASS | docker login -u $DOCKERHUB_USER --password-stdin
-                docker push $DOCKERHUB_REPO:latest
-                '''
-            }
-        }
-
-        stage('Run New Container') {
-            steps {
-                sh '''
-                # Run the container on EC2
-                docker run -d \
-                --name $CONTAINER_NAME \
-                -p 31201:31201 \
-                $IMAGE_NAME:latest
-                '''
+                withCredentials([string(credentialsId: 'DOCKER_HUB_PASS', variable: 'DOCKER_PASS')]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u decode200 --password-stdin
+                    docker push $IMAGE_NAME:latest
+                    docker push $IMAGE_NAME:$BUILD_TAG
+                    '''
+                }
             }
         }
     }
 
     post {
         always {
-            sh 'docker ps -a'
-            echo 'Deployment finished.'
+            sh 'docker image prune -f'
         }
     }
 }
