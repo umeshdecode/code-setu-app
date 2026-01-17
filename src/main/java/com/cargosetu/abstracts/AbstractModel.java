@@ -20,6 +20,9 @@ public abstract class AbstractModel {
     @Column(name = "created_by")
     private Long createdBy;
 
+    @Column(name = "created_by_name")
+    private String createdByName;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -29,4 +32,6 @@ public abstract class AbstractModel {
     }
     @Column(name = "updated_at", updatable = false)
     private LocalDateTime updatedAt;
+
+
 }

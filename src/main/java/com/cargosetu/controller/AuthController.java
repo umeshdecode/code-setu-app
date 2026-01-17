@@ -5,8 +5,13 @@ import com.cargosetu.config.dto.LoginRequest;
 import com.cargosetu.config.dto.TokenResponse;
 import com.cargosetu.config.JwtUtils;
 import com.cargosetu.config.utils.UrlConstants;
+import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.repository.StaffRepository;
 import com.cargosetu.service.AuthService;
+import com.cargosetu.service.StaffService;
+import com.cargosetu.utils.CommonConstants;
+import com.cargosetu.utils.CommonStatusCode;
+import com.cargosetu.utils.GenericDataDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping(UrlConstants.AUTH)
@@ -29,6 +36,8 @@ public class AuthController {
     private StaffRepository staffRepository;
     @Autowired
     private AuthService authService;
+    @Autowired
+    private StaffService staffService;
 
 
     @PostMapping(UrlConstants.LOGIN_URL)
@@ -43,7 +52,25 @@ public class AuthController {
                 }
                 return  ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
             }
-        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wromg");
+        return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
+    }
+
+    @PostMapping(UrlConstants.REGISTER_USER)
+    public GenericDataDTO registerUser(@RequestBody StaffDTO staffDTO){
+        GenericDataDTO dto = new GenericDataDTO();
+        boolean validated = staffService.validateCreateStaffRequest(staffDTO);
+        if(validated){
+            StaffDTO staff = staffService.saveStaff(staffDTO);
+            if(Objects.nonNull(staff)){
+                dto.setData(staff);
+                dto.setResponseCode(CommonStatusCode.CREATED);
+                dto.setResponseMessege(CommonConstants.STAFF + CommonStatusCode.MSG_CREATED);
+            }else {
+                dto.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+                dto.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            }
+        }
+        return dto;
     }
 
     public ApiResponseDto generateResponse(Integer responseCode,String responseMessage,Object responseBody){
