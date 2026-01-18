@@ -1,4 +1,4 @@
-package com.cargosetu.urls;
+package com.cargosetu.utils;
 
 public interface BaseURL {
    final String BASE_URL= "/api/v2/cargosetu";

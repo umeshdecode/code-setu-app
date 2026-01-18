@@ -1,19 +1,14 @@
 package com.cargosetu.controller;
 
-import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.CompanyDTO;
-import com.cargosetu.model.Company;
 import com.cargosetu.service.CompanyService;
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.GenericDataDTO;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping(BaseURL.BASE_URL+BaseURL.COMPANY)

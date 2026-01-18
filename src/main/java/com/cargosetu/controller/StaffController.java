@@ -3,7 +3,7 @@ package com.cargosetu.controller;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.service.StaffService;
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;

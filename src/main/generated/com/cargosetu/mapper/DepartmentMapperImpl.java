@@ -7,11 +7,59 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-01-16T12:02:49+0530",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.17 (Microsoft)"
+    date = "2026-01-18T11:43:37+0530",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.9 (GraalVM Community)"
 )
 @Component
 public class DepartmentMapperImpl implements DepartmentMapper {
+
+    @Override
+    public Department toEntity(DepartmentDTO dto) {
+        if ( dto == null ) {
+            return null;
+        }
+
+        Department department = new Department();
+
+        department.setIsActive( dto.getIsActive() );
+        department.setIsDeleted( dto.getIsDeleted() );
+        department.setCreatedBy( dto.getCreatedBy() );
+        department.setCreatedByName( dto.getCreatedByName() );
+        department.setCreatedAt( dto.getCreatedAt() );
+        department.setUpdatedAt( dto.getUpdatedAt() );
+        department.setDepartmentId( dto.getDepartmentId() );
+        department.setDepartmentUuid( dto.getDepartmentUuid() );
+        department.setCompanyUuid( dto.getCompanyUuid() );
+        department.setCode( dto.getCode() );
+        department.setName( dto.getName() );
+        department.setDescription( dto.getDescription() );
+
+        return department;
+    }
+
+    @Override
+    public DepartmentDTO toDto(Department entity) {
+        if ( entity == null ) {
+            return null;
+        }
+
+        DepartmentDTO departmentDTO = new DepartmentDTO();
+
+        departmentDTO.setDepartmentId( entity.getDepartmentId() );
+        departmentDTO.setDepartmentUuid( entity.getDepartmentUuid() );
+        departmentDTO.setCompanyUuid( entity.getCompanyUuid() );
+        departmentDTO.setCode( entity.getCode() );
+        departmentDTO.setName( entity.getName() );
+        departmentDTO.setDescription( entity.getDescription() );
+        departmentDTO.setIsActive( entity.getIsActive() );
+        departmentDTO.setIsDeleted( entity.getIsDeleted() );
+        departmentDTO.setCreatedByName( entity.getCreatedByName() );
+        departmentDTO.setCreatedBy( entity.getCreatedBy() );
+        departmentDTO.setCreatedAt( entity.getCreatedAt() );
+        departmentDTO.setUpdatedAt( entity.getUpdatedAt() );
+
+        return departmentDTO;
+    }
 
     @Override
     public void updateFromDto(DepartmentDTO dto, Department entity) {
