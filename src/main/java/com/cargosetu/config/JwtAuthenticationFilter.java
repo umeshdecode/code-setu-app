@@ -146,8 +146,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 LoggedInUser user = new LoggedInUser();
-                user.setUserId(Integer.valueOf(claims.getSubject()));
-                user.setUserId(claims.get("staffId",Integer.class));
+                user.setStaffId(Long.valueOf(claims.getSubject()));
+                user.setStaffId(claims.get("staffId",Long.class));
                 user.setUuid(claims.get("uuid", String.class));
                 user.setEmail(claims.get("email", String.class));
                 user.setUserName(claims.get("userName", String.class));

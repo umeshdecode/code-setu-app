@@ -89,7 +89,7 @@ public class AuthService {
         loggedInUser.setRoles(staffRoles);
         loggedInUser.setPermissions(staffPermissions);
         loggedInUser.setUuid(staff.getUuid());
-        loggedInUser.setUserId(staff.getStaffId());
+        loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());
         

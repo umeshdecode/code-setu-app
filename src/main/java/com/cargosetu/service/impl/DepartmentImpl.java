@@ -178,7 +178,7 @@ public class DepartmentImpl implements DepartmentService {
             department.setDepartmentUuid(pojo.getDepartmentUuid());
             department.setCompanyUuid(pojo.getCompanyUuid());
             department.setIsActive(true);
-            department.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getUserId().toString()));
+            department.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getStaffId().toString()));
             department = departmentRepo.save(department);
 
             response.setResponseMessege("department Created Successfully");

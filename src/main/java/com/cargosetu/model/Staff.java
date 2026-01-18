@@ -17,7 +17,7 @@ public class Staff extends AbstractModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "staff_id")
-    private Integer staffId;
+    private Long staffId;
 
     @Column(name = "staff_uuid",nullable = false,unique = true)
     private String uuid; // unique for each user or staff

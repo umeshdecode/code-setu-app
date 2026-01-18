@@ -34,5 +34,7 @@ public class StaffDTO {
     private Integer failedLoginAttempts;
     private LocalDateTime passwordChangedAt;
     private String previousPassword;
+    private DepartmentDTO department;
+    private Integer companyId;
 
 }

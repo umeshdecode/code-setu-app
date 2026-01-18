@@ -37,7 +37,7 @@ public class LoggedInUser implements UserDetails {
         return email;
     }
 
-    private Integer userId;
+    private Long staffId;
 
     private String uuid;
 

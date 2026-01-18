@@ -3,6 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.handler.CustomValidationException;
+import com.cargosetu.mapper.StaffMapper;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
 import com.cargosetu.repo.RolesRepo;
@@ -24,11 +25,13 @@ public class StaffService {
     private final StaffRepository staffRepository;
     private final RolesRepo rolesRepo;
     private final RolesImpl rolesService;
+    private final StaffMapper staffMapper;
 
-    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService) {
+    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
         this.rolesService = rolesService;
+        this.staffMapper = staffMapper;
     }
 
     private String getModuleName(){
@@ -40,15 +43,16 @@ public class StaffService {
         Staff staff = new Staff();
 
         String generatedUUID = UUIDGenerator.generate();
-
+        staff = staffMapper.toEntity(staffDTO);
         staff.setUuid(generatedUUID);
-        staff.setEmail(staffDTO.getEmail());
-        staff.setFirstName(staffDTO.getFirstName());
-        staff.setLastName(staffDTO.getLastName());
-        staff.setUserName(staffDTO.getUserName());
-        staff.setMobileCode(staffDTO.getMobileCode());
-        staff.setMobileNumber(staffDTO.getMobileNumber());
-        staff.setPassword(staffDTO.getPassword());
+//
+//        staff.setEmail(staffDTO.getEmail());
+//        staff.setFirstName(staffDTO.getFirstName());
+//        staff.setLastName(staffDTO.getLastName());
+//        staff.setUserName(staffDTO.getUserName());
+//        staff.setMobileCode(staffDTO.getMobileCode());
+//        staff.setMobileNumber(staffDTO.getMobileNumber());
+//        staff.setPassword(staffDTO.getPassword());
 
         // set user staff default role
         Optional<Role> companyAdminDefaultRole = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
@@ -59,7 +63,8 @@ public class StaffService {
             staff.setRoles(Set.of(role));
         }
         Staff savedStaff = staffRepository.save(staff);
-        staffDTO = convertStaffToDTO(savedStaff);
+        staffDTO = staffMapper.toDto(savedStaff);
+//        staffDTO = convertStaffToDTO(savedStaff);
         return staffDTO;
     }
 
@@ -68,7 +73,7 @@ public class StaffService {
     public StaffDTO getStaffById(Integer staffId) {
         Optional<Staff> staff = staffRepository.findById(staffId);
         if(staff.isPresent()){
-            return convertStaffToDTO(staff.get());
+            return staffMapper.toDto(staff.get());
         }
         return null;
     }
