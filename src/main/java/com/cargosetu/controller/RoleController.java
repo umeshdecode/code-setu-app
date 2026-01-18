@@ -2,7 +2,7 @@ package com.cargosetu.controller;
 
 import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.service.impl.RolesImpl;
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;

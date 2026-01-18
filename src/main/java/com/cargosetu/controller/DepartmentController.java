@@ -2,7 +2,7 @@ package com.cargosetu.controller;
 
 import com.cargosetu.dto.DepartmentDTO;
 import com.cargosetu.service.DepartmentService;
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
