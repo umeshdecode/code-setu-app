@@ -28,7 +28,7 @@ public class StaffController {
             "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ)"
     )
     @GetMapping("/{id}")
-    public GenericDataDTO getStaff(@PathVariable("id") Integer staffId){
+    public GenericDataDTO getStaff(@PathVariable("id") Long staffId){
         GenericDataDTO dto = new GenericDataDTO();
         StaffDTO staffById = staffService.getStaffById(staffId);
         if (Objects.nonNull(staffById)) {
@@ -63,5 +63,19 @@ public class StaffController {
         return dto;
     }
 
+    @DeleteMapping("/{staffId}")
+    public GenericDataDTO deleteStaff(@PathVariable("staffId") Long staffId){
+        GenericDataDTO dto = new GenericDataDTO();
+        Boolean deleteStaff = staffService.deleteStaff(staffId);
+        if(deleteStaff){
+            dto.setResponseCode(CommonStatusCode.SUCCESS);
+            dto.setResponseMessege(CommonStatusCode.MSG_SUCCESS);
+            return dto;
+        }else {
+            dto.setResponseCode(CommonStatusCode.FAIL);
+            dto.setResponseMessege("Staff not Deleted");
+            return dto;
+        }
+    }
 
 }
