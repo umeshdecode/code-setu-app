@@ -96,7 +96,7 @@ public class AuthService {
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
-        return new TokenResponse("Bearer "+jwtToken, jwtUtils.getTokenExpirationTime());
+        return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){
