@@ -35,6 +35,7 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject(user.getUserId().toString())
+                .claim("staffId",user.getUserId())
                 .claim("uuid", user.getUuid())
                 .claim("roles", user.getRoles())
                 .claim("userName",user.getUsername())
