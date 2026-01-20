@@ -6,5 +6,6 @@ public interface BaseURL {
    final String PERMISSION ="/permission";
    final String DEPARTMENT ="/department";
    final String COMPANY ="/company";
+   final String DOCUMENT ="/document";
 
 }

@@ -47,6 +47,19 @@ dependencies {
     //Mapper
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+
+    //  Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
+
+    // CSV utility
+    implementation 'org.apache.commons:commons-csv:1.10.0'
+    implementation 'com.opencsv:opencsv:5.9'
+
+    implementation 'commons-io:commons-io:2.15.1'
+
+
 }
 
 tasks.named('test') {
