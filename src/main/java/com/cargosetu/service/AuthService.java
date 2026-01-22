@@ -53,21 +53,21 @@ public class AuthService {
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
         }
-        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
-            boolean validEmail = isValidEmail(loginDto.getEmail());
-            if(!validEmail){
-                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
-            }
-        }
+//        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
+//            boolean validEmail = isValidEmail(loginDto.getEmail());
+//            if(!validEmail){
+//                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
+//            }
+//        }
         return true;
     }
 
     public TokenResponse loginUser(LoginRequest loginDto) {
         Staff staff = null;
-        if(loginDto.getUserName() != null){
-             staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
-        }
-        else if(loginDto.getEmail() != null){
+//        if(loginDto.getUserName() != null){
+//             staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
+//        }
+         if(loginDto.getEmail() != null){
             staff = loginWithEmailAndPassword(loginDto.getEmail(),loginDto.getPassword());
         }
         if(staff == null){
@@ -96,7 +96,7 @@ public class AuthService {
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
-        return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
+         return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){
@@ -111,7 +111,7 @@ public class AuthService {
     }
 
     private Staff loginWithEmailAndPassword(String email, String password) {
-        Optional<Staff> byEmail = staffRepository.findByEmail(email);
+        Optional<Staff> byEmail = staffRepository.findByEmailOrUserName(email,email);
         if(byEmail.isPresent()){
             if(!passwordEncoder.matches(password,byEmail.get().getPassword())){
                 throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),"Password is incorrect!!");
