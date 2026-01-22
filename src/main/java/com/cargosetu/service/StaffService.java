@@ -16,9 +16,12 @@ import com.cargosetu.utils.UUIDGenerator;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -58,6 +61,8 @@ public class StaffService {
             Role role = rolesService.createCompanyAdminDefaultRole();
             staff.setRoles(Set.of(role));
         }
+         String encode = new BCryptPasswordEncoder().encode(staff.getPassword());
+        staff.setPassword(encode);
         Staff savedStaff = staffRepository.save(staff);
         staffDTO = staffMapper.toDto(savedStaff);
         return staffDTO;
@@ -138,5 +143,13 @@ public class StaffService {
             return true;
         }
         return false;
+    }
+
+    public Boolean isDuplicateUser(StaffDTO staffDTO) {
+        Staff user = staffRepository.findByEmailOrUserName(staffDTO.getEmail(), staffDTO.getUserName()).orElse(null);
+        if(Objects.isNull(staffDTO )){
+            return false;
+        }
+        return true;
     }
 }

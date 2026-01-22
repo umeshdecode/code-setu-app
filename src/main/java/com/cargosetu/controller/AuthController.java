@@ -59,6 +59,11 @@ public class AuthController {
     public GenericDataDTO registerUser(@RequestBody StaffDTO staffDTO){
         GenericDataDTO dto = new GenericDataDTO();
         boolean validated = staffService.validateCreateStaffRequest(staffDTO);
+         Boolean duplicateUser = staffService.isDuplicateUser(staffDTO);
+        if(!duplicateUser){
+            dto.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
+            dto.setResponseMessege("Username already exists");
+        }
         if(validated){
             StaffDTO staff = staffService.saveStaff(staffDTO);
             if(Objects.nonNull(staff)){
