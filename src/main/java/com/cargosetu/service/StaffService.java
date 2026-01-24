@@ -52,7 +52,7 @@ public class StaffService {
         String generatedUUID = UUIDGenerator.generate();
         staff = staffMapper.toEntity(staffDTO);
         staff.setUuid(generatedUUID);
-
+        staff.setUserName(staffDTO.getEmail().substring(0, staffDTO.getEmail().indexOf("@"))+staff.getUuid().substring(4));
         // set user staff default role
         Optional<Role> companyAdminDefaultRole = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
         if(companyAdminDefaultRole.isPresent()){
@@ -147,9 +147,6 @@ public class StaffService {
 
     public Boolean isDuplicateUser(StaffDTO staffDTO) {
         Staff user = staffRepository.findByEmailOrUserName(staffDTO.getEmail(), staffDTO.getUserName()).orElse(null);
-        if(Objects.isNull(staffDTO )){
-            return false;
-        }
-        return true;
+        return Objects.nonNull(user);
     }
 }
