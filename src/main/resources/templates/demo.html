@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CargoSetu - Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .browser-mockup {
+            width: 100%;
+            max-width: 1400px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            height: 90vh;
+            max-height: 900px;
+        }
+
+        .browser-chrome {
+            background: #e5e7eb;
+            border-bottom: 1px solid #d1d5db;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .browser-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .browser-dot.red { background: #ef4444; }
+        .browser-dot.yellow { background: #eab308; }
+        .browser-dot.green { background: #22c55e; }
+
+        .browser-url {
+            flex: 1;
+            background: white;
+            border-radius: 6px;
+            padding: 6px 16px;
+            margin: 0 32px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100% - 45px);
+        }
+
+        .left-panel {
+            width: 50%;
+            background: white;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            width: 50%;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            padding: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-section {
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .login-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 440px;
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 8px;
+            background: #f3f4f6;
+            padding: 4px;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-button:hover:not(.active) {
+            color: #1f2937;
+        }
+
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper.focused {
+            filter: drop-shadow(0 0 0 3px rgba(37, 99, 235, 0.1));
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            width: 20px;
+            height: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 16px 16px 48px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            color: #1f2937;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: #2563eb;
+        }
+
+        .form-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #6b7280;
+        }
+
+        .otp-input {
+            padding: 16px;
+            text-align: center;
+            letter-spacing: 8px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #6b7280;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        .forgot-link {
+            font-size: 14px;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-link:hover {
+            color: #1d4ed8;
+        }
+
+        .resend-link {
+            font-size: 14px;
+            color: #f97316;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 8px;
+            display: inline-block;
+            transition: color 0.3s ease;
+        }
+
+        .resend-link:hover {
+            color: #ea580c;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .login-button:hover:not(:disabled) {
+            background: #1d4ed8;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .login-button:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .login-button .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 1.5rem 0;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        .divider span {
+            position: relative;
+            background: white;
+            padding: 0 16px;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .google-button {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .google-button:hover:not(:disabled) {
+            border-color: #d1d5db;
+            background: #f9fafb;
+        }
+
+        .google-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .footer-text {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        .footer-text a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-text a:hover {
+            color: #1d4ed8;
+        }
+
+        /* Right Panel Styles */
+        .illustration-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 520px;
+        }
+
+        .illustration-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .illustration-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .illustration-header p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2rem;
+        }
+
+        .route-visualization {
+            position: relative;
+            height: 280px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .grid-pattern {
+            position: absolute;
+            inset: 0;
+            opacity: 0.1;
+            background-image:
+                    linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255, 255, 255, 0.3) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .route-path {
+            position: absolute;
+            left: 10%;
+            top: 70%;
+            width: 80%;
+            height: 4px;
+        }
+
+        .route-path svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .location-pin {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .pin-start {
+            left: 10%;
+            bottom: 25%;
+            background: #f97316;
+            animation: bounce 2s infinite;
+        }
+
+        .pin-end {
+            right: 10%;
+            top: 30%;
+            background: #22c55e;
+            animation: bounce 2s infinite 1s;
+        }
+
+        .pin-waypoint {
+            width: 24px;
+            height: 24px;
+            background: #60a5fa;
+        }
+
+        .waypoint-1 { left: 30%; top: 45%; }
+        .waypoint-2 { right: 35%; top: 25%; }
+
+        .truck-icon {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 4px;
+        }
+
+        .bg-decoration {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            filter: blur(60px);
+        }
+
+        .decoration-1 {
+            width: 400px;
+            height: 400px;
+            background: #60a5fa;
+            top: -100px;
+            right: -100px;
+        }
+
+        .decoration-2 {
+            width: 400px;
+            height: 400px;
+            background: #f97316;
+            bottom: -100px;
+            left: -100px;
+        }
+
+        /* Icons */
+        .icon {
+            width: 20px;
+            height: 20px;
+            stroke-width: 2;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+<div class="browser-mockup">
+    <div class="browser-chrome">
+        <div class="browser-dots">
+            <div class="browser-dot red"></div>
+            <div class="browser-dot yellow"></div>
+            <div class="browser-dot green"></div>
+        </div>
+        <div class="browser-url">https://app.cargosetu.com/login</div>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Panel - Login Form -->
+        <div class="left-panel">
+            <div class="logo-section">
+                <div class="logo">
+<!--                    <svg class="logo-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">-->
+<!--                        <path d="M8 28L16 20L24 24L32 18L40 22" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>-->
+<!--                        <path d="M8 28L16 32L24 28L32 32L40 28" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>-->
+<!--                        <circle cx="8" cy="28" r="3" fill="#F97316"/>-->
+<!--                        <circle cx="16" cy="20" r="3" fill="#2563EB"/>-->
+<!--                        <circle cx="24" cy="24" r="3" fill="#2563EB"/>-->
+<!--                        <circle cx="32" cy="18" r="3" fill="#2563EB"/>-->
+<!--                        <circle cx="40" cy="22" r="4" fill="#F97316"/>-->
+<!--                        <path d="M40 22L45 22M40 22L42 19M40 22L42 25" stroke="#F97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>-->
+<!--                    </svg>-->
+                    <img src="/static/assets/logo.png" height="100px" width="100px">
+                    <span class="logo-text">CargoSetu</span>
+                </div>
+            </div>
+
+            <div class="login-content">
+                <div class="login-header">
+                    <h1>Welcome back</h1>
+                    <p>Sign in to your CargoSetu account</p>
+                </div>
+
+                <div class="tab-container">
+                    <button class="tab-button active" data-tab="mobile">Mobile OTP</button>
+                    <button class="tab-button" data-tab="email">Email/Password</button>
+                </div>
+
+                <!-- Mobile OTP Form -->
+                <div class="form-content active" id="mobile-form">
+                    <div class="form-group">
+                        <label class="form-label">Mobile Number</label>
+                        <div class="input-wrapper" id="mobile-wrapper">
+                            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <input type="tel" class="form-input" id="mobile-input" placeholder="+91 98765 43210">
+                        </div>
+                    </div>
+
+                    <div class="form-group hidden" id="otp-group">
+                        <label class="form-label">Enter OTP</label>
+                        <div class="input-wrapper" id="otp-wrapper">
+                            <input type="text" class="form-input otp-input" id="otp-input" placeholder="000000" maxlength="6">
+                        </div>
+                        <a href="#" class="resend-link">Resend OTP</a>
+                    </div>
+
+                    <button class="login-button" id="mobile-login-btn">
+                        <span>Sign In</span>
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Email/Password Form -->
+                <div class="form-content" id="email-form">
+                    <div class="form-group">
+                        <label class="form-label">Email or Username</label>
+                        <div class="input-wrapper" id="email-wrapper">
+                            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <input type="text" class="form-input" id="email-input" placeholder="you@company.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <div class="input-wrapper" id="password-wrapper">
+                            <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <input type="password" class="form-input" id="password-input" placeholder="Enter your password">
+                            <button type="button" class="password-toggle" id="password-toggle">
+                                <svg class="icon" id="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-footer">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="remember-me">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+
+                    <button class="login-button" id="email-login-btn">
+                        <span>Sign In</span>
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="divider">
+                    <span>Or continue with</span>
+                </div>
+
+                <button class="google-button" id="google-btn">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M19.8 10.2273C19.8 9.51819 19.7364 8.83637 19.6182 8.18182H10.2V12.05H15.6109C15.3727 13.3 14.6455 14.3591 13.5636 15.0682V17.5773H16.8182C18.7091 15.8364 19.8 13.2727 19.8 10.2273Z" fill="#4285F4"/>
+                        <path d="M10.2 20C12.9 20 15.1727 19.1045 16.8182 17.5773L13.5636 15.0682C12.6545 15.6682 11.5091 16.0227 10.2 16.0227C7.59545 16.0227 5.38182 14.2636 4.58182 11.9H1.22727V14.4909C2.86364 17.7591 6.28182 20 10.2 20Z" fill="#34A853"/>
+                        <path d="M4.58182 11.9C4.38182 11.3 4.26818 10.6591 4.26818 10C4.26818 9.34091 4.38182 8.7 4.58182 8.1V5.50909H1.22727C0.554545 6.85909 0.181818 8.38636 0.181818 10C0.181818 11.6136 0.554545 13.1409 1.22727 14.4909L4.58182 11.9Z" fill="#FBBC04"/>
+                        <path d="M10.2 3.97727C11.6227 3.97727 12.8864 4.48182 13.8773 5.43636L16.7636 2.55C15.1682 1.05909 12.8955 0.181818 10.2 0.181818C6.28182 0.181818 2.86364 2.42273 1.22727 5.69091L4.58182 8.1C5.38182 5.73636 7.59545 3.97727 10.2 3.97727Z" fill="#EA4335"/>
+                    </svg>
+                    <span>Google</span>
+                </button>
+
+                <div class="footer-text">
+                    By signing in, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a><br>
+                    <a href="#">Need help? Contact Support</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Illustration -->
+        <div class="right-panel">
+            <div class="bg-decoration decoration-1"></div>
+            <div class="bg-decoration decoration-2"></div>
+
+            <div class="illustration-container">
+                <div class="illustration-card">
+                    <div class="illustration-header">
+                        <h2>Streamline Your Logistics</h2>
+                        <p>Track, manage, and optimize your cargo operations in real-time</p>
+                    </div>
+
+                    <div class="route-visualization">
+                        <div class="grid-pattern"></div>
+
+                        <svg class="route-path" viewBox="0 0 400 200" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#F97316;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M 0 100 Q 100 50, 200 80 T 400 60" fill="none" stroke="url(#routeGradient)" stroke-width="4" stroke-dasharray="8 4">
+                                <animate attributeName="stroke-dashoffset" from="0" to="12" dur="1s" repeatCount="indefinite" />
+                            </path>
+                        </svg>
+
+                        <div class="location-pin pin-start">
+                            <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                        </div>
+
+                        <div class="location-pin pin-waypoint waypoint-1"></div>
+                        <div class="location-pin pin-waypoint waypoint-2"></div>
+
+                        <div class="location-pin pin-end">
+                            <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
+                                <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/>
+                            </svg>
+                        </div>
+
+                        <div class="truck-icon">
+                            <svg width="40" height="40" fill="#2563eb" viewBox="0 0 24 24">
+                                <path d="M18 18.5a1.5 1.5 0 01-1.5-1.5 1.5 1.5 0 011.5-1.5 1.5 1.5 0 011.5 1.5 1.5 1.5 0 01-1.5 1.5m1.5-9l1.96 2.5H17V9.5m-11 9A1.5 1.5 0 014.5 17 1.5 1.5 0 016 15.5 1.5 1.5 0 017.5 17 1.5 1.5 0 016 18.5M20 8h-3V4H3c-1.11 0-2 .89-2 2v11h2a3 3 0 003 3 3 3 0 003-3h6a3 3 0 003 3 3 3 0 003-3h2v-5l-3-4z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value">500+</span>
+                            <span class="stat-label">Active Routes</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">24/7</span>
+                            <span class="stat-label">Tracking</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value">98%</span>
+                            <span class="stat-label">On-Time</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const formContents = document.querySelectorAll('.form-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.getAttribute('data-tab');
+
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            formContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${targetTab}-form`) {
+                    content.classList.add('active');
+                }
+            });
+        });
+    });
+
+    // Password toggle
+    const passwordToggle = document.getElementById('password-toggle');
+    const passwordInput = document.getElementById('password-input');
+    const eyeIcon = document.getElementById('eye-icon');
+
+    passwordToggle.addEventListener('click', () => {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+
+        if (type === 'text') {
+            eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />';
+        } else {
+            eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />';
+        }
+    });
+
+    // Input focus effects
+    const inputWrappers = document.querySelectorAll('.input-wrapper');
+
+    inputWrappers.forEach(wrapper => {
+        const input = wrapper.querySelector('.form-input');
+
+        input.addEventListener('focus', () => {
+            wrapper.classList.add('focused');
+        });
+
+        input.addEventListener('blur', () => {
+            wrapper.classList.remove('focused');
+        });
+    });
+
+    // Mobile OTP flow
+    const mobileInput = document.getElementById('mobile-input');
+    const otpGroup = document.getElementById('otp-group');
+    const mobileLoginBtn = document.getElementById('mobile-login-btn');
+
+    mobileInput.addEventListener('input', () => {
+        if (mobileInput.value.length >= 10) {
+            otpGroup.classList.remove('hidden');
+        } else {
+            otpGroup.classList.add('hidden');
+        }
+    });
+
+    // Login button handlers
+    mobileLoginBtn.addEventListener('click', handleLogin);
+    document.getElementById('email-login-btn').addEventListener('click', handleLogin);
+    document.getElementById('google-btn').addEventListener('click', handleGoogleLogin);
+
+    function handleLogin(e) {
+        const button = e.currentTarget;
+        const buttonText = button.querySelector('span');
+        const buttonIcon = button.querySelector('.icon');
+
+        button.disabled = true;
+        buttonIcon.classList.add('hidden');
+
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+        button.insertBefore(spinner, buttonText);
+
+        setTimeout(() => {
+            button.disabled = false;
+            spinner.remove();
+            buttonIcon.classList.remove('hidden');
+        }, 2000);
+    }
+
+    function handleGoogleLogin(e) {
+        const button = e.currentTarget;
+        const buttonText = button.querySelector('span');
+
+        button.disabled = true;
+        buttonText.textContent = 'Connecting...';
+
+        setTimeout(() => {
+            button.disabled = false;
+            buttonText.textContent = 'Google';
+        }, 2000);
+    }
+
+    // Enter key support
+    document.querySelectorAll('.form-input').forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const activeForm = document.querySelector('.form-content.active');
+                const loginBtn = activeForm.querySelector('.login-button');
+                loginBtn.click();
+            }
+        });
+    });
+</script>
+</body>
+</html>
