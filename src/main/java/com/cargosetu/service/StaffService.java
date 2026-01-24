@@ -120,9 +120,9 @@ public class StaffService {
         if(staffDTO.getMobileNumber() == null || staffDTO.getMobileNumber().isBlank()){
             throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter valid mobile number");
         }
-        if(staffDTO.getUserName() == null || staffDTO.getUserName().isBlank()){
-            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter your preferred Username");
-        }
+//        if(staffDTO.getUserName() == null || staffDTO.getUserName().isBlank()){
+//            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter your preferred Username");
+//        }
         return true;
     }
 
