@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -46,9 +47,8 @@ public class AuthService {
         if(loginDto == null){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"Login Request cannot be null");
         }
-        if( (loginDto.getEmail() == null || loginDto.getEmail().trim().isEmpty()) &&
-                (loginDto.getUserName() == null || loginDto.getUserName().trim().isEmpty())){
-            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter either username or email");
+        if(!StringUtils.hasText(loginDto.getEmail())){
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid email!!");
         }
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
@@ -64,9 +64,7 @@ public class AuthService {
 
     public TokenResponse loginUser(LoginRequest loginDto) {
         Staff staff = null;
-//        if(loginDto.getUserName() != null){
-//             staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
-//        }
+
          if(loginDto.getEmail() != null){
             staff = loginWithEmailAndPassword(loginDto.getEmail(),loginDto.getPassword());
         }

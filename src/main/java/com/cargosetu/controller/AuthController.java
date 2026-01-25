@@ -63,7 +63,7 @@ public class AuthController {
         if (validated) {
             if (duplicateUser) {
                 dto.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
-                dto.setResponseMessege("Username already exists");
+                dto.setResponseMessege("Username/email already exists");
                 return dto;
             }
             StaffDTO staff = staffService.saveStaff(staffDTO);
