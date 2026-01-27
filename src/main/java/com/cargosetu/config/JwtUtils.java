@@ -34,7 +34,8 @@ public class JwtUtils {
     public String generateToken(LoggedInUser user) {
 
         return Jwts.builder()
-                .setSubject(user.getUserId().toString())
+                .setSubject(user.getStaffId().toString())
+                .claim("staffId",user.getStaffId())
                 .claim("uuid", user.getUuid())
                 .claim("roles", user.getRoles())
                 .claim("userName",user.getUsername())

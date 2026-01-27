@@ -39,7 +39,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         LoggedInUser loggedInUser = new LoggedInUser();
         loggedInUser.setRoles(staff.getRoles().stream().map(Role::getCode).collect(Collectors.toSet()));
         loggedInUser.setUserName(staff.getUserName());
-        loggedInUser.setUserId(staff.getStaffId());
+        loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setEmail(staff.getEmail());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());

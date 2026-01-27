@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -45,28 +47,25 @@ public class AuthService {
         if(loginDto == null){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"Login Request cannot be null");
         }
-        if( (loginDto.getEmail() == null || loginDto.getEmail().trim().isEmpty()) &&
-                (loginDto.getUserName() == null || loginDto.getUserName().trim().isEmpty())){
-            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter either username or email");
+        if(!StringUtils.hasText(loginDto.getEmail())){
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid email!!");
         }
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
         }
-        if(loginDto.getEmail() !=null){
-            boolean validEmail = isValidEmail(loginDto.getEmail());
-            if(!validEmail){
-                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
-            }
-        }
+//        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
+//            boolean validEmail = isValidEmail(loginDto.getEmail());
+//            if(!validEmail){
+//                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
+//            }
+//        }
         return true;
     }
 
     public TokenResponse loginUser(LoginRequest loginDto) {
         Staff staff = null;
-        if(loginDto.getUserName() != null){
-             staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
-        }
-        if(loginDto.getEmail() != null){
+
+         if(loginDto.getEmail() != null){
             staff = loginWithEmailAndPassword(loginDto.getEmail(),loginDto.getPassword());
         }
         if(staff == null){
@@ -88,14 +87,14 @@ public class AuthService {
         loggedInUser.setRoles(staffRoles);
         loggedInUser.setPermissions(staffPermissions);
         loggedInUser.setUuid(staff.getUuid());
-        loggedInUser.setUserId(staff.getStaffId());
+        loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());
         
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
-        return new TokenResponse("Bearer "+jwtToken, jwtUtils.getTokenExpirationTime());
+         return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){
@@ -110,7 +109,7 @@ public class AuthService {
     }
 
     private Staff loginWithEmailAndPassword(String email, String password) {
-        Optional<Staff> byEmail = staffRepository.findByEmail(email);
+        Optional<Staff> byEmail = staffRepository.findByEmailOrUserName(email,email);
         if(byEmail.isPresent()){
             if(!passwordEncoder.matches(password,byEmail.get().getPassword())){
                 throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),"Password is incorrect!!");

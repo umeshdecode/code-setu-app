@@ -3,6 +3,7 @@ package com.cargosetu.model;
 import com.cargosetu.abstracts.AbstractModel;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -10,6 +11,7 @@ import java.util.Set;
 @Entity
 @Table(name = "tblm_roles")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Role extends AbstractModel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

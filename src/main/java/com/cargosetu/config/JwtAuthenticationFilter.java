@@ -1,6 +1,8 @@
 package com.cargosetu.config;
 
 import com.cargosetu.config.dto.LoggedInUser;
+import com.cargosetu.model.Permission;
+import com.cargosetu.repo.PermissionRepo;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,13 +19,16 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtil;
+    private PermissionRepo permissionRepo;
 
-    public JwtAuthenticationFilter(JwtUtils jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtils jwtUtil, PermissionRepo permissionRepo) {
         this.jwtUtil = jwtUtil;
+        this.permissionRepo = permissionRepo;
     }
 
     @Override
@@ -136,12 +141,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 List<String> permissions = claims.get("permissions", List.class);
                 Set<String> permissionSet = new HashSet<>();
                 if (permissions != null) {
-                    permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
+                    permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority("PERM_"+p)));
                     permissionSet.addAll(permissions);
                 }
 
                 LoggedInUser user = new LoggedInUser();
-                user.setUserId(Integer.valueOf(claims.getSubject()));
+                user.setStaffId(Long.valueOf(claims.getSubject()));
+                user.setStaffId(claims.get("staffId",Long.class));
                 user.setUuid(claims.get("uuid", String.class));
                 user.setEmail(claims.get("email", String.class));
                 user.setUserName(claims.get("userName", String.class));
