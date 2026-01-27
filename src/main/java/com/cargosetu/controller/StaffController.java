@@ -25,7 +25,8 @@ public class StaffController {
     }
 
     @PreAuthorize(
-            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ)"
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ) " +
+                    "or hasRole(T(com.cargosetu.utils.CommonConstants.RolesConstants).COMPANY_ADMIN)"
     )
     @GetMapping("/{id}")
     public GenericDataDTO getStaff(@PathVariable("id") Long staffId){
