@@ -7,5 +7,6 @@ public interface BaseURL {
    final String DEPARTMENT ="/department";
    final String COMPANY ="/company";
    final String DOCUMENT ="/document";
+   final String SYSTEM_CONFIG ="/system/configuration";
 
 }
