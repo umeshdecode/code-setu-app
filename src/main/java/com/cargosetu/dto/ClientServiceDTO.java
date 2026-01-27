@@ -10,7 +10,7 @@ public class ClientServiceDTO {
     private Integer clientId;
     private String value;
     private String name;
-    private String staffId;
+    private Integer staffId;
     private Boolean isActive;
     private Boolean isDeleted;
     private String createdByName;
