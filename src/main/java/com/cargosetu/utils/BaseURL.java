@@ -8,5 +8,5 @@ public interface BaseURL {
    final String COMPANY ="/company";
    final String DOCUMENT ="/document";
    final String SYSTEM_CONFIG ="/system/configuration";
-
+   final String DOCS_UPLOADS = "/docs/uploads";
 }
