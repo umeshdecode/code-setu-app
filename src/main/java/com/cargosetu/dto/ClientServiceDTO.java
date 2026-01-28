@@ -9,6 +9,7 @@ public class ClientServiceDTO {
 
     private Integer clientId;
     private String value;
+    private String module;
     private String name;
     private Integer staffId;
     private Boolean isActive;

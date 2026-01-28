@@ -25,4 +25,7 @@ public class Clientservice extends AbstractModel {
     @Column(name = "STAFFID", nullable = false, length = 40, updatable = false)
     private Integer staffId;
 
+    @Column(nullable = false, length = 40)
+    private String module;
+
 }

@@ -25,6 +25,9 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
             <column name="STAFFID" type="INT">
                 <constraints nullable="false"/>
             </column>
+            <column name="module" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
 
@@ -42,6 +45,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
             <column name="name" value="Staff Document"/>
             <column name="value" value="D:\"/>
             <column name="STAFFID" value="1"/>
+            <column name="module" value="xyz"/>
         </insert>
 
         <insert tableName="tblmclientservice">
@@ -49,6 +53,7 @@ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
             <column name="name" value="Login Attempt"/>
             <column name="value" value="5"/>
             <column name="STAFFID" value="1"/>
+            <column name="module" value="xyz"/>
         </insert>
 
     </changeSet>
