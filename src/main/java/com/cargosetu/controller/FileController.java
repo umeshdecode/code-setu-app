@@ -33,8 +33,8 @@ public class FileController {
                 throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"No files uploaded",null);
             }
             uploadDocuments(file);
-            response.put("message", "Document Uploaded For KnowledgeBase Submitted Successfully.");
-            log.info(":::::::::::::::::::::Document Uploaded For KnowledgeBase Submitted Successfully:::::::::::::::::::::");
+            response.put("message", "Document Uploaded  Submitted Successfully.");
+            log.info(":::::::::::::::::::::Document Uploaded Submitted Successfully:::::::::::::::::::::");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } catch (CustomValidationException ce) {
             log.error("Validation error while uploading document", ce);
@@ -49,7 +49,7 @@ public class FileController {
 
     private void uploadDocuments( MultipartFile[] files) throws IOException {
 //        String path ="";   // path from db future scope
-        String path = "C:\\"; //   "C:/uploads/"
+        String path = "C:\\Users\\bhand\\Desktop\\Adopt Projects\\Codesetu"; //   "C:/uploads/"
 //            String fullPath = path + subFolderName;  //subFolderName in future scope
         String fullPath = path ;
         log.info(":::::File Path Generated for Upload Document ::::: " + fullPath);

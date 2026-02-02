@@ -3,6 +3,7 @@ package com.cargosetu.utils.utillity;
 
 
 import com.cargosetu.exception.FileNotCreatedException;
+import com.cargosetu.utils.ApplicationUtils;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -12,14 +13,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 
 @Slf4j
 @Component
-public class FileUtility {
+public class FileUtility extends ApplicationUtils {
 
     private static final String MODULE = " [File Utility ] ";
 
@@ -89,28 +92,33 @@ public class FileUtility {
 
     public String saveFile(MultipartFile argFile, String path) throws IOException {
         Assert.notNull(path, "Path should not be empty");
-        String fileName = "Test";
-        Path fullPath = Paths.get(path);
-        File directory = fullPath.toFile();
-        if (!directory.exists()) {
-            boolean dirsCreated = directory.mkdirs();
-            if (!dirsCreated) {
-                throw new IOException("Failed to create directories: " + fullPath);
-            }
+
+        // 1. Create the directory path object
+        Path directoryPath = Paths.get(path);
+
+        // 2. Ensure directory exists
+        if (!Files.exists(directoryPath)) {
+            Files.createDirectories(directoryPath);
         }
-        if (null != argFile) {
-            fileName = (null != argFile.getOriginalFilename()) ? argFile.getOriginalFilename().replace("/", "_").trim() : fileName;
-        }
-        File file = new File(path+ System.currentTimeMillis() + "_" + fileName);
-        try (FileOutputStream fout = new FileOutputStream(file)) {
-            // Write file contents
-            fout.write(argFile.getBytes());
-            log.info("File Uploaded successfully on path: "+path);
+
+        // 3. Clean up the filename
+        String originalName = (argFile.getOriginalFilename() != null) ? argFile.getOriginalFilename().replace("/", "_").trim() : "Test";
+
+        String finalFileName = getCurrentUser().getUsername() + "_" + originalName; //this is final file name so if in future wanna change
+
+        // 4. Combine path and filename safely
+        Path targetLocation = directoryPath.resolve(finalFileName);
+
+        // 5. Save the file
+        try {
+            Files.copy(argFile.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+            log.info("File Uploaded successfully to: " + targetLocation.toString());
         } catch (IOException e) {
             log.error(":::::Exception While Saving File:::: " + e.getMessage(), e);
             throw new FileNotCreatedException();
         }
-        return file.getName();
+
+        return finalFileName;
     }
 
 

@@ -8,6 +8,7 @@ import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
 import com.cargosetu.repository.StaffRepository;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -116,5 +118,31 @@ public class AuthService {
             }
             return byEmail.get();
         }else throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),"Account not found for email "+email+",try with correct credentials!!");
+    }
+
+    public TokenResponse refreshToken(String oldToken) {
+        try {
+            // We parse the claims even if the token is expired to get the user details
+            Claims claims = jwtUtils.getClaimsFromExpiredToken(oldToken);
+
+            // Reconstruct the LoggedInUser object from claims
+            LoggedInUser user = new LoggedInUser();
+            user.setStaffId(Long.parseLong(claims.getSubject()));
+            user.setUuid((String) claims.get("uuid"));
+            user.setUserName((String) claims.get("userName"));
+            user.setFirstName((String) claims.get("firstName"));
+            user.setLastName((String) claims.get("lastName"));
+            user.setEmail((String) claims.get("email"));
+            user.setRoles(new HashSet<>((List<String>) claims.get("roles")));
+            user.setPermissions(new HashSet<>((List<String>) claims.get("permissions")));
+
+            // Generate a fresh token using your existing method
+            String newToken = jwtUtils.generateToken(user);
+
+            return new TokenResponse(newToken, jwtUtils.getTokenExpirationTime());
+
+        } catch (Exception e) {
+            throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Session expired, please login again.");
+        }
     }
 }
