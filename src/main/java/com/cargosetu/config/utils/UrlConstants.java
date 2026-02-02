@@ -11,4 +11,8 @@ public class UrlConstants {
         public static final String STAFF = "/staff";
     }
 
+    public interface CustomerUrlConstants {
+        public static final String CUSTOMER = "/customer";
+    }
+
 }

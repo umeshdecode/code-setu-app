@@ -1,0 +1,50 @@
+package com.cargosetu.customer.entity;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.time.LocalDate;
+
+@Entity
+@Data
+@Table(name = "tblm_shifting")
+public class Shifting {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "shifting_id")
+    private Long shiftingId;
+
+    @Column(name = "shift_completed")
+    private boolean isShiftCompleted = false;
+
+    @Column(name = "shift_from_city")
+    private String shiftFromCity;
+
+    @Column(name = "shift_to_city")
+    private String shiftToCity;
+
+    @Column(name = "to_address")
+    private String toAddress;
+
+    @Column(name = "from_address")
+    private String fromAddress;
+
+    @Column(name = "shifting_type")
+    private String shiftingType;
+
+    @Column(name = "shifting_Date")
+    private LocalDate shiftingStartDate;
+
+    @Column(name = "shift_reach_date")
+    private LocalDate shiftReachedDate;
+
+    @Column(name = "shift_completed_by")
+    private String shiftCompletedBy;
+
+    @Column(name = "shift_complted_by_id")
+    private Long shiftCompletedById;
+
+    @Column(name = "customerId")
+    private Long customerId;
+}
