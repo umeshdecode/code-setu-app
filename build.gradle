@@ -64,6 +64,9 @@ dependencies {
     //Liquibase
     implementation 'org.liquibase:liquibase-core:4.23.2'
 
+    //razorpay
+    implementation 'com.razorpay:razorpay-java:1.4.5'
+
 
 
 }
