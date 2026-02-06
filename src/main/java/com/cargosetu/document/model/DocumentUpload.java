@@ -1,5 +1,6 @@
 package com.cargosetu.document.model;
 
+import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.model.Staff;
 import jakarta.persistence.*;
 
@@ -11,6 +12,7 @@ public class DocumentUpload {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "doc_upload_id")
     private Long staffDocumentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -42,4 +44,8 @@ public class DocumentUpload {
 
     @Column
     private String remarks;
+
+    @JoinColumn(name = "customer_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Customer customer;
 }

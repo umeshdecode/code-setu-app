@@ -1,9 +1,13 @@
 package com.cargosetu.customer.entity;
 
+import com.cargosetu.document.model.DocumentUpload;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "tblm_customers")
@@ -19,7 +23,7 @@ public class Customer {
     private String firstName;
 
     @Column(name = "lastname")
-    private String LastName;
+    private String lastName;
 
     @Column(name = "mobile_no")
     private String mobileNo;
@@ -35,4 +39,10 @@ public class Customer {
 
     @Column(name = "company_id")
     private Integer companyId;
+
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    private List<Shifting> shiftings = new ArrayList<>();
+
+    @OneToMany(mappedBy = "customer")
+    private List<DocumentUpload> documentUploads = new ArrayList<>();
 }

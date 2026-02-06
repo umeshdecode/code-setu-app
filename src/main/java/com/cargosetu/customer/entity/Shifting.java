@@ -45,6 +45,11 @@ public class Shifting {
     @Column(name = "shift_complted_by_id")
     private Long shiftCompletedById;
 
-    @Column(name = "customerId")
-    private Long customerId;
+    @ManyToOne
+    @JoinColumn(name = "customer_id")
+    private Customer customer;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "charge_id", referencedColumnName = "charge_id")
+    private Charges charge;
 }
