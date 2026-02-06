@@ -3,7 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

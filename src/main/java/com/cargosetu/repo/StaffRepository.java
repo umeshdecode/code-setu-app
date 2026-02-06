@@ -1,4 +1,4 @@
-package com.cargosetu.repository;
+package com.cargosetu.repo;
 
 import com.cargosetu.model.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;

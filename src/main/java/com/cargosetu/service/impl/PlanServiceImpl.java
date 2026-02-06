@@ -2,7 +2,7 @@ package com.cargosetu.service.impl;
 
 import com.cargosetu.dto.PlanDTO;
 import com.cargosetu.model.Plans;
-import com.cargosetu.repository.PlanRepository;
+import com.cargosetu.repo.PlanRepository;
 import com.cargosetu.service.PlanService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -27,7 +27,7 @@ public class PlanController {
         log.info("Received request to create plan");
         return ResponseEntity.ok(planService.createPlan(dto));
     }
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_UPDATE)")
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_UPDATE_DELETE)")
     @PutMapping("/{id}")
     public ResponseEntity<PlanDTO> update(
             @PathVariable Integer id,
@@ -47,7 +47,7 @@ public class PlanController {
         log.debug("Received request to fetch all plans");
         return ResponseEntity.ok(planService.getAllPlans());
     }
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_DELETE)")
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_UPDATE_DELETE)")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> delete(@PathVariable Integer id) {
         log.warn("Received request to delete plan, ID: {}", id);

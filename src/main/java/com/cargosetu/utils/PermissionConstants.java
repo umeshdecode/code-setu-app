@@ -37,8 +37,7 @@ public class PermissionConstants {
     public static final String COMPANY_UPDATE  = PERM_PREFIX + "COMPANY_UPDATE";
     public static final String PLAN_READ  = PERM_PREFIX + "PLAN_READ";
     public static final String PLAN_CREATE  = PERM_PREFIX + "PLAN_CREATE";
-    public static final String PLAN_DELETE = PERM_PREFIX + "PLAN_DELETE";
-    public static final String PLAN_UPDATE  = PERM_PREFIX + "PLAN_UPDATE";
+    public static final String PLAN_UPDATE_DELETE = PERM_PREFIX + "PLAN_UPDATE_DELETE";
 
 
 

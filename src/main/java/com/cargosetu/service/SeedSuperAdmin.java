@@ -5,7 +5,7 @@ import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
 import com.cargosetu.repo.PermissionRepo;
 import com.cargosetu.repo.RolesRepo;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -64,6 +64,16 @@ public class SeedSuperAdmin implements ApplicationRunner {
             permissions.add(createPermission("STAFF_CREATE","Staff Create","permission for create staffs","Staff Module"));
             permissions.add(createPermission("STAFF_READ","Staff Read","permission for read staffs","Staff Module"));
             permissions.add(createPermission("STAFF_UPDATE_DELETE","Staff Update Delete","permission for update/delete staffs","Staff Module"));
+            permissions.add(createPermission("DEPARTMENT_UPDATE_DELETE","Department Update Delete","permission for update/delete Department","Department Module"));
+            permissions.add(createPermission("DEPARTMENT_CREATE","Department create","permission for create Department","Department Module"));
+            permissions.add(createPermission("DEPARTMENT_READ","Department read","permission for read Department","Department Module"));
+            permissions.add(createPermission("PLAN_UPDATE_DELETE","Plan Update Delete","permission for update/delete Plan","Plan Module"));
+            permissions.add(createPermission("PLAN_CREATE","Plan create Delete","permission for create Plan","Plan Module"));
+            permissions.add(createPermission("PLAN_READ","Plan read Delete","permission for read Plan","Plan Module"));
+            permissions.add(createPermission("COMPANY_CREATE","Company create ","permission for create Company","Company Module"));
+            permissions.add(createPermission("COMPANY_UPDATE_DELETE","Company Update/Delete","permission for update/delete Company","Staff Module"));
+            permissions.add(createPermission("COMPANY_READ","Company read","permission for read Company","Company Module"));
+
             Set<Permission> defaultPermissions = createDefaultPermissions(permissions);
             role.setPermissions(defaultPermissions);
             role = rolesRepo.save(role);
