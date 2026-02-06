@@ -7,7 +7,7 @@ import com.cargosetu.config.JwtUtils;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

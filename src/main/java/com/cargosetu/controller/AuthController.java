@@ -6,7 +6,7 @@ import com.cargosetu.config.dto.TokenResponse;
 import com.cargosetu.config.JwtUtils;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.AuthService;
 import com.cargosetu.service.StaffService;
 import com.cargosetu.utils.CommonConstants;

@@ -7,7 +7,7 @@ import com.cargosetu.mapper.StaffMapper;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
 import com.cargosetu.repo.RolesRepo;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.impl.RolesImpl;
 import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.CommonConstants;
@@ -17,7 +17,6 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
