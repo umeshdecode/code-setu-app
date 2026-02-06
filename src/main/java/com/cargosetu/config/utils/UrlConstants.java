@@ -7,6 +7,8 @@ public class UrlConstants {
     public static final String AUTH = "/auth";
     public static final String pages = "/pages";
     public static final String DOCUMENT_MASTER = "/document-master";
+    public static final String PLAN = "/plan";
+
     public interface StaffUrlConstants {
         public static final String STAFF = "/staff";
     }
