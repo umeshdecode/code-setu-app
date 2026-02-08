@@ -26,6 +26,7 @@ public final class CommonStatusCode {
     public static final String MSG_NOT_FOUND = "Resource not found";
     public static final String MSG_CONFLICT = "Duplicate record found";
     public static final String MSG_VALIDATION_FAILED = "Validation failed";
+    public static final String MSG_VALIDATION_SUCCESS = "Validation success";
 
     public static final String MSG_INTERNAL_SERVER_ERROR = "Something went wrong. Please try again later";
 

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -24,5 +26,8 @@ public class CustomerDTO {
     private LocalDate shiftingStartDate;
     private LocalDate shiftReachedDate;
     private Integer companyId;
+
+    List<ShiftingDTO> shiftings = new ArrayList<>();
+
 
 }
