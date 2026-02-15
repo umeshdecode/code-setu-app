@@ -62,6 +62,9 @@ public class CustomerController {
     }
 
     @DeleteMapping
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_DELETE)"
+    )
     public GenericDataDTO deleteCustomer(@RequestBody CustomerUpdateDto deleteDto) {
         GenericDataDTO deleteResponse = null;
         deleteResponse = customerService.deleteCustomer(deleteDto);
@@ -73,6 +76,9 @@ public class CustomerController {
     }
 
     @GetMapping("/{uuid}")
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)"
+    )
     public GenericDataDTO getCustomerData(@PathVariable("uuid") String uuid) {
         GenericDataDTO customerResponse = new GenericDataDTO();
         customerResponse.setResponseCode(CommonStatusCode.FAIL);
