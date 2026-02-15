@@ -1,5 +1,7 @@
 package com.cargosetu.customer.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -47,6 +49,7 @@ public class Shifting {
 
     @ManyToOne
     @JoinColumn(name = "customer_id")
+    @JsonIgnore(value = true)
     private Customer customer;
 
     @OneToOne(cascade = CascadeType.ALL)

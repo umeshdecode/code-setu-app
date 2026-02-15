@@ -26,6 +26,8 @@ public class CustomerDTO {
     private LocalDate shiftingStartDate;
     private LocalDate shiftReachedDate;
     private Integer companyId;
+    private String uuid;
+    private Boolean isDelete;
 
     List<ShiftingDTO> shiftings = new ArrayList<>();
 

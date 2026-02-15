@@ -1,7 +1,9 @@
 package com.cargosetu.customer.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
+@Data
 @Entity
 @Table(name = "tblm_extra_charges")
 public class ExtraCharges {

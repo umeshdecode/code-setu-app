@@ -1,6 +1,7 @@
 package com.cargosetu.customer.entity;
 
 import com.cargosetu.document.model.DocumentUpload;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -39,6 +40,12 @@ public class Customer {
 
     @Column(name = "company_id")
     private Integer companyId;
+
+    @Column(name = "uuid")
+    private String uuid;
+
+    @Column(name = "is_delete")
+    private Boolean isDelete  = false;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
     private List<Shifting> shiftings = new ArrayList<>();

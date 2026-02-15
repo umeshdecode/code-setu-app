@@ -8,4 +8,5 @@ import org.mapstruct.Mapper;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface ExtraChargesMapper extends BaseUpdateMapper<ExtraChargesDTO, ExtraCharges> {
+
 }

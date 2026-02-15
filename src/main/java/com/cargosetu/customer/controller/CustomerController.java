@@ -2,38 +2,91 @@ package com.cargosetu.customer.controller;
 
 import com.cargosetu.config.utils.UrlConstants.CustomerUrlConstants;
 import com.cargosetu.customer.dtos.CustomerDTO;
+import com.cargosetu.customer.dtos.CustomerUpdateDto;
 import com.cargosetu.customer.service.CustomerService;
 import com.cargosetu.dto.ValidationResponse;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(BaseURL.BASE_URL + CustomerUrlConstants.CUSTOMER)
 public class CustomerController {
 
-    @Autowired
-    private CustomerService customerService;
+    private final CustomerService customerService;
 
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
+    }
+
+
+
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_CREATE)"
+    )
     @PostMapping
-    private GenericDataDTO createCustomer(@RequestBody CustomerDTO customerDTO) {
+    public GenericDataDTO createCustomer(@RequestBody CustomerDTO customerDTO) {
         GenericDataDTO genericDataDTO = new GenericDataDTO();
         genericDataDTO.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
         genericDataDTO.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
         ValidationResponse validationResponse = customerService.validateCustomerCreateRequest(customerDTO);
         if(validationResponse != null && validationResponse.isValid()){
-            customerService.createCustomer(customerDTO);
+          genericDataDTO =   customerService.createCustomer(customerDTO);
         }else {
             genericDataDTO.setResponseMessege(validationResponse.getMessage() != null ? validationResponse.getMessage() : CommonStatusCode.MSG_BAD_REQUEST);
             genericDataDTO.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
-            return  genericDataDTO;
         }
         return genericDataDTO;
     }
+
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_UPDATE)"
+    )
+    @PutMapping
+    public GenericDataDTO updateCustomer(@RequestBody CustomerUpdateDto customerDTO) {
+        GenericDataDTO genericDataDTO = new GenericDataDTO();
+        genericDataDTO.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+        genericDataDTO.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+        ValidationResponse isValidForUpdate = customerService.validateCustomerUpdateRequest(customerDTO);
+        if(isValidForUpdate != null && isValidForUpdate.isValid()){
+            genericDataDTO =   customerService.updateCustomer(customerDTO);
+        }else {
+            genericDataDTO.setResponseMessege(isValidForUpdate.getMessage() != null ? isValidForUpdate.getMessage() : CommonStatusCode.MSG_BAD_REQUEST);
+            genericDataDTO.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
+        }
+        return genericDataDTO;
+    }
+
+    @DeleteMapping
+    public GenericDataDTO deleteCustomer(@RequestBody CustomerUpdateDto deleteDto) {
+        GenericDataDTO deleteResponse = null;
+        deleteResponse = customerService.deleteCustomer(deleteDto);
+        if(deleteResponse.getResponseCode() == null){
+            deleteResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            deleteResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+        }
+        return deleteResponse;
+    }
+
+    @GetMapping("/{uuid}")
+    public GenericDataDTO getCustomerData(@PathVariable("uuid") String uuid) {
+        GenericDataDTO customerResponse = new GenericDataDTO();
+        customerResponse.setResponseCode(CommonStatusCode.FAIL);
+        customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+        if(StringUtils.hasText(uuid)){
+            customerResponse = customerService.getCustomer(uuid);
+
+            if(customerResponse.getResponseCode() == null){
+                customerResponse.setResponseCode(CommonStatusCode.FAIL);
+                customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+            }
+        }
+        return customerResponse;
+    }
+
 
 }

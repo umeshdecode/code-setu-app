@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ValidationResponse {
     private boolean isValid = false;
-    private String message;
+    private String message = "FAIL";
 
     public ValidationResponse(boolean isValid, String message) {
         this.isValid = isValid;

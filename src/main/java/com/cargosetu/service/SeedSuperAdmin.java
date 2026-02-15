@@ -73,6 +73,10 @@ public class SeedSuperAdmin implements ApplicationRunner {
             permissions.add(createPermission("COMPANY_CREATE","Company create ","permission for create Company","Company Module"));
             permissions.add(createPermission("COMPANY_UPDATE_DELETE","Company Update/Delete","permission for update/delete Company","Staff Module"));
             permissions.add(createPermission("COMPANY_READ","Company read","permission for read Company","Company Module"));
+            permissions.add(createPermission("CUSTOMER_CREATE","customer create","permission for create customer","Customer Module"));
+            permissions.add(createPermission("CUSTOMER_UPDATE","customer update","permission for update customer","customer Module"));
+            permissions.add(createPermission("CUSTOMER_VIEW","customer read","permission for read customer","customer Module"));
+            permissions.add(createPermission("CUSTOMER_DELETE","customer delete","permission for delete customer","customer Module"));
 
             Set<Permission> defaultPermissions = createDefaultPermissions(permissions);
             role.setPermissions(defaultPermissions);
