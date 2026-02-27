@@ -14,6 +14,7 @@ import com.cargosetu.utils.UUIDGenerator;
 import jakarta.persistence.GeneratedValue;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -139,5 +140,46 @@ public class CustomerService {
             customerResponse.setResponseMessege("Customer not found!");
         }
         return customerResponse;
+    }
+
+    public GenericDataDTO getAllCustomer() {
+        GenericDataDTO response = new GenericDataDTO();
+
+        try {
+            log.info("Fetching all customers from database");
+
+            List<Customer> customers = customerRepository.findAll();
+
+            if (customers.isEmpty()) {
+                log.warn("No customers found in database");
+
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege(CommonStatusCode.MSG_NOT_FOUND);
+                response.setDataList(customers); // empty list is fine
+                return response;
+            }
+
+            log.info("Successfully fetched {} customers", customers.size());
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege(CommonStatusCode.MSG_SUCCESS);
+            response.setDataList(customers);
+
+        } catch (DataAccessException dae) {
+            // Database-related issues
+            log.error("Database error while fetching customers", dae);
+
+            response.setResponseCode(CommonStatusCode.FAIL);
+            response.setResponseMessege("Database error occurred while fetching customers");
+
+        } catch (Exception e) {
+            // Anything unexpected
+            log.error("Unexpected error while fetching customers", e);
+
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Internal server error");
+        }
+
+        return response;
     }
 }
