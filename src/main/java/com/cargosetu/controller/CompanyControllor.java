@@ -23,21 +23,20 @@ public class CompanyControllor {
         log.info("API: Create Company");
         return companyService.createCompany(company);
     }
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE)")
-    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
+    @PutMapping
     public GenericDataDTO updateCompany(
-            @PathVariable Integer id,
             @Valid @RequestBody CompanyDTO company) {
 
-        log.info("API: Update Company {}", id);
-        return companyService.updateCompany(id, company);
+        log.info("API: Update Company {}", company.getCompanyId());
+        return companyService.updateCompany(company.getCompanyId(), company);
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")
-    @GetMapping("/{id}")
-    public GenericDataDTO getCompany(@PathVariable Integer id) {
-        log.info("API: Get Company {}", id);
-        return companyService.getCompanyById(id);
+    @GetMapping("/{uuid}")
+    public GenericDataDTO getCompany(@PathVariable String uuid) {
+        log.info("API: Get Company {}", uuid);
+        return companyService.getCompanyById(uuid);
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")
@@ -47,7 +46,7 @@ public class CompanyControllor {
         return companyService.getAllCompanies();
     }
 
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_DELETE)")
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
     @DeleteMapping("/{id}")
     public GenericDataDTO deleteCompany(@PathVariable Integer id) {
         log.info("API: Delete Company {}", id);

@@ -16,4 +16,13 @@ public class UUIDGenerator {
         }
         return sb.toString();
     }
+
+    public static String generate(String prefix,String suffix) {
+        if(prefix == null || prefix.isBlank()) prefix = PREFIX;
+        StringBuilder sb = new StringBuilder(prefix);
+        for (int i = 0; i < RANDOM_LENGTH; i++) {
+            sb.append(CHARSET.charAt(RANDOM.nextInt(CHARSET.length())));
+        }
+        return sb.append(suffix).toString();
+    }
 }

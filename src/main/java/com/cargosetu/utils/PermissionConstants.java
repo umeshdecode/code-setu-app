@@ -42,5 +42,5 @@ public class PermissionConstants {
     public static final String CUSTOMER_DELETE = PERM_PREFIX + "CUSTOMER_DELETE";
     public static final String CUSTOMER_UPDATE = PERM_PREFIX + "CUSTOMER_UPDATE";
     public static final String CUSTOMER_VIEW = PERM_PREFIX + "CUSTOMER_VIEW";
-
+    public static final String COMPANY_UPDATE_DELETE = PERM_PREFIX + "COMPANY_UPDATE_DELETE";
 }

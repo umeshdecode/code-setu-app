@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.*;
 
+import static com.cargosetu.utils.PermissionConstants.COMPANY_UPDATE;
+
 @Configuration
 @Slf4j
 public class SeedSuperAdmin implements ApplicationRunner {
@@ -72,6 +74,7 @@ public class SeedSuperAdmin implements ApplicationRunner {
             permissions.add(createPermission("PLAN_READ","Plan read Delete","permission for read Plan","Plan Module"));
             permissions.add(createPermission("COMPANY_CREATE","Company create ","permission for create Company","Company Module"));
             permissions.add(createPermission("COMPANY_UPDATE_DELETE","Company Update/Delete","permission for update/delete Company","Staff Module"));
+            permissions.add(createPermission("COMPANY_UPDATE","Company Update","permission for update Company","Company Module"));
             permissions.add(createPermission("COMPANY_READ","Company read","permission for read Company","Company Module"));
             permissions.add(createPermission("CUSTOMER_CREATE","customer create","permission for create customer","Customer Module"));
             permissions.add(createPermission("CUSTOMER_UPDATE","customer update","permission for update customer","customer Module"));
