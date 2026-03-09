@@ -20,7 +20,7 @@ public class PlanServiceImpl implements PlanService {
 
     @Override
     public PlanDTO createPlan(PlanDTO dto) {
-        log.info("Creating new plan with name: {}", dto.getPlanName());
+        log.info("Creating new plan with name: {}", dto.getName());
 
         Plans plan = mapToEntity(dto);
         Plans saved = planRepository.save(plan);
@@ -39,10 +39,10 @@ public class PlanServiceImpl implements PlanService {
                     return new RuntimeException("Plan not found");
                 });
 
-        plan.setPlanName(dto.getPlanName());
+        plan.setPlanName(dto.getName());
         plan.setPlanValidity(dto.getPlanValidity());
         plan.setPrice(dto.getPrice());
-        plan.setPlanCategory(dto.getPlanCategory());
+        plan.setPlanCategory(dto.getPlannCategory());
 
         Plans updated = planRepository.save(plan);
         log.info("Plan updated successfully, ID: {}", planId);
@@ -93,20 +93,20 @@ public class PlanServiceImpl implements PlanService {
 
     private Plans mapToEntity(PlanDTO dto) {
         Plans plan = new Plans();
-        plan.setPlanName(dto.getPlanName());
+        plan.setPlanName(dto.getName());
         plan.setPlanValidity(dto.getPlanValidity());
         plan.setPrice(dto.getPrice());
-        plan.setPlanCategory(dto.getPlanCategory());
+        plan.setPlanCategory(dto.getPlannCategory());
         return plan;
     }
 
     private PlanDTO mapToDTO(Plans plan) {
         PlanDTO dto = new PlanDTO();
         dto.setPlanId(plan.getPlanId());
-        dto.setPlanName(plan.getPlanName());
+        dto.setName(plan.getPlanName());
         dto.setPlanValidity(plan.getPlanValidity());
         dto.setPrice(plan.getPrice());
-        dto.setPlanCategory(plan.getPlanCategory());
+        dto.setPlannCategory(plan.getPlanCategory());
         return dto;
     }
 }

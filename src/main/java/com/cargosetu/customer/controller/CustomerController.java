@@ -93,7 +93,18 @@ public class CustomerController {
         }
         return customerResponse;
     }
+    @GetMapping
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)")
+    public GenericDataDTO getCustomerData() {
+        GenericDataDTO customerResponse = new GenericDataDTO();
+        customerResponse.setResponseCode(CommonStatusCode.FAIL);
+        customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+            customerResponse = customerService.getAllCustomer();
 
+            if(customerResponse.getResponseCode() == null){
+                customerResponse.setResponseCode(CommonStatusCode.FAIL);
+                customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+            }
 //    @GetMapping("customers")
 //    public GenericDataDTO getCustomerByCompanyCode(){
 //

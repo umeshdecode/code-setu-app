@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -16,7 +17,7 @@ public class Plans extends AbstractModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer planId;
     private String planName;
-    private LocalDateTime planValidity;
+    private LocalDate planValidity;
     private Double price ;
     private String planCategory;
 
