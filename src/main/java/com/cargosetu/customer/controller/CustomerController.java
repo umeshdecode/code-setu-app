@@ -99,15 +99,13 @@ public class CustomerController {
         GenericDataDTO customerResponse = new GenericDataDTO();
         customerResponse.setResponseCode(CommonStatusCode.FAIL);
         customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
-            customerResponse = customerService.getAllCustomer();
+        customerResponse = customerService.getAllCustomer();
 
-            if(customerResponse.getResponseCode() == null){
-                customerResponse.setResponseCode(CommonStatusCode.FAIL);
-                customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
-            }
-//    @GetMapping("customers")
-//    public GenericDataDTO getCustomerByCompanyCode(){
-//
-//    }
+        if (customerResponse.getResponseCode() == null) {
+            customerResponse.setResponseCode(CommonStatusCode.FAIL);
+            customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+        }
+        return customerResponse;
+    }
 
 }
