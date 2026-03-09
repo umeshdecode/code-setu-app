@@ -1,6 +1,7 @@
 package com.cargosetu.customer.entity;
 
 import com.cargosetu.document.model.DocumentUpload;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -47,7 +48,9 @@ public class Customer {
     @Column(name = "is_delete")
     private Boolean isDelete  = false;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("customer")
+    @JsonManagedReference
     private List<Shifting> shiftings = new ArrayList<>();
 
     @OneToMany(mappedBy = "customer")

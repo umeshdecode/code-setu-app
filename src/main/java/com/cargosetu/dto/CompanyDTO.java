@@ -65,5 +65,7 @@ public class CompanyDTO {
 
     @Size(max = 100)
     private String mainBranch;
+
+    private String companyUUID;
 }
 

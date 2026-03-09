@@ -18,7 +18,7 @@ public class PermissionController {
     @Autowired
     private PermissionService permissionService;
 
-    @GetMapping("")
+    @GetMapping
     public GenericDataDTO getPermission(){
         return permissionService.getPermissionList();
     }

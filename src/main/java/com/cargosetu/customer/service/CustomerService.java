@@ -93,7 +93,7 @@ public class CustomerService {
                 customer.setAlternateMobileNo(customerDTO.getAlternateMobileNo());
                 customer.setWorkEmail(customerDTO.getWorkEmail());
                 customer = customerRepository.save(customer);
-                updateResponse.setData(customer);
+                updateResponse.setData(customerMapper.toDto(customer));
                 updateResponse.setResponseCode(CommonStatusCode.SUCCESS);
                 updateResponse.setResponseMessege("customer updated successfully!");
             }else {

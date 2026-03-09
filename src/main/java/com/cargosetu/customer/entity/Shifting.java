@@ -47,9 +47,10 @@ public class Shifting {
     @Column(name = "shift_complted_by_id")
     private Long shiftCompletedById;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
     @JsonIgnore(value = true)
+    @JsonBackReference
     private Customer customer;
 
     @OneToOne(cascade = CascadeType.ALL)

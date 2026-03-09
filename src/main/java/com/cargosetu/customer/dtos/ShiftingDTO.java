@@ -1,6 +1,7 @@
 package com.cargosetu.customer.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -32,5 +33,6 @@ public class ShiftingDTO {
 
     private Long customerId;
 
+    @JsonProperty("charges")
     private ChargesDTO chargesDTO;
 }

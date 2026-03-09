@@ -14,7 +14,7 @@ public class RoleController {
     @Autowired
     private RolesImpl roleService ;
 
-    @GetMapping("")
+    @GetMapping
     public GenericDataDTO getRoles(){
        return roleService.getRolseList();
     }
@@ -31,9 +31,9 @@ public class RoleController {
         return roleService.createRole(role);
     }
     // UPDATE ROLE
-    @PutMapping("/{id}")
-    public GenericDataDTO updateRole(@PathVariable Long id, @RequestBody RolesDTO role) {
-        return roleService.updateRole(id, role);
+    @PutMapping
+    public GenericDataDTO updateRole(@RequestBody RolesDTO role) {
+        return roleService.updateRole( role);
     }
 
     // DELETE ROLE

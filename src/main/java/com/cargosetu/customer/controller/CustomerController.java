@@ -94,5 +94,9 @@ public class CustomerController {
         return customerResponse;
     }
 
+//    @GetMapping("customers")
+//    public GenericDataDTO getCustomerByCompanyCode(){
+//
+//    }
 
 }

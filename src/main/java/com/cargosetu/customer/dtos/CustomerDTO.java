@@ -1,6 +1,7 @@
 package com.cargosetu.customer.dtos;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ public class CustomerDTO {
     private String uuid;
     private Boolean isDelete;
 
+    @JsonProperty("shiftings")
     List<ShiftingDTO> shiftings = new ArrayList<>();
 
 

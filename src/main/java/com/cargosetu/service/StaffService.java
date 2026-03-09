@@ -3,6 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.handler.CustomValidationException;
+import com.cargosetu.mapper.PermissionMapper;
 import com.cargosetu.mapper.StaffMapper;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,12 +34,14 @@ public class StaffService {
     private final RolesRepo rolesRepo;
     private final RolesImpl rolesService;
     private final StaffMapper staffMapper;
+    private final PermissionMapper permissionMapper;
 
-    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper) {
+    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
         this.rolesService = rolesService;
         this.staffMapper = staffMapper;
+        this.permissionMapper = permissionMapper;
     }
 
     private String getModuleName(){
@@ -93,7 +97,7 @@ public class StaffService {
             RolesDTO rolesDTO = new RolesDTO();
             rolesDTO.setRoleName(role.getRoleName());
             rolesDTO.setCode(role.getCode());
-            rolesDTO.setDiscription(role.getDiscription());
+            rolesDTO.setPermissions(role.getPermissions().stream().map(permissionMapper::toDto).collect(Collectors.toSet()));
             rolesDTO.setScope(role.getScope());
             rolesDTOs.add(rolesDTO);
         }

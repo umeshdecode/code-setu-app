@@ -39,7 +39,7 @@ public class PermissionImpl implements PermissionService {
     public GenericDataDTO getPermissionList() {
         GenericDataDTO responseDTO = new GenericDataDTO();
         try {
-            List<Permission> permissions = permissionRepo.findAll();
+            List<Permission> permissions = permissionRepo.findAllByIsDeletedIsFalse();
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());

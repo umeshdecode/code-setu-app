@@ -38,5 +38,6 @@ public class ChargesDTO {
 
     private Double gstCharge;
 
+    @JsonIgnoreProperties("extracharges")
     private List<ExtraChargesDTO> extraChargesList = new ArrayList<>();
 }

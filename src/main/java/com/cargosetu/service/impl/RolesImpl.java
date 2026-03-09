@@ -30,7 +30,7 @@ public class RolesImpl implements RolesService {
     public GenericDataDTO getRolseList() {
         GenericDataDTO responseDTO = new GenericDataDTO();
         try {
-            List<Role> roles = rolesRepo.findAll();
+            List<Role> roles = rolesRepo.findAllByIsDeletedIsFalse();
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());
@@ -66,12 +66,12 @@ public class RolesImpl implements RolesService {
     }
 
 
-    public GenericDataDTO updateRole(Long id, RolesDTO pojo) {
+    public GenericDataDTO updateRole(RolesDTO pojo) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            log.info("Updating role with ID: {}", id);
+            log.info("Updating role with ID: {}", pojo.getRoleId());
 
-            Optional<Role> optionalRole = rolesRepo.findById(id);
+            Optional<Role> optionalRole = rolesRepo.findById(pojo.getRoleId());
 
             if (optionalRole.isPresent()) {
                 Role role = optionalRole.get();
@@ -79,7 +79,7 @@ public class RolesImpl implements RolesService {
                 if(!role.getCode().equals(pojo.getCode())) {
                     Optional<Role> roleOptional = rolesRepo.findByCodeAndIsDeletedIsFalse(pojo.getCode());
                     if (roleOptional.isPresent()) {
-                        if(!Objects.equals(roleOptional.get().getRolesId(), id)){
+                        if(!Objects.equals(roleOptional.get().getRolesId(), pojo.getRoleId())){
                             response.setResponseCode(HttpStatus.CONFLICT.value());
                             response.setResponseMessege("please use different Role code,this code is already present");
                             return response;
@@ -88,7 +88,7 @@ public class RolesImpl implements RolesService {
                 }
 
                 role.setRoleName(pojo.getRoleName());
-                role.setDiscription(pojo.getDiscription());
+                role.setDiscription(pojo.getDescription());
                 role.setCode(pojo.getCode());
                 role.setScope(pojo.getScope());
                 role.setUpdatedAt(LocalDateTime.now());
@@ -99,14 +99,14 @@ public class RolesImpl implements RolesService {
                 response.setResponseCode(200);
                 response.setData(role);
 
-                log.info("Role updated successfully for ID: {}", id);
+                log.info("Role updated successfully for ID: {}", pojo.getRoleId());
             } else {
                 response.setResponseMessege("Role not found");
                 response.setResponseCode(404);
-                log.info("Update failed. Role not found for ID: {}", id);
+                log.info("Update failed. Role not found for ID: {}", pojo.getRoleId());
             }
         } catch (Exception e) {
-            log.error("Error while updating role with ID: {}", id, e);
+            log.error("Error while updating role with ID: {}", pojo.getRoleId(), e);
             response.setResponseMessege("Failed to update role");
             response.setResponseCode(500);
         }
@@ -162,7 +162,7 @@ public class RolesImpl implements RolesService {
 
             Role role = new Role();
             role.setRoleName(pojo.getRoleName());
-            role.setDiscription(pojo.getDiscription());
+            role.setDiscription(pojo.getDescription());
             role.setCode(pojo.getCode());
             role.setScope(pojo.getScope());
             role.setIsActive(true);
