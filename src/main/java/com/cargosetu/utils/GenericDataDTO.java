@@ -15,6 +15,6 @@ public class GenericDataDTO {
     private Integer responseCode;
     private List dataList;
     private Object data;
-
+    private Object[] errors;
 
 }

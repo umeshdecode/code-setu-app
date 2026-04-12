@@ -3,11 +3,13 @@ package com.cargosetu.document.model;
 import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.model.Staff;
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "tblm_document_upload")
+@Data
 public class DocumentUpload {
 
     @Id
@@ -45,7 +47,7 @@ public class DocumentUpload {
     @Column
     private String remarks;
 
-    @JoinColumn(name = "customer_id")
+    @JoinColumn(name = "customer_id" ,nullable = true)
     @ManyToOne(fetch = FetchType.LAZY)
     private Customer customer;
 }

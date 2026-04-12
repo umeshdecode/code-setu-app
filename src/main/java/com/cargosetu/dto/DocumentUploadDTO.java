@@ -1,9 +1,11 @@
 package com.cargosetu.dto;
 
 import com.cargosetu.document.model.DocumentStatus;
+import lombok.Data;
 
 import java.time.LocalDate;
 
+@Data
 public class DocumentUploadDTO {
 
     private Long staffDocumentId;

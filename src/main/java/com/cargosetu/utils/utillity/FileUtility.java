@@ -4,6 +4,7 @@ package com.cargosetu.utils.utillity;
 
 import com.cargosetu.exception.FileNotCreatedException;
 import com.cargosetu.utils.ApplicationUtils;
+import com.cargosetu.utils.UUIDGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -238,5 +239,41 @@ public class FileUtility extends ApplicationUtils {
             System.out.println("Folder does not exist: " + folderToDelete.getAbsolutePath());
         }
     }
+    public static String saveMultipartFile(MultipartFile file, String basePath) {
 
+        try {
+            if (file == null || file.isEmpty()) {
+                throw new RuntimeException("File is empty");
+            }
+            String originalName = "";
+
+            if(file.getOriginalFilename() != null || !file.getOriginalFilename().isBlank()){
+                originalName = Paths.get(file.getOriginalFilename()).getFileName().toString();
+            }
+            // Prevent invalid names
+            if (originalName.contains("..")) {
+                throw new RuntimeException("Invalid file name");
+            }
+
+            String uniqueFileName = UUID.randomUUID()+ UUIDGenerator.generate() + "_" + originalName;
+
+            Path uploadPath = Paths.get(basePath).toAbsolutePath().normalize();
+
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+            Path targetLocation = uploadPath.resolve(uniqueFileName).normalize();
+
+            if (!targetLocation.startsWith(uploadPath)) {
+                throw new RuntimeException("Invalid file path");
+            }
+
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            return targetLocation.toString();
+
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not store file", ex);
+        }
+    }
 }
