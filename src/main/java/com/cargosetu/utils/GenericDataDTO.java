@@ -16,5 +16,8 @@ public class GenericDataDTO {
     private List dataList;
     private Object data;
     private Object[] errors;
-
+    private long totalRecords = 0;
+    private long pageRecords = 0;
+    private long currentPageNumber;
+    private long totalPages;
 }

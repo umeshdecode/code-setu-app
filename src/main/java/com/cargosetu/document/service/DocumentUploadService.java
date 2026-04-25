@@ -87,11 +87,11 @@ public class DocumentUploadService {
             return validationResponse;
         }
 
-        if (!Objects.equals(file.getContentType(), "application/pdf")) {
-            validationResponse.setValid(false);
-            validationResponse.setMessage("only pdf format is acceptable");
-            return validationResponse;
-        }
+//        if (!Objects.equals(file.getContentType(), "application/pdf")) {
+//            validationResponse.setValid(false);
+//            validationResponse.setMessage("only pdf format is acceptable");
+//            return validationResponse;
+//        }
         validationResponse.setValid(true);
         validationResponse.setMessage("success");
         return validationResponse;
