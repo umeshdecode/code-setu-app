@@ -47,6 +47,8 @@ public class Customer {
 
     @Column(name = "is_delete")
     private Boolean isDelete  = false;
+    @Column(name = "createdbyid")
+    private Long createdById;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonIgnoreProperties("customer")

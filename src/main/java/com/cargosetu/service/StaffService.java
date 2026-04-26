@@ -16,14 +16,15 @@ import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.UUIDGenerator;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -152,4 +153,11 @@ public class StaffService {
         Staff user = staffRepository.findByEmailOrUserName(staffDTO.getEmail(), staffDTO.getUserName()).orElse(null);
         return Objects.nonNull(user);
     }
+
+    @Transactional
+    public Page<StaffDTO> getAllStaff(Pageable pageable) {
+        return staffRepository.findAll(pageable).map(staffMapper::toDto);
+    }
+
+
 }
