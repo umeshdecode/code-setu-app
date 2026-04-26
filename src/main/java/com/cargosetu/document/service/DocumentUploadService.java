@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 public class DocumentUploadService {
@@ -23,6 +24,11 @@ public class DocumentUploadService {
     public static final String BASE_FILE_URL = "C:\\Users\\Dell\\Desktop\\Personal\\uploads";
     private final DocumentUploadMapper documentUploadMapper;
     private final DocumentUploadRepository documentUploadRepository;
+    private static final Set<String> allowedTypes = Set.of(
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
     public DocumentUploadService(DocumentUploadMapper documentUploadMapper,DocumentUploadRepository documentUploadRepository) {
         this.documentUploadMapper = documentUploadMapper;
         this.documentUploadRepository = documentUploadRepository;
@@ -87,11 +93,11 @@ public class DocumentUploadService {
             return validationResponse;
         }
 
-//        if (!Objects.equals(file.getContentType(), "application/pdf")) {
-//            validationResponse.setValid(false);
-//            validationResponse.setMessage("only pdf format is acceptable");
-//            return validationResponse;
-//        }
+        if (!allowedTypes.contains(file.getContentType())) {
+            validationResponse.setValid(false);
+            validationResponse.setMessage("Only PDF, DOC, and DOCX formats are acceptable");
+            return validationResponse;
+        }
         validationResponse.setValid(true);
         validationResponse.setMessage("success");
         return validationResponse;
