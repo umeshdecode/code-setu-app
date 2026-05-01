@@ -75,7 +75,8 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**"
                         ).permitAll()
-
+                        .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket
+                        .requestMatchers("/topic/**").permitAll() // optional
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
