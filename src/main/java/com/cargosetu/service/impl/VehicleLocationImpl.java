@@ -1,8 +1,8 @@
 package com.cargosetu.service.impl;
 
-import com.cargosetu.model.VehicleTrack;
+import com.cargosetu.model.VehicleLocation;
 import com.cargosetu.repo.VehicleLocationRepo;
-import com.cargosetu.service.VehicleTrackingServ;
+import com.cargosetu.service.VehicleLocationServ;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -10,25 +10,25 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
-public class VehicleTrackingImpl implements VehicleTrackingServ {
+public class VehicleLocationImpl implements VehicleLocationServ {
     @Autowired
     private VehicleLocationRepo repo;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 @Override
-    public VehicleTrack saveLocation(Long vehicleId, double lat, double lng) {
-        VehicleTrack loc = new VehicleTrack();
+    public VehicleLocation saveLocation(Long vehicleId, double lat, double lng) {
+        VehicleLocation loc = new VehicleLocation();
         loc.setVehicleId(vehicleId);
         loc.setLatitude(lat);
         loc.setLongitude(lng);
         loc.setTimestamp(LocalDateTime.now());
-     VehicleTrack saved = repo.save(loc);
+     VehicleLocation saved = repo.save(loc);
     messagingTemplate.convertAndSend("/topic/vehicle/" + vehicleId, saved);
     return saved;
 
 }
     @Override
-    public VehicleTrack getLatestLocation(Long vehicleId) {
+    public VehicleLocation getLatestLocation(Long vehicleId) {
         return repo.findLatestLocationToday(vehicleId)
                 .orElse(null);
     }
