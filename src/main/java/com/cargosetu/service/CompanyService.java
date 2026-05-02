@@ -1,8 +1,10 @@
 package com.cargosetu.service;
 
+import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Company;
 import com.cargosetu.utils.GenericDataDTO;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,4 +19,6 @@ public interface CompanyService {
     GenericDataDTO getAllCompanies();
 
     GenericDataDTO deleteCompany(Integer id);
+
+    void createCompanyAssets(List<CompanyAssetDTO> companyAssets);
 }

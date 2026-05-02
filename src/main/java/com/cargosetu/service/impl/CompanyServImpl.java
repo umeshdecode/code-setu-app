@@ -1,5 +1,6 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Company;
 import com.cargosetu.repo.CompanyRepository;
@@ -194,5 +195,10 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseCode(500);
         }
         return response;
+    }
+
+    @Override
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets) {
+
     }
 }

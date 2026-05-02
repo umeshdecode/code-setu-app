@@ -1,14 +1,19 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.BaseURL;
+import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping(BaseURL.BASE_URL+BaseURL.COMPANY)
@@ -51,6 +56,18 @@ public class CompanyControllor {
     public GenericDataDTO deleteCompany(@PathVariable Integer id) {
         log.info("API: Delete Company {}", id);
         return companyService.deleteCompany(id);
+
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
+    @PostMapping("/assets")
+    public GenericDataDTO createCompanyAssets(@RequestBody List<CompanyAssetDTO> companyAssets) {
+        GenericDataDTO response = new GenericDataDTO();
+        if(Objects.isNull(companyAssets) || companyAssets.isEmpty()){
+            response.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
+            response.setResponseCode(CommonStatusCode.FAIL);
+        }
+        companyService.createCompanyAssets(companyAssets);
 
     }
 }
