@@ -1,7 +1,8 @@
 package com.cargosetu.dto;
 
-import jakarta.persistence.Column;
+import lombok.Data;
 
+@Data
 public class CompanyAssetDTO {
     private Long id;
 

@@ -17,7 +17,7 @@ public class CompanyAsset {
     @Column(name = "asset_type", nullable = false, length = 20)
     private String assetType;   // eg: LOGO , SEAL , SIGNATURE , STAMP
 
-    @Column(name = "file_path", nullable = false)
+    @Column(name = "file_path", nullable = true)
     private String filePath;
 
 //    @Lob

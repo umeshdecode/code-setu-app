@@ -3,24 +3,36 @@ package com.cargosetu.service.impl;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Company;
+import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
+import com.cargosetu.utils.utillity.FileUtility;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
 @Service
 @Slf4j
 public class CompanyServImpl implements CompanyService {
     @Autowired
     private  CompanyRepository companyRepository;
+    @Autowired
+    private CompanyAssetRepository companyAssetRepository;
 
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto) {
@@ -197,8 +209,77 @@ public class CompanyServImpl implements CompanyService {
         return response;
     }
 
-    @Override
-    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets) {
 
+    private void validateCompanyAssetFiles(MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            throw new RuntimeException("Files are required");
+        }
+        List<String> allowedExtensions = List.of(
+                "pdf",
+                "jpg",
+                "jpeg",
+                "png",
+                "svg"
+        );
+        long maxFileSize = 1024 * 1024;
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                throw new RuntimeException("Invalid file");
+            }
+            if (file.getSize() > maxFileSize) {
+                throw new RuntimeException(
+                        "File size must not exceed 1 MB"
+                );
+            }
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || fileName.isBlank()) {
+                throw new RuntimeException("File name is invalid");
+            }
+            String extension = "";
+            int lastIndex = fileName.lastIndexOf(".");
+            if (lastIndex > 0) {
+                extension = fileName.substring(lastIndex + 1).toLowerCase();
+            }
+            if (!allowedExtensions.contains(extension)) {
+                throw new RuntimeException(
+                        "Only pdf, jpg, jpeg, png and svg files are allowed"
+                );
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets, MultipartFile[] files) {
+
+        validateCompanyAssetFiles(files);
+
+        if (Objects.nonNull(companyAssets) && !companyAssets.isEmpty()) {
+
+            List<String> filePaths = FileUtility.saveMultipartFile(files, BASE_FILE_URL);
+
+            List<CompanyAsset> assets = new ArrayList<>();
+
+            for (int i = 0; i < companyAssets.size(); i++) {
+
+                CompanyAssetDTO dto = companyAssets.get(i);
+                if (filePaths.size() > i) {
+                    dto.setFilePath(filePaths.get(i));
+                }
+
+                assets.add(convertCompanyAssetDtoToEntity(dto));
+            }
+
+            companyAssetRepository.saveAllAndFlush(assets);
+        }
+    }
+    
+    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
+        CompanyAsset companyAsset = new CompanyAsset();
+        companyAsset.setAssetType(dto.getAssetType());
+        companyAsset.setFilePath(dto.getFilePath());
+        companyAsset.setCompanyId(dto.getCompanyId());
+        companyAsset.setId(dto.getId());
+        return  companyAsset;
     }
 }

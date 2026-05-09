@@ -13,6 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -52,10 +54,10 @@ public class DocumentUploadService {
                 response.setResponseMessege("invalid file extension type");
                 return response;
             }
-            String filePath = FileUtility.saveMultipartFile(file, BASE_FILE_URL);
+            List<String> filePaths = FileUtility.saveMultipartFile(new MultipartFile[]{file}, BASE_FILE_URL);
 
             dto.setFileName(originalName);
-            dto.setFilePath(filePath);
+            dto.setFilePath(filePaths.get(0));
             dto.setFileSize(size);
             dto.setFileType(extension);
 
