@@ -22,4 +22,6 @@ public interface CompanyService {
     GenericDataDTO deleteCompany(Integer id);
 
     void createCompanyAssets(List<CompanyAssetDTO> companyAssets, MultipartFile[] files);
+
+    String getAssetAsBase64(Integer companyId, String assetType);
 }

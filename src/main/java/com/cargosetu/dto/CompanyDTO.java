@@ -1,9 +1,12 @@
 package com.cargosetu.dto;
 
+import com.cargosetu.model.Company;
 import jakarta.validation.constraints.*;
+import lombok.Builder;
 import lombok.Data;
 
 @Data
+@Builder
 public class CompanyDTO {
 
     private Integer companyId;
@@ -68,5 +71,37 @@ public class CompanyDTO {
     private String mainBranch;
 
     private String companyUUID;
+    private String companyNameFirst;
+    private String companyNameRest;
+    private String logoBase64;
+    private String sealBase64;
+    private String website;
+
+
+    public static CompanyDTO from(Company c,
+                                  String logoBase64, String sealBase64) {
+        String name = c.getCompanyName() != null ? c.getCompanyName().trim() : "";
+        int spaceIdx = name.indexOf(' ');
+        String first = spaceIdx > 0 ? name.substring(0, spaceIdx) : name;
+        String rest  = spaceIdx > 0 ? name.substring(spaceIdx)    : "";
+
+        return CompanyDTO.builder()
+                .companyName(name)
+                .companyNameFirst(first)
+                .companyNameRest(rest)
+                .address(c.getAddress())
+                .city(c.getCity())
+                .state(c.getState())
+                .contactNo1(c.getContactNo1())
+                .contactNo2(c.getContactNo2())
+                .companyEmail(c.getCompanyEmail())
+                .whatsappNumber(c.getWhatsappNumber())
+                .panNumber(c.getPanNumber())
+                .gstNumber(c.getGstNumber())
+                .branch(c.getBranch())
+                .logoBase64(logoBase64)
+                .sealBase64(sealBase64)
+                .build();
+    }
 }
 

@@ -17,11 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
@@ -281,5 +280,48 @@ public class CompanyServImpl implements CompanyService {
         companyAsset.setCompanyId(dto.getCompanyId());
         companyAsset.setId(dto.getId());
         return  companyAsset;
+    }
+
+    /**
+     * Fetches the asset record, reads the file from disk,
+     * and returns a ready-to-use base64 data URI.
+     * Returns null if no asset found or file cannot be read.
+     */
+    @Override
+    public String getAssetAsBase64(Integer companyId, String assetType) {
+        Optional<CompanyAsset> opt = Optional.ofNullable(companyAssetRepository.findByCompanyIdAndAssetType(companyId, assetType));
+
+        if (opt.isEmpty()) {
+            log.warn("No asset found for companyId={} type={}", companyId, assetType);
+            return null;
+        }
+
+        String filePath = opt.get().getFilePath();
+        if (filePath == null || filePath.isBlank()) {
+            log.warn("Asset record exists but filePath is empty for companyId={} type={}", companyId, assetType);
+            return null;
+        }
+
+        try {
+            byte[] bytes = Files.readAllBytes(Path.of(filePath));
+            String b64    = Base64.getEncoder().encodeToString(bytes);
+            String mime   = detectMimeType(filePath);
+            return "data:" + mime + ";base64," + b64;
+
+        } catch (Exception e) {
+            log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
+            return null;   // template handles null → shows placeholder box
+        }
+    }
+
+    /** Infer MIME type from file extension. */
+    private String detectMimeType(String path) {
+        String lower = path.toLowerCase();
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg"))  return "image/svg+xml";
+        return "image/jpeg";   // safe default
     }
 }

@@ -13,6 +13,7 @@ public interface BaseURL {
     final String LOCATION = "/location";
     final String DRIVER ="/drivers";
     final String ASSIGNMENTS ="/assignments";
+    final String TEMPLATES ="/templates";
 
 
 }
