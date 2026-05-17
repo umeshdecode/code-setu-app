@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Data
 @Builder
 public class CompanyDTO {
@@ -77,8 +79,7 @@ public class CompanyDTO {
     private String logoBase64;
     private String sealBase64;
     private String website;
-    private CompanyAssetDTO companyAssetDTO;
-
+    private List<CompanyAssetDTO> assets;
 
     public static CompanyDTO from(Company c,
                                   String logoBase64, String sealBase64) {

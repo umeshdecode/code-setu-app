@@ -2,8 +2,10 @@ package com.cargosetu.service.impl;
 
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
+import com.cargosetu.model.Clientservice;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.repo.ClientServiceRepo;
 import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
 import com.cargosetu.service.CompanyService;
@@ -35,6 +37,8 @@ public class CompanyServImpl implements CompanyService {
     @Autowired
     private CompanyAssetRepository companyAssetRepository;
     @Autowired
+    private ClientServiceRepo clientServiceRepo;
+    @Autowired
     private ObjectMapper objectMapper;
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto) {
@@ -63,8 +67,7 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseMessege("Company created successfully");
             response.setResponseCode(200);
             response.setData(saved);
-            CompanyAssetDTO companyAsset = new CompanyAssetDTO();
-           createCompanyAssets(Arrays.asList(companyAsset), new MultipartFile[0]);
+           createCompanyAssets(companyDto.getAssets() ,saved.getCompanyId());
 
 
         } catch (Exception e) {
@@ -255,31 +258,34 @@ public class CompanyServImpl implements CompanyService {
 
     @Override
     @Transactional
-    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets, MultipartFile[] files) {
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets,Integer companyId) {
 
-        validateCompanyAssetFiles(files);
+        if (companyAssets == null || companyAssets.isEmpty()) {
+            return;
+        }
 
-        if (Objects.nonNull(companyAssets) && !companyAssets.isEmpty()) {
+        List<CompanyAsset> assets = new ArrayList<>();
 
-            List<String> filePaths = FileUtility.saveMultipartFile(files, BASE_FILE_URL);
+        for (CompanyAssetDTO dto : companyAssets) {
 
-            List<CompanyAsset> assets = new ArrayList<>();
+            MultipartFile[] file = dto.getFile();
 
-            for (int i = 0; i < companyAssets.size(); i++) {
-
-                CompanyAssetDTO dto = companyAssets.get(i);
-                if (filePaths.size() > i) {
-                    dto.setFilePath(filePaths.get(i));
-                }
-
-                assets.add(convertCompanyAssetDtoToEntity(dto));
+            if (file == null || file.length==0) {
+                continue;
             }
 
-            companyAssetRepository.saveAllAndFlush(assets);
+            validateCompanyAssetFiles(file);
+            Clientservice clientservice = clientServiceRepo.findByName("COMPANY_ASSET").orElse(null);
+
+            String filePath = FileUtility.saveMultipartFile(file, clientservice.getName()).toString();
+
+            dto.setFilePath(filePath);
+            dto.setCompanyId(companyId);
+            assets.add(convertCompanyAssetDtoToEntity(dto));
         }
-    }
-    
-    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
+
+        companyAssetRepository.saveAll(assets);
+    }    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
         CompanyAsset companyAsset = new CompanyAsset();
         companyAsset.setAssetType(dto.getAssetType());
         companyAsset.setFilePath(dto.getFilePath());

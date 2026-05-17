@@ -9,5 +9,5 @@ import java.util.Optional;
 public interface ClientServiceRepo  extends JpaRepository<Clientservice,Integer> {
     boolean existsByNameAndValue(String name,String value);
 
-    Optional<Clientservice> findByName(String staffDocument);
+    Optional<Clientservice> findByName(String name);
 }

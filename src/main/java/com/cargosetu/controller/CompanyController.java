@@ -34,8 +34,8 @@ public class CompanyController {
     private ObjectMapper objectMapper;
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
-    @PostMapping
-    public GenericDataDTO createCompany(@Valid @RequestBody CompanyDTO company) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public GenericDataDTO createCompany(@ModelAttribute CompanyDTO company) {
         log.info("API: Create Company");
         return companyService.createCompany(company);
     }
@@ -85,7 +85,7 @@ public class CompanyController {
                 response.setResponseCode(CommonStatusCode.FAIL);
                 return ResponseEntity.badRequest().body(response);
             }
-            companyService.createCompanyAssets(companyAssets, files);
+//            companyService.createCompanyAssets(companyAssets, files);
             response.setResponseCode(CommonStatusCode.SUCCESS);
             response.setResponseMessege("Company assets created successfully");
             return ResponseEntity.ok(response);
