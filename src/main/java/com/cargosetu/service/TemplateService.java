@@ -8,14 +8,12 @@ import com.cargosetu.dto.QuotationDTO;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
 import com.cargosetu.model.Template;
-import com.cargosetu.repo.CompanyAssetRepository;
-import com.cargosetu.repo.CompanyRepository;
-import com.cargosetu.repo.ShiftingRepository;
-import com.cargosetu.repo.TemplateRepository;
+import com.cargosetu.repo.*;
 import com.cargosetu.utils.utillity.FileUtility;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.thymeleaf.context.Context;
@@ -42,9 +40,11 @@ public class TemplateService {
     private final CompanyAssetRepository assetRepository;
     private final TemplateRepository templateRepository;
     private final CompanyService companyService;
+    @Autowired
+    private ClientServiceRepo clientServiceRepo;
 
     public void createTemplate(MultipartFile file, Template template) {
-        List<String> filePath = FileUtility.saveMultipartFile(new MultipartFile[]{file}, BASE_FILE_URL);
+        List<String> filePath = FileUtility.saveMultipartFile(new MultipartFile[]{file}, clientServiceRepo.findByName("Template").orElseThrow().getName());
 
         if(filePath != null && filePath.size() > 0) {
             template.setFilePath(filePath.get(0));
