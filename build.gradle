@@ -73,6 +73,11 @@ dependencies {
 // Flying Saucer HTML to PDF converter
     implementation 'org.xhtmlrenderer:flying-saucer-pdf:9.4.0'
 
+    implementation 'com.openhtmltopdf:openhtmltopdf-core:1.0.10'
+    implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
+
+    implementation 'com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10'
+
 }
 
 tasks.named('test') {

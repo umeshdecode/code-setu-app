@@ -56,14 +56,36 @@ public class TemplateGenerationController {
     }
 
 
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
-    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<byte[]> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-        byte[] pdf = templateService.generateQuotationPdf(shiftingId);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+//    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
+//    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+//    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
+//        byte[] pdf = templateService.generateQuotationPdf(shiftingId);
+//        try {
+//            return ResponseEntity.ok()
+//                    .header(HttpHeaders.CONTENT_DISPOSITION,
+//                            "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
+//                    .contentType(MediaType.APPLICATION_PDF)
+//                    .body(pdf);
+//        } catch (Exception e) {
+//            GenericDataDTO errorResponse = new GenericDataDTO();
+//            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+//            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+//            errorResponse.setErrors(new Object[]{e.getMessage()});
+//            return ResponseEntity.internalServerError().body(errorResponse);
+//        }
+//    }
+@PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
+@GetMapping(value = "/quotation/{shiftingId}/pdf")
+public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
+    String pdf = templateService.generateQuotationPdf(shiftingId);
+    try {
+        return ResponseEntity.ok().body(pdf);
+    } catch (Exception e) {
+        GenericDataDTO errorResponse = new GenericDataDTO();
+        errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+        errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+        errorResponse.setErrors(new Object[]{e.getMessage()});
+        return ResponseEntity.internalServerError().body(errorResponse);
     }
+}
 }

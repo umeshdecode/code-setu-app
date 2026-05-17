@@ -13,6 +13,8 @@ import com.cargosetu.repo.CompanyRepository;
 import com.cargosetu.repo.ShiftingRepository;
 import com.cargosetu.repo.TemplateRepository;
 import com.cargosetu.utils.utillity.FileUtility;
+import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,7 +28,9 @@ import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
@@ -48,7 +52,7 @@ public class TemplateService {
         templateRepository.save(template);
     }
 
-    public byte[] generateQuotationPdf(Long shiftingId) throws Exception {
+    public String generateQuotationPdf(Long shiftingId) throws Exception {
 
         Shifting shifting = shiftingRepository.findById(shiftingId)
                 .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
@@ -88,20 +92,69 @@ public class TemplateService {
         }
         String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotationDTO);
 
-        return htmlToPdf(filledHtml);
+//        return htmlToPdfConverter(filledHtml);
+        return filledHtml;
     }
 
     private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation) {
 
         Context ctx = new Context();
-        ctx.setVariable("company",company);
-        ctx.setVariable("shifting",shifting);
-        ctx.setVariable("customer",customer);
-        ctx.setVariable("charges",charges);
-        ctx.setVariable("quotation",quotation);
+
+        Map<String, Object> customerMap = getCustomerMap(customer);
+
+        Map<String, Object> shiftingMap = getShiftingMap(shifting);
+
+        Map<String, Object> chargesMap = getChargesMap(charges);
+
+        ctx.setVariable("company",   company);
+        ctx.setVariable("customer",  customerMap);
+        ctx.setVariable("shifting",  shiftingMap);
+        ctx.setVariable("charges",    chargesMap);
+        ctx.setVariable("quotation", quotation);
+
 
 
         return buildStringEngine().process(htmlTemplate, ctx);
+    }
+
+    private static Map<String, Object> getChargesMap(Charges charges) {
+        Map<String, Object> chargesMap = new HashMap<>();
+        chargesMap.put("transportCharge",   charges.getTransportCharge());
+        chargesMap.put("packingCharge",     charges.getPackingCharge());
+        chargesMap.put("loadingCharge",     charges.getLoadingCharge());
+        chargesMap.put("unloadingCharge",   charges.getUnloadingCharge());
+        chargesMap.put("unpackingCharge",   charges.getUnpackingCharge());
+        chargesMap.put("carTransportCharge", charges.getCarTransportCharge());
+        chargesMap.put("riskInsureCharge",  charges.getRiskInsureCharge());
+        chargesMap.put("storageCharge",     charges.getStorageCharge());
+        chargesMap.put("statisticalCharge", charges.getStatisticalCharge());
+        chargesMap.put("serviceCharge",     charges.getServiceCharge());
+        chargesMap.put("serviceRate",       charges.getServiceRate());
+        chargesMap.put("gstRate",           charges.getGstRate());
+        chargesMap.put("gstCharge",         charges.getGstCharge());
+        return chargesMap;
+    }
+
+    private static  Map<String, Object> getShiftingMap(Shifting shifting) {
+        Map<String, Object> shiftingMap = new HashMap<>();
+        shiftingMap.put("shiftingId",       shifting.getShiftingId());
+        shiftingMap.put("fromAddress",      shifting.getFromAddress());
+        shiftingMap.put("toAddress",        shifting.getToAddress());
+        shiftingMap.put("shiftingStartDate", shifting.getShiftingStartDate() != null
+                ? shifting.getShiftingStartDate().toString() : null);
+        shiftingMap.put("shiftReachedDate",  shifting.getShiftReachedDate() != null
+                ? shifting.getShiftReachedDate().toString() : null);
+        return shiftingMap;
+    }
+
+    private static Map<String, Object> getCustomerMap(Customer customer) {
+        Map<String, Object> customerMap = new HashMap<>();
+        customerMap.put("firstName",  customer.getFirstName());
+        customerMap.put("lastName",   customer.getLastName());
+        customerMap.put("mobileNo",   customer.getMobileNo());
+        customerMap.put("workEmail",  customer.getWorkEmail());
+        customerMap.put("uid",        customer.getUuid());
+        return customerMap;
     }
 
     private SpringTemplateEngine buildStringEngine() {
@@ -113,12 +166,24 @@ public class TemplateService {
         return engine;
     }
 
+    @Deprecated
     private byte[] htmlToPdf(String html) throws Exception {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             ITextRenderer renderer = new ITextRenderer();
             renderer.setDocumentFromString(html);
             renderer.layout();
             renderer.createPDF(out);
+            return out.toByteArray();
+        }
+    }
+    private byte[] htmlToPdfConverter(String html) throws Exception {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder();
+            builder.useFastMode();
+            builder.withHtmlContent(html, null);
+            builder.toStream(out);
+            builder.useSVGDrawer(new BatikSVGDrawer());
+            builder.run();
             return out.toByteArray();
         }
     }

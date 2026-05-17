@@ -23,15 +23,15 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(responseDto);
     }
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponseDto> handleExceptionValidation(
-            Exception ex) {
-
-        log.warn("Exception occurred, error: {}", ex.getMessage());
-
-        ApiResponseDto responseDto =  new ApiResponseDto(CommonStatusCode.INTERNAL_SERVER_ERROR, ex.getMessage(), null);
-        return ResponseEntity
-                .badRequest()
-                .body(responseDto);
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ApiResponseDto> handleExceptionValidation(
+//            Exception ex) {
+//
+//        log.warn("Exception occurred, error: {}", ex.getMessage());
+//
+//        ApiResponseDto responseDto =  new ApiResponseDto(CommonStatusCode.INTERNAL_SERVER_ERROR, ex.getMessage(), null);
+//        return ResponseEntity
+//                .badRequest()
+//                .body(responseDto);
+//    }
 }
