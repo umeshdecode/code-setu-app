@@ -10,6 +10,8 @@ import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
 import com.cargosetu.utils.utillity.FileUtility;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +34,8 @@ public class CompanyServImpl implements CompanyService {
     private  CompanyRepository companyRepository;
     @Autowired
     private CompanyAssetRepository companyAssetRepository;
-
+    @Autowired
+    private ObjectMapper objectMapper;
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto) {
         GenericDataDTO response = new GenericDataDTO();
@@ -60,11 +63,14 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseMessege("Company created successfully");
             response.setResponseCode(200);
             response.setData(saved);
+            CompanyAssetDTO companyAsset = new CompanyAssetDTO();
+           createCompanyAssets(Arrays.asList(companyAsset), new MultipartFile[0]);
+
 
         } catch (Exception e) {
             log.error("Error creating company", e);
             response.setResponseMessege("Failed to create company");
-            response.setResponseCode(HttpStatus.OK.value());
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
         return response;
     }

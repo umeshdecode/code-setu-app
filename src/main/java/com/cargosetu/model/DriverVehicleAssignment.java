@@ -23,12 +23,12 @@ public class DriverVehicleAssignment {
     @NotNull(message = "Driver is mandatory")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "driver_id", nullable = false)
-    private Driver driverId;
+    private Driver driver;
 
     @NotNull(message = "Vehicle is mandatory")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = false)
-    private Vehicle vehicleId;
+    private Vehicle vehicle;
 
     @NotNull(message = "Assignment timestamp is required")
     @PastOrPresent(message = "Assignment time cannot be in the future")

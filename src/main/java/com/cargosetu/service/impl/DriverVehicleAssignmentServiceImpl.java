@@ -1,5 +1,6 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.dto.AssignedDriverToVehicleDto;
 import com.cargosetu.model.Driver;
 import com.cargosetu.model.DriverVehicleAssignment;
 import com.cargosetu.model.Vehicle;
@@ -11,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.awt.print.Pageable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -52,11 +55,14 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
             repository.saveAll(existing);
 
             DriverVehicleAssignment assignment = new DriverVehicleAssignment();
-            assignment.setDriverId(driver);
-            assignment.setVehicleId(vehicle);
+            assignment.setDriver(driver);
+            assignment.setVehicle(vehicle);
             assignment.setAssignedAt(LocalDateTime.now());
             assignment.setActive(true);
-
+            driver.setStatus("Assigned");
+            vehicle.setStatus("Assigned");
+            driverRepository.save(driver);
+            vehicleRepository.save(vehicle);
             return repository.save(assignment);
 
         } catch (Exception e) {
@@ -65,10 +71,24 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
         }
     }
 @Override
-    public List<DriverVehicleAssignment> getAllAssignments() {
+    public List<AssignedDriverToVehicleDto> getAllAssignments() {
         try {
             log.info("Fetching all assignments");
-            return repository.findAll();
+            List<DriverVehicleAssignment> assignmentList =  repository.findAll();
+            List<AssignedDriverToVehicleDto> driverToVehicleDtos = new ArrayList<>();
+            for (DriverVehicleAssignment assignment : assignmentList){
+                AssignedDriverToVehicleDto assignedDriverToVehicleDto = new AssignedDriverToVehicleDto();
+                assignedDriverToVehicleDto.setDriverName(assignment.getDriver().getName());
+                assignedDriverToVehicleDto.setDriverId(assignment.getDriver().getId());
+                assignedDriverToVehicleDto.setVehicleId(assignment.getVehicle().getId());
+                assignedDriverToVehicleDto.setRegistrationNumber(assignment.getVehicle().getRegistrationNumber());
+                assignedDriverToVehicleDto.setActive(assignment.getActive());
+                assignedDriverToVehicleDto.setAssignedAt(assignment.getAssignedAt());
+                assignedDriverToVehicleDto.setRemarks(assignment.getRemarks());
+                assignedDriverToVehicleDto.setId(assignment.getId());
+                driverToVehicleDtos.add(assignedDriverToVehicleDto);
+            }
+            return driverToVehicleDtos;
         } catch (Exception e) {
             log.error("Error fetching assignments: {}", e.getMessage(), e);
             throw e;
@@ -82,10 +102,24 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
             DriverVehicleAssignment assignment = repository.findById(assignmentId)
                     .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-            assignment.setActive(false);
-            assignment.setUnassignedAt(LocalDateTime.now());
+            if (assignment !=null) {
+                Driver driver = driverRepository.findById(assignment.getDriver().getId())
+                        .orElseThrow(() -> new RuntimeException("Driver not found"));
 
-            repository.save(assignment);
+                Vehicle vehicle = vehicleRepository.findById(assignment.getVehicle().getId())
+                        .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                assignment.setActive(false);
+                assignment.setUnassignedAt(LocalDateTime.now());
+
+                repository.save(assignment);
+
+                driver.setStatus("UnAssigned");
+                vehicle.setStatus("UnAssigned");
+                driverRepository.save(driver);
+                vehicleRepository.save(vehicle);
+
+            }
+
 
         } catch (Exception e) {
             log.error("Error unassigning {}", assignmentId, e.getMessage(), e);

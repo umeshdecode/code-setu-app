@@ -1,6 +1,8 @@
 package com.cargosetu.dto;
 
+import com.cargosetu.model.Company;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class CompanyAssetDTO {

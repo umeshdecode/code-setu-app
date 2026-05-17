@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.dto.AssignedDriverToVehicleDto;
 import com.cargosetu.model.DriverVehicleAssignment;
 import com.cargosetu.service.DriverVehicleAssignmentService;
 import com.cargosetu.utils.BaseURL;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.awt.print.Pageable;
 import java.util.List;
 
 @RestController
@@ -25,7 +27,7 @@ public class DriverVehicleAssignmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DriverVehicleAssignment>> getAll() {
+    public ResponseEntity<List<AssignedDriverToVehicleDto>> getAll() {
         return ResponseEntity.ok(service.getAllAssignments());
     }
 

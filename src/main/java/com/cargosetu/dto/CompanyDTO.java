@@ -4,6 +4,7 @@ import com.cargosetu.model.Company;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -76,6 +77,7 @@ public class CompanyDTO {
     private String logoBase64;
     private String sealBase64;
     private String website;
+    private CompanyAssetDTO companyAssetDTO;
 
 
     public static CompanyDTO from(Company c,
