@@ -20,4 +20,12 @@ public class GenericDataDTO {
     private long pageRecords = 0;
     private long currentPageNumber;
     private long totalPages;
+
+
+    public GenericDataDTO(Integer responseCode, String responseMessege, Object data,Object[] errors) {
+        this.responseCode = responseCode;
+        this.responseMessege = responseMessege;
+        this.data = data;
+        this.errors = errors;
+    }
 }

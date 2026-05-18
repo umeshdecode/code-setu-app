@@ -14,6 +14,7 @@ public interface BaseURL {
     final String DRIVER ="/drivers";
     final String ASSIGNMENTS ="/assignments";
     final String TEMPLATES ="/templates";
+    final String BRANCHES ="/branches";
 
 
 }
