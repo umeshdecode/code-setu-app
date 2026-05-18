@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.cargosetu'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0-SETU'
 description = 'Code Setu app for packers and mover ERP management system'
 
 java {
