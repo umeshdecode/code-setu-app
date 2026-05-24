@@ -53,8 +53,7 @@ public class TemplateService {
     }
 
     public String generateQuotationPdf(Long shiftingId) throws Exception {
-
-        Shifting shifting = shiftingRepository.findById(shiftingId)
+        Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
                 .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
 
         Customer customer = shifting.getCustomer();

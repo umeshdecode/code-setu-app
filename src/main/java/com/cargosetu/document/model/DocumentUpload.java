@@ -3,13 +3,16 @@ package com.cargosetu.document.model;
 import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.model.Staff;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "tblm_document_upload")
-@Data
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class DocumentUpload {
 
     @Id
