@@ -152,8 +152,8 @@ public class CustomerService {
         try {
             log.info("Fetching all customers from database");
             Pageable pageable = PageRequest.of(pageNumber, pageSize);
-            Page<Customer> customers = customerRepository.findByIsDelete(false, pageable);
-
+            Page<Customer> customers = customerRepository.findByIsDeleteOrderByCustomerIdDesc
+                    (false, pageable);
             if (customers.isEmpty()) {
                 log.warn("No customers found in database");
                 response.setResponseCode(CommonStatusCode.NOT_FOUND);
