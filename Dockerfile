@@ -1,18 +1,28 @@
-# Start from a base image with a Java Runtime Environment (JRE)
-#FROM openjdk:17-jdk-slim
-FROM ghcr.io/graalvm/jdk-community:17.0.9
+# =========================
+# Stage 1: Build the app
+# =========================
+FROM gradle:8.7-jdk17 AS build
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy the built JAR file from your host machine's target directory to the container's /app directory
-# Replace 'your-application-0.0.1-SNAPSHOT.jar' with your actual JAR file name
-#ARG JAR_FILE=build/libs/CargoSetuApp-0.0.1-SNAPSHOT
-ARG JAR_FILE=build/libs/CargoSetuApp-0.0.1-SNAPSHOT.jar
-COPY ${JAR_FILE} CargoSetuApp.jar
+# Copy all project files
+COPY . .
 
-# Expose the port your Spring Boot app listens on (default is 8080)
+# Build Spring Boot jar
+RUN gradle clean build -x test
+
+# =========================
+# Stage 2: Run the app
+# =========================
+FROM ghcr.io/graalvm/jdk-community:17.0.9
+
+WORKDIR /app
+
+# Copy generated jar from build stage
+COPY --from=build /app/build/libs/*.jar CargoSetuApp.jar
+
+# Expose application port
 EXPOSE 31201
 
-# Define the command to run your application when the container starts
+# Start application
 ENTRYPOINT ["java", "-jar", "CargoSetuApp.jar"]
