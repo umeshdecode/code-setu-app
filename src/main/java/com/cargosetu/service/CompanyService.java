@@ -12,7 +12,7 @@ public interface CompanyService {
 
     GenericDataDTO updateCompany(Integer id, CompanyDTO company);
 
-    GenericDataDTO getCompanyById(Integer id);
+    GenericDataDTO getCompanyById(String uuid);
 
     GenericDataDTO getAllCompanies();
 

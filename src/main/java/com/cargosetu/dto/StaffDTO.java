@@ -1,6 +1,7 @@
 package com.cargosetu.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -9,6 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class StaffDTO {
     private Long staffId;
     private String uuid;
@@ -34,5 +36,7 @@ public class StaffDTO {
     private Integer failedLoginAttempts;
     private LocalDateTime passwordChangedAt;
     private String previousPassword;
+    private DepartmentDTO department;
+    private Integer companyId;
 
 }

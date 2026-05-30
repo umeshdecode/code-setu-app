@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+
+    <changeSet id="NB20260001" author="Nishit" runOnChange="true">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="tblmclientservice"/>
+            </not>
+        </preConditions>
+        <createTable tableName="tblmclientservice">
+            <column name="serviceid" type="INT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="value" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="STAFFID" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="module" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+
+
+    <!--   Insert Default Data in Client Service Master Table  -->
+    <changeSet id="NB0001" author="Nishit" runOnChange="true">
+                <preConditions onFail="MARK_RAN">
+                    <sqlCheck expectedResult="0">
+                        select count(*) from tblmclientservice Where NAME ='Staff Document' and STAFFID="1";
+                    </sqlCheck>
+                </preConditions>
+        <insert tableName="tblmclientservice">
+            <column name="serviceid" value="1"/>
+            <column name="name" value="Staff Document"/>
+            <column name="value" value="D:\"/>
+            <column name="STAFFID" value="1"/>
+            <column name="module" value="xyz"/>
+        </insert>
+
+        <insert tableName="tblmclientservice">
+            <column name="serviceid" value="2"></column>
+            <column name="name" value="Login Attempt"/>
+            <column name="value" value="5"/>
+            <column name="STAFFID" value="1"/>
+            <column name="module" value="xyz"/>
+        </insert>
+
+    </changeSet>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--    <changeSet id="NB0001" author="Nishit" runOnChange="true">-->
+<!--        <preConditions onFail="MARK_RAN">-->
+<!--            <sqlCheck expectedResult="0">-->
+<!--                select count(*) from tblmclientservice Where NAME ='';-->
+<!--            </sqlCheck>-->
+<!--        </preConditions>-->
+<!--        <insert tableName="tblmclientservice">-->
+<!--            <column name="serviceid" value="1"></column>-->
+<!--            <column name="NAME" value=""/>-->
+<!--            <column name="VALUE" value=""/>-->
+<!--        </insert>-->
+<!--    </changeSet>-->
+
+
+</databaseChangeLog>

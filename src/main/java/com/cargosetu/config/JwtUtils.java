@@ -4,6 +4,7 @@ import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.model.RefreshToken;
 import com.cargosetu.repo.RefreshTokenRepository;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -34,7 +35,8 @@ public class JwtUtils {
     public String generateToken(LoggedInUser user) {
 
         return Jwts.builder()
-                .setSubject(user.getUserId().toString())
+                .setSubject(user.getStaffId().toString())
+                .claim("staffId",user.getStaffId())
                 .claim("uuid", user.getUuid())
                 .claim("roles", user.getRoles())
                 .claim("userName",user.getUsername())
@@ -65,5 +67,18 @@ public class JwtUtils {
         );
 
         return refreshTokenRepository.save(token);
+    }
+
+    public Claims getClaimsFromExpiredToken(String token) {
+        try {
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+        } catch (ExpiredJwtException e) {
+            //  even if expired, we return the claims
+            return e.getClaims();
+        }
     }
 }

@@ -39,7 +39,7 @@ public class PermissionImpl implements PermissionService {
     public GenericDataDTO getPermissionList() {
         GenericDataDTO responseDTO = new GenericDataDTO();
         try {
-            List<Permission> permissions = permissionRepo.findAll();
+            List<Permission> permissions = permissionRepo.findAllByIsDeletedIsFalse();
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());
@@ -177,7 +177,7 @@ public class PermissionImpl implements PermissionService {
             permission.setDescription(pojo.getDescription());
             permission.setModule(pojo.getModule());
             permission.setIsActive(true);
-            permission.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getUserId().toString()));
+            permission.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getStaffId().toString()));
 
             permission = permissionRepo.save(permission);
 

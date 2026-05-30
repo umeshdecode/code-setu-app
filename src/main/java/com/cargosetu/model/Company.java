@@ -2,6 +2,7 @@ package com.cargosetu.model;
 
 import com.cargosetu.abstracts.AbstractModel;
 import com.cargosetu.dto.CompanyDTO;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -72,6 +73,10 @@ public class Company extends AbstractModel {
 
     @Column(name = "main_branch", length = 100)
     private String mainBranch;
+
+    @Column(name = "company_uuid")
+    @JsonProperty("company_uuid")
+    private String companyUUID;
     public Company() {
     }
     public Company(CompanyDTO companyDto) {

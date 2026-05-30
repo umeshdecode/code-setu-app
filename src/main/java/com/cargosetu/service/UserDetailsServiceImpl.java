@@ -3,7 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -39,7 +39,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         LoggedInUser loggedInUser = new LoggedInUser();
         loggedInUser.setRoles(staff.getRoles().stream().map(Role::getCode).collect(Collectors.toSet()));
         loggedInUser.setUserName(staff.getUserName());
-        loggedInUser.setUserId(staff.getStaffId());
+        loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setEmail(staff.getEmail());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());

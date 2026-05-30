@@ -3,7 +3,7 @@ package com.cargosetu.controller;
 import com.cargosetu.dto.PermissionDTO;
 import com.cargosetu.service.PermissionService;
 
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ public class PermissionController {
     @Autowired
     private PermissionService permissionService;
 
-    @GetMapping("")
+    @GetMapping
     public GenericDataDTO getPermission(){
         return permissionService.getPermissionList();
     }

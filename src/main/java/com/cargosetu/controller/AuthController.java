@@ -6,7 +6,7 @@ import com.cargosetu.config.dto.TokenResponse;
 import com.cargosetu.config.JwtUtils;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.AuthService;
 import com.cargosetu.service.StaffService;
 import com.cargosetu.utils.CommonConstants;
@@ -41,31 +41,37 @@ public class AuthController {
 
 
     @PostMapping(UrlConstants.LOGIN_URL)
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginDto, HttpServletRequest request){
-            TokenResponse tokenResponse = new TokenResponse();
-            boolean validRequest = authService.isValidRequest(loginDto);
-            if(validRequest){
-                tokenResponse = authService.loginUser(loginDto);
-                if(tokenResponse.getAccessToken() == null){
-                    ApiResponseDto responseDto = generateResponse(HttpStatus.EXPECTATION_FAILED.value(), "Something went wrong!!", tokenResponse);
-                    return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(responseDto);
-                }
-                return  ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginDto, HttpServletRequest request) {
+        TokenResponse tokenResponse = new TokenResponse();
+        boolean validRequest = authService.isValidRequest(loginDto);
+        if (validRequest) {
+            tokenResponse = authService.loginUser(loginDto);
+            if (tokenResponse.getAccessToken() == null) {
+                ApiResponseDto responseDto = generateResponse(HttpStatus.EXPECTATION_FAILED.value(), "Something went wrong!!", tokenResponse);
+                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(responseDto);
             }
+            return ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
+        }
         return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
     }
 
     @PostMapping(UrlConstants.REGISTER_USER)
-    public GenericDataDTO registerUser(@RequestBody StaffDTO staffDTO){
+    public GenericDataDTO registerUser(@RequestBody StaffDTO staffDTO) {
         GenericDataDTO dto = new GenericDataDTO();
         boolean validated = staffService.validateCreateStaffRequest(staffDTO);
-        if(validated){
+        Boolean duplicateUser = staffService.isDuplicateUser(staffDTO);
+        if (validated) {
+            if (duplicateUser) {
+                dto.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
+                dto.setResponseMessege("Username/email already exists");
+                return dto;
+            }
             StaffDTO staff = staffService.saveStaff(staffDTO);
-            if(Objects.nonNull(staff)){
+            if (Objects.nonNull(staff)) {
                 dto.setData(staff);
                 dto.setResponseCode(CommonStatusCode.CREATED);
                 dto.setResponseMessege(CommonConstants.STAFF + CommonStatusCode.MSG_CREATED);
-            }else {
+            } else {
                 dto.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
                 dto.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
             }
@@ -73,7 +79,7 @@ public class AuthController {
         return dto;
     }
 
-    public ApiResponseDto generateResponse(Integer responseCode,String responseMessage,Object responseBody){
-        return new ApiResponseDto(responseCode,responseMessage,responseBody);
+    public ApiResponseDto generateResponse(Integer responseCode, String responseMessage, Object responseBody) {
+        return new ApiResponseDto(responseCode, responseMessage, responseBody);
     }
 }

@@ -1,4 +1,4 @@
-package com.cargosetu.urls;
+package com.cargosetu.utils;
 
 public interface BaseURL {
    final String BASE_URL= "/api/v2/cargosetu";
@@ -6,5 +6,7 @@ public interface BaseURL {
    final String PERMISSION ="/permission";
    final String DEPARTMENT ="/department";
    final String COMPANY ="/company";
-
+   final String DOCUMENT ="/document";
+   final String SYSTEM_CONFIG ="/system/configuration";
+   final String DOCS_UPLOADS = "/docs/uploads";
 }

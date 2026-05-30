@@ -3,7 +3,7 @@ package com.cargosetu.controller;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.service.StaffService;
-import com.cargosetu.urls.BaseURL;
+import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
@@ -25,10 +25,11 @@ public class StaffController {
     }
 
     @PreAuthorize(
-            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ)"
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ) " +
+                    "or hasRole(T(com.cargosetu.utils.CommonConstants.RolesConstants).COMPANY_ADMIN)"
     )
     @GetMapping("/{id}")
-    public GenericDataDTO getStaff(@PathVariable("id") Integer staffId){
+    public GenericDataDTO getStaff(@PathVariable("id") Long staffId){
         GenericDataDTO dto = new GenericDataDTO();
         StaffDTO staffById = staffService.getStaffById(staffId);
         if (Objects.nonNull(staffById)) {
@@ -63,5 +64,19 @@ public class StaffController {
         return dto;
     }
 
+    @DeleteMapping("/{staffId}")
+    public GenericDataDTO deleteStaff(@PathVariable("staffId") Long staffId){
+        GenericDataDTO dto = new GenericDataDTO();
+        Boolean deleteStaff = staffService.deleteStaff(staffId);
+        if(deleteStaff){
+            dto.setResponseCode(CommonStatusCode.SUCCESS);
+            dto.setResponseMessege(CommonStatusCode.MSG_SUCCESS);
+            return dto;
+        }else {
+            dto.setResponseCode(CommonStatusCode.FAIL);
+            dto.setResponseMessege("Staff not Deleted");
+            return dto;
+        }
+    }
 
 }

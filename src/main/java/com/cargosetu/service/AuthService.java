@@ -7,13 +7,16 @@ import com.cargosetu.config.JwtUtils;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
-import com.cargosetu.repository.StaffRepository;
+import com.cargosetu.repo.StaffRepository;
+import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -46,28 +49,25 @@ public class AuthService {
         if(loginDto == null){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"Login Request cannot be null");
         }
-        if( (loginDto.getEmail() == null || loginDto.getEmail().trim().isEmpty()) &&
-                (loginDto.getUserName() == null || loginDto.getUserName().trim().isEmpty())){
-            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter either username or email");
+        if(!StringUtils.hasText(loginDto.getEmail())){
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid email!!");
         }
         if(loginDto.getPassword() == null || loginDto.getPassword().trim().isEmpty()){
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"please enter valid password!!");
         }
-        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
-            boolean validEmail = isValidEmail(loginDto.getEmail());
-            if(!validEmail){
-                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
-            }
-        }
+//        if(  loginDto.getEmail() !=null && !loginDto.getEmail().isEmpty()  ){
+//            boolean validEmail = isValidEmail(loginDto.getEmail());
+//            if(!validEmail){
+//                throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),"email address is invalid");
+//            }
+//        }
         return true;
     }
 
     public TokenResponse loginUser(LoginRequest loginDto) {
         Staff staff = null;
-        if(loginDto.getUserName() != null){
-             staff = loginWithUserNameAndPassword(loginDto.getUserName(), loginDto.getPassword());
-        }
-        else if(loginDto.getEmail() != null){
+
+         if(loginDto.getEmail() != null){
             staff = loginWithEmailAndPassword(loginDto.getEmail(),loginDto.getPassword());
         }
         if(staff == null){
@@ -89,14 +89,14 @@ public class AuthService {
         loggedInUser.setRoles(staffRoles);
         loggedInUser.setPermissions(staffPermissions);
         loggedInUser.setUuid(staff.getUuid());
-        loggedInUser.setUserId(staff.getStaffId());
+        loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());
         
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
-        return new TokenResponse("Bearer "+jwtToken, jwtUtils.getTokenExpirationTime());
+         return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){
@@ -111,12 +111,38 @@ public class AuthService {
     }
 
     private Staff loginWithEmailAndPassword(String email, String password) {
-        Optional<Staff> byEmail = staffRepository.findByEmail(email);
+        Optional<Staff> byEmail = staffRepository.findByEmailOrUserName(email,email);
         if(byEmail.isPresent()){
             if(!passwordEncoder.matches(password,byEmail.get().getPassword())){
                 throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),"Password is incorrect!!");
             }
             return byEmail.get();
         }else throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),"Account not found for email "+email+",try with correct credentials!!");
+    }
+
+    public TokenResponse refreshToken(String oldToken) {
+        try {
+            // We parse the claims even if the token is expired to get the user details
+            Claims claims = jwtUtils.getClaimsFromExpiredToken(oldToken);
+
+            // Reconstruct the LoggedInUser object from claims
+            LoggedInUser user = new LoggedInUser();
+            user.setStaffId(Long.parseLong(claims.getSubject()));
+            user.setUuid((String) claims.get("uuid"));
+            user.setUserName((String) claims.get("userName"));
+            user.setFirstName((String) claims.get("firstName"));
+            user.setLastName((String) claims.get("lastName"));
+            user.setEmail((String) claims.get("email"));
+            user.setRoles(new HashSet<>((List<String>) claims.get("roles")));
+            user.setPermissions(new HashSet<>((List<String>) claims.get("permissions")));
+
+            // Generate a fresh token using your existing method
+            String newToken = jwtUtils.generateToken(user);
+
+            return new TokenResponse(newToken, jwtUtils.getTokenExpirationTime());
+
+        } catch (Exception e) {
+            throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Session expired, please login again.");
+        }
     }
 }

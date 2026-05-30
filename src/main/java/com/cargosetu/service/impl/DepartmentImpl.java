@@ -8,6 +8,7 @@ import com.cargosetu.repo.DepartmentRepo;
 import com.cargosetu.service.DepartmentService;
 import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.utils.UUIDGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -168,6 +169,8 @@ public class DepartmentImpl implements DepartmentService {
                 response.setData(null);
                 return response;
             }
+            String generatedUUID = UUIDGenerator.generate();
+
 
             log.info("Creating new department with name: {} ", pojo.getName());
 
@@ -175,10 +178,10 @@ public class DepartmentImpl implements DepartmentService {
             department.setName(pojo.getName());
             department.setCode(pojo.getCode());
             department.setDescription(pojo.getDescription());
-            department.setDepartmentUuid(pojo.getDepartmentUuid());
-            department.setCompanyUuid(pojo.getCompanyUuid());
+            department.setDepartmentUuid(pojo.getName()+generatedUUID);
+            department.setCompanyUuid(pojo.getName()+generatedUUID);
             department.setIsActive(true);
-            department.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getUserId().toString()));
+            department.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getStaffId().toString()));
             department = departmentRepo.save(department);
 
             response.setResponseMessege("department Created Successfully");
