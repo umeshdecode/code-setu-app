@@ -66,7 +66,7 @@ public class AuthController {
                 dto.setResponseMessege("Username/email already exists");
                 return dto;
             }
-            StaffDTO staff = staffService.saveStaff(staffDTO);
+            StaffDTO staff = staffService.saveStaff(staffDTO,true);
             if (Objects.nonNull(staff)) {
                 dto.setData(staff);
                 dto.setResponseCode(CommonStatusCode.CREATED);

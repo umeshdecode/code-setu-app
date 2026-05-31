@@ -50,7 +50,7 @@ public class StaffService {
     }
 
     @Transactional
-    public StaffDTO saveStaff(StaffDTO staffDTO){
+    public StaffDTO saveStaff(StaffDTO staffDTO,boolean isAdmin){
         Staff staff = new Staff();
 
         String generatedUUID = UUIDGenerator.generate();
@@ -58,12 +58,17 @@ public class StaffService {
         staff.setUuid(generatedUUID);
         staff.setUserName(staffDTO.getEmail().substring(0, staffDTO.getEmail().indexOf("@"))+staff.getUuid().substring(4));
         // set user staff default role
-        Optional<Role> companyAdminDefaultRole = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
-        if(companyAdminDefaultRole.isPresent()){
-            staff.setRoles(Set.of(companyAdminDefaultRole.get()));
-        }else{
-            Role role = rolesService.createCompanyAdminDefaultRole();
-            staff.setRoles(Set.of(role));
+        if(isAdmin){
+            Optional<Role> companyAdminDefaultRole = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
+            if(companyAdminDefaultRole.isPresent()){
+                staff.setRoles(Set.of(companyAdminDefaultRole.get()));
+            }else{
+                Role role = rolesService.createCompanyAdminDefaultRole();
+                staff.setRoles(Set.of(role));
+            }
+        }else {
+            List<Role> roleAndPermissions = rolesRepo.findAllById(staffDTO.getRoleIds());
+            staff.setRoles(new HashSet<>(roleAndPermissions));
         }
          String encode = new BCryptPasswordEncoder().encode(staff.getPassword());
         staff.setPassword(encode);

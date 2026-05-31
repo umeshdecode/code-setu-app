@@ -1,7 +1,9 @@
 package com.cargosetu.service.impl;
 
 import com.cargosetu.dto.RolesDTO;
+import com.cargosetu.model.Permission;
 import com.cargosetu.model.Role;
+import com.cargosetu.repo.PermissionRepo;
 import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.service.RolesService;
 import com.cargosetu.utils.CommonConstants;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,6 +26,8 @@ import java.util.Optional;
 public class RolesImpl implements RolesService {
     @Autowired
     private RolesRepo rolesRepo;
+    @Autowired
+    private PermissionRepo permissionRepo;
 
 //    private static final Logger logger = LoggerFactory.getLogger(RolesImpl.class);
 
@@ -168,6 +173,12 @@ public class RolesImpl implements RolesService {
             role.setIsActive(true);
             role.setIsDeleted(false);
 
+
+            if(pojo.getPermissionIds() != null){
+                List<Permission> permissions = permissionRepo.findAllById(pojo.getPermissionIds());
+                role.setPermissions(new HashSet<>(permissions));
+            }
+
             role = rolesRepo.save(role);
 
             response.setResponseMessege("Role Created Successfully");
@@ -188,6 +199,7 @@ public class RolesImpl implements RolesService {
             return roleOptional.get();
         }else {
             // for temporary purpose only
+            List<Permission> permissions = permissionRepo.findAllByCreatedByName(CommonConstants.SYSTEM_DEFAULT);
             Role role = new Role();
             role.setCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
             role.setRoleName("Company Admin");
@@ -197,6 +209,7 @@ public class RolesImpl implements RolesService {
             role.setIsDeleted(false);
             role.setCreatedAt(LocalDateTime.now());
             role.setCreatedByName("SYSTEM");
+            role.setPermissions(new HashSet<>(permissions));
             return rolesRepo.save(role);
         }
     }

@@ -38,5 +38,5 @@ public class StaffDTO {
     private String previousPassword;
     private DepartmentDTO department;
     private Integer companyId;
-
+    private Set<Long> roleIds = new HashSet<>();
 }

@@ -53,7 +53,13 @@ public class StaffController {
         GenericDataDTO dto = new GenericDataDTO();
         boolean validated = staffService.validateCreateStaffRequest(staffDTO);
         if(validated){
-            StaffDTO staff = staffService.saveStaff(staffDTO);
+            Boolean duplicateUser = staffService.isDuplicateUser(staffDTO);
+                if (duplicateUser) {
+                    dto.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
+                    dto.setResponseMessege("Username/email already exists");
+                    return dto;
+                }
+            StaffDTO staff = staffService.saveStaff(staffDTO,false);
             if(Objects.nonNull(staff)){
                 dto.setData(staff);
                 dto.setResponseCode(CommonStatusCode.CREATED);
