@@ -1,28 +1,28 @@
 # =========================
-# Stage 1: Build the app
+# Stage 1: Build
 # =========================
 FROM gradle:8.7-jdk17 AS build
 
 WORKDIR /app
 
-# Copy all project files
-COPY . .
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
 
-# Build Spring Boot jar
-RUN gradle clean build -x test
+RUN gradle dependencies --no-daemon
+
+COPY src ./src
+
+RUN gradle clean build -x test --no-daemon
 
 # =========================
-# Stage 2: Run the app
+# Stage 2: Run
 # =========================
-FROM ghcr.io/graalvm/jdk-community:17.0.9
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# Copy generated jar from build stage
-COPY --from=build /app/build/libs/*.jar CargoSetuApp.jar
+COPY --from=build /app/build/libs/*.jar app.jar
 
-# Expose application port
 EXPOSE 31201
 
-# Start application
-ENTRYPOINT ["java", "-jar", "CargoSetuApp.jar"]
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod}"]
