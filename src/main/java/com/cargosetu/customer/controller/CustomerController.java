@@ -95,11 +95,13 @@ public class CustomerController {
     }
     @GetMapping
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)")
-    public GenericDataDTO getCustomerData() {
+    public GenericDataDTO getCustomerData(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
         GenericDataDTO customerResponse = new GenericDataDTO();
         customerResponse.setResponseCode(CommonStatusCode.FAIL);
         customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
-        customerResponse = customerService.getAllCustomer();
+        if(pageNumber == null) pageNumber = 0;
+        if(pageSize == null) pageSize = 5;
+        customerResponse = customerService.getAllCustomer(pageNumber,pageSize);
 
         if (customerResponse.getResponseCode() == null) {
             customerResponse.setResponseCode(CommonStatusCode.FAIL);

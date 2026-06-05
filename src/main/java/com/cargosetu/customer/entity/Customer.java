@@ -4,7 +4,7 @@ import com.cargosetu.document.model.DocumentUpload;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -13,7 +13,10 @@ import java.util.Set;
 
 @Entity
 @Table(name = "tblm_customers")
-@Data
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Customer {
 
     @Id
@@ -47,10 +50,11 @@ public class Customer {
 
     @Column(name = "is_delete")
     private Boolean isDelete  = false;
+    @Column(name = "createdbyid")
+    private Long createdById;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @JsonIgnoreProperties("customer")
-    @JsonManagedReference
     private List<Shifting> shiftings = new ArrayList<>();
 
     @OneToMany(mappedBy = "customer")

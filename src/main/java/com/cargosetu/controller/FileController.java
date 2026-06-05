@@ -1,6 +1,9 @@
 package com.cargosetu.controller;
 
 import com.cargosetu.handler.CustomValidationException;
+import com.cargosetu.model.Clientservice;
+import com.cargosetu.repo.ClientServiceRepo;
+import com.cargosetu.service.ClientServices;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.utillity.FileUtility;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Optional;
 
 @Slf4j
 @RequestMapping(BaseURL.BASE_URL+BaseURL.DOCUMENT)
@@ -24,6 +28,9 @@ public class FileController {
 
     @Autowired
     private FileUtility fileUtility;
+
+    @Autowired
+    private ClientServiceRepo clientServiceRepo;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadDocument(@RequestParam(value = "file") MultipartFile[] file) {
@@ -49,9 +56,9 @@ public class FileController {
 
     private void uploadDocuments( MultipartFile[] files) throws IOException {
 //        String path ="";   // path from db future scope
-        String path = "C:\\Users\\bhand\\Desktop\\Adopt Projects\\Codesetu"; //   "C:/uploads/"
+        Clientservice clientService = clientServiceRepo.findByName("Staff Document").orElse(null);
 //            String fullPath = path + subFolderName;  //subFolderName in future scope
-        String fullPath = path ;
+        String fullPath = clientService.getName();
         log.info(":::::File Path Generated for Upload Document ::::: " + fullPath);
         fileUtility.saveMultipleFiles(files, fullPath);
     }

@@ -239,41 +239,48 @@ public class FileUtility extends ApplicationUtils {
             System.out.println("Folder does not exist: " + folderToDelete.getAbsolutePath());
         }
     }
-    public static String saveMultipartFile(MultipartFile file, String basePath) {
-
+    public static List<String> saveMultipartFile(MultipartFile[] files, String basePath) {
+        List<String> savedFiles = new ArrayList<>();
         try {
-            if (file == null || file.isEmpty()) {
-                throw new RuntimeException("File is empty");
+            if (files == null || files.length == 0) {
+                throw new RuntimeException("Files are empty");
             }
-            String originalName = "";
-
-            if(file.getOriginalFilename() != null || !file.getOriginalFilename().isBlank()){
-                originalName = Paths.get(file.getOriginalFilename()).getFileName().toString();
-            }
-            // Prevent invalid names
-            if (originalName.contains("..")) {
-                throw new RuntimeException("Invalid file name");
-            }
-
-            String uniqueFileName = UUID.randomUUID()+ UUIDGenerator.generate() + "_" + originalName;
-
             Path uploadPath = Paths.get(basePath).toAbsolutePath().normalize();
-
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-            Path targetLocation = uploadPath.resolve(uniqueFileName).normalize();
-
-            if (!targetLocation.startsWith(uploadPath)) {
-                throw new RuntimeException("Invalid file path");
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) {
+                    continue;
+                }
+                String originalName = "";
+                if (file.getOriginalFilename() != null &&
+                        !file.getOriginalFilename().isBlank()) {
+                    originalName = Paths.get(file.getOriginalFilename())
+                            .getFileName()
+                            .toString();
+                }
+                // Prevent invalid names
+                if (originalName.contains("..")) {
+                    throw new RuntimeException("Invalid file name");
+                }
+                String uniqueFileName = UUID.randomUUID() + UUIDGenerator.generate() + "_" + originalName;
+                Path targetLocation = uploadPath
+                        .resolve(uniqueFileName)
+                        .normalize();
+                // Security check
+                if (!targetLocation.startsWith(uploadPath)) {
+                    throw new RuntimeException("Invalid file path");
+                }
+                Files.copy(
+                        file.getInputStream(),
+                        targetLocation,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+                savedFiles.add(targetLocation.toString());
             }
-
-            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
-
-            return targetLocation.toString();
-
+            return savedFiles;
         } catch (IOException ex) {
-            throw new RuntimeException("Could not store file", ex);
+            throw new RuntimeException("Could not store files", ex);
         }
-    }
-}
+    }}

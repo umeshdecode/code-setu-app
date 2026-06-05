@@ -3,12 +3,15 @@ package com.cargosetu.customer.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Entity
-@Data
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "tblm_shifting")
 public class Shifting {
 
@@ -49,8 +52,6 @@ public class Shifting {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")
-    @JsonIgnore(value = true)
-    @JsonBackReference
     private Customer customer;
 
     @OneToOne(cascade = CascadeType.ALL)

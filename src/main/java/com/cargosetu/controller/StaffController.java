@@ -10,7 +10,9 @@ import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
 import java.util.Objects;
 
 @RestController
@@ -51,7 +53,13 @@ public class StaffController {
         GenericDataDTO dto = new GenericDataDTO();
         boolean validated = staffService.validateCreateStaffRequest(staffDTO);
         if(validated){
-            StaffDTO staff = staffService.saveStaff(staffDTO);
+            Boolean duplicateUser = staffService.isDuplicateUser(staffDTO);
+                if (duplicateUser) {
+                    dto.setResponseCode(CommonStatusCode.VALIDATION_ERROR);
+                    dto.setResponseMessege("Username/email already exists");
+                    return dto;
+                }
+            StaffDTO staff = staffService.saveStaff(staffDTO,false);
             if(Objects.nonNull(staff)){
                 dto.setData(staff);
                 dto.setResponseCode(CommonStatusCode.CREATED);
@@ -78,5 +86,26 @@ public class StaffController {
             return dto;
         }
     }
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_READ) " +
+                    "or hasRole(T(com.cargosetu.utils.CommonConstants.RolesConstants).COMPANY_ADMIN)"
+    )
+    @GetMapping
+    public GenericDataDTO getAllStaff(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "5") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<StaffDTO> staffPage = staffService.getAllStaff(pageable);
+
+        GenericDataDTO dto = new GenericDataDTO();
+        dto.setData(staffPage.getContent());
+        dto.setResponseCode(HttpStatus.OK.value());
+        dto.setResponseMessege("Staff fetched successfully");
+
+        return dto;
+    }
+
 
 }

@@ -1,26 +1,45 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
+import com.cargosetu.model.Clientservice;
 import com.cargosetu.model.Company;
+import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.repo.ClientServiceRepo;
+import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
+import com.cargosetu.utils.utillity.FileUtility;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
 @Service
 @Slf4j
 public class CompanyServImpl implements CompanyService {
     @Autowired
     private  CompanyRepository companyRepository;
-
+    @Autowired
+    private CompanyAssetRepository companyAssetRepository;
+    @Autowired
+    private ClientServiceRepo clientServiceRepo;
+    @Autowired
+    private ObjectMapper objectMapper;
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto) {
         GenericDataDTO response = new GenericDataDTO();
@@ -48,11 +67,13 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseMessege("Company created successfully");
             response.setResponseCode(200);
             response.setData(saved);
+           createCompanyAssets(companyDto.getAssets() ,saved.getCompanyId());
+
 
         } catch (Exception e) {
             log.error("Error creating company", e);
             response.setResponseMessege("Failed to create company");
-            response.setResponseCode(HttpStatus.OK.value());
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         }
         return response;
     }
@@ -194,5 +215,125 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseCode(500);
         }
         return response;
+    }
+
+
+    private void validateCompanyAssetFiles(MultipartFile[] files) {
+        if (files == null || files.length == 0) {
+            throw new RuntimeException("Files are required");
+        }
+        List<String> allowedExtensions = List.of(
+                "pdf",
+                "jpg",
+                "jpeg",
+                "png",
+                "svg"
+        );
+        long maxFileSize = 1024 * 1024;
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                throw new RuntimeException("Invalid file");
+            }
+            if (file.getSize() > maxFileSize) {
+                throw new RuntimeException(
+                        "File size must not exceed 1 MB"
+                );
+            }
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || fileName.isBlank()) {
+                throw new RuntimeException("File name is invalid");
+            }
+            String extension = "";
+            int lastIndex = fileName.lastIndexOf(".");
+            if (lastIndex > 0) {
+                extension = fileName.substring(lastIndex + 1).toLowerCase();
+            }
+            if (!allowedExtensions.contains(extension)) {
+                throw new RuntimeException(
+                        "Only pdf, jpg, jpeg, png and svg files are allowed"
+                );
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets,Integer companyId) {
+
+        if (companyAssets == null || companyAssets.isEmpty()) {
+            return;
+        }
+
+        List<CompanyAsset> assets = new ArrayList<>();
+
+        for (CompanyAssetDTO dto : companyAssets) {
+
+            MultipartFile[] file = dto.getFile();
+
+            if (file == null || file.length==0) {
+                continue;
+            }
+
+            validateCompanyAssetFiles(file);
+            Clientservice clientservice = clientServiceRepo.findByName("COMPANY_ASSET").orElse(null);
+
+            String filePath = FileUtility.saveMultipartFile(file, clientservice.getName()).toString();
+
+            dto.setFilePath(filePath);
+            dto.setCompanyId(companyId);
+            assets.add(convertCompanyAssetDtoToEntity(dto));
+        }
+
+        companyAssetRepository.saveAll(assets);
+    }    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
+        CompanyAsset companyAsset = new CompanyAsset();
+        companyAsset.setAssetType(dto.getAssetType());
+        companyAsset.setFilePath(dto.getFilePath());
+        companyAsset.setCompanyId(dto.getCompanyId());
+        companyAsset.setId(dto.getId());
+        return  companyAsset;
+    }
+
+    /**
+     * Fetches the asset record, reads the file from disk,
+     * and returns a ready-to-use base64 data URI.
+     * Returns null if no asset found or file cannot be read.
+     */
+    @Override
+    public String getAssetAsBase64(Integer companyId, String assetType) {
+        Optional<CompanyAsset> opt = Optional.ofNullable(companyAssetRepository.findByCompanyIdAndAssetType(companyId, assetType));
+
+        if (opt.isEmpty()) {
+            log.warn("No asset found for companyId={} type={}", companyId, assetType);
+            return null;
+        }
+
+        String filePath = opt.get().getFilePath();
+        if (filePath == null || filePath.isBlank()) {
+            log.warn("Asset record exists but filePath is empty for companyId={} type={}", companyId, assetType);
+            return null;
+        }
+
+        try {
+            byte[] bytes = Files.readAllBytes(Path.of(filePath));
+            String b64    = Base64.getEncoder().encodeToString(bytes);
+            String mime   = detectMimeType(filePath);
+            return "data:" + mime + ";base64," + b64;
+
+        } catch (Exception e) {
+            log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
+            return null;   // template handles null → shows placeholder box
+        }
+    }
+
+    /** Infer MIME type from file extension. */
+    private String detectMimeType(String path) {
+        String lower = path.toLowerCase();
+        if (lower.endsWith(".png"))  return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif"))  return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg"))  return "image/svg+xml";
+        return "image/jpeg";   // safe default
     }
 }

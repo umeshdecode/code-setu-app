@@ -9,4 +9,12 @@ public interface BaseURL {
    final String DOCUMENT ="/document";
    final String SYSTEM_CONFIG ="/system/configuration";
    final String DOCS_UPLOADS = "/docs/uploads";
+    final String VEHICLE = "/vehicle";
+    final String LOCATION = "/location";
+    final String DRIVER ="/drivers";
+    final String ASSIGNMENTS ="/assignments";
+    final String TEMPLATES ="/templates";
+    final String BRANCHES ="/branches";
+
+
 }
