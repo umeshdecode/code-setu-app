@@ -9,6 +9,9 @@ import com.cargosetu.notification.service.NotificationLogService;
 import com.cargosetu.notification.service.NotificationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
@@ -23,6 +26,13 @@ public class EmailNotificationProvider implements NotificationProvider {
 
     private final NotificationLogService logService;
     private final NotificationLogRepository repository;
+    private final JavaMailSender mailSender;
+
+    @Value("${app.notification.email.from}")
+    private String fromEmail;
+
+    @Value("${app.notification.email.mock}")
+    private boolean mockEnabled;
 
     @Override
     @Retryable(
@@ -36,14 +46,14 @@ public class EmailNotificationProvider implements NotificationProvider {
         // Log the current attempt to DB in a new transaction
         logService.logAttempt(event.getEventId(), NotificationChannel.EMAIL, recipient);
 
-        // Fetch current attempts from DB to simulate transient / permanent failures
+        // Fetch current attempts from DB to simulate transient / permanent failures (useful in mock & testing)
         Optional<NotificationLog> logEntry = repository.findByEventIdAndChannelAndRecipient(
                 event.getEventId(), NotificationChannel.EMAIL, recipient);
         
         int currentAttempt = logEntry.map(NotificationLog::getAttempts).orElse(1);
         log.info("Email Send Attempt #{} for event: {}", currentAttempt, event.getEventName());
 
-        // Failures simulation logic
+        // Failures simulation logic for testing
         if (recipient.contains("permanent-fail")) {
             log.warn("Simulating permanent email failure on attempt #{}", currentAttempt);
             throw new NotificationDeliveryException("SMTP server connection timeout (Permanent Simulated Failure)");
@@ -52,12 +62,32 @@ public class EmailNotificationProvider implements NotificationProvider {
             throw new NotificationDeliveryException("Temporary SMTP server throttling (Transient Simulated Failure)");
         }
 
-        // Simulate successful sending latency (e.g., calling SendGrid/SES)
-        try {
-            Thread.sleep(300); 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new NotificationDeliveryException("Email sending thread interrupted", e);
+        if (mockEnabled) {
+            log.info("[MOCK MODE] Simulating physical email sending to: {}. Sender: {}", recipient, fromEmail);
+            try {
+                Thread.sleep(300); 
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NotificationDeliveryException("Email sending thread interrupted", e);
+            }
+        } else {
+            try {
+                log.info("[REAL MODE] Dispatching physical SMTP email to: {} using JavaMailSender", recipient);
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(fromEmail);
+                message.setTo(recipient);
+                message.setSubject("CargoSetu notification: " + event.getEventName());
+                message.setText("Dear Customer,\n\nThis is a real-time notification from CargoSetu App.\n\n" +
+                        "Event: " + event.getEventName() + "\n" +
+                        "Event ID: " + event.getEventId() + "\n" +
+                        "Timestamp: " + event.getTimestamp() + "\n\n" +
+                        "Best regards,\nPackers & Mover ERP Management System");
+                
+                mailSender.send(message);
+            } catch (Exception e) {
+                log.error("Failed to send SMTP email to: {}", recipient, e);
+                throw new NotificationDeliveryException("SMTP client error: " + e.getMessage(), e);
+            }
         }
 
         log.info("Email successfully sent to: {}", recipient);

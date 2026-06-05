@@ -80,6 +80,13 @@ dependencies {
 
     implementation 'com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10'
 
+    // Spring Retry & AOP for reliable notifications
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Real-time Email & SMS integration
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'com.twilio.sdk:twilio:10.1.0'
 }
 
 tasks.named('test') {
