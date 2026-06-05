@@ -23,6 +23,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import com.cargosetu.notification.event.StaffCreatedEvent;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,13 +38,15 @@ public class StaffService {
     private final RolesImpl rolesService;
     private final StaffMapper staffMapper;
     private final PermissionMapper permissionMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper) {
+    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
         this.rolesService = rolesService;
         this.staffMapper = staffMapper;
         this.permissionMapper = permissionMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     private String getModuleName(){
@@ -74,6 +78,15 @@ public class StaffService {
         staff.setPassword(encode);
         Staff savedStaff = staffRepository.save(staff);
         staffDTO = staffMapper.toDto(savedStaff);
+
+        // Publish event for asynchronous notification post-commit
+        eventPublisher.publishEvent(new StaffCreatedEvent(
+            savedStaff.getStaffId(),
+            savedStaff.getEmail(),
+            savedStaff.getFirstName() + " " + savedStaff.getLastName(),
+            savedStaff.getUserName()
+        ));
+
         return staffDTO;
     }
 
