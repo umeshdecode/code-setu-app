@@ -1,5 +1,6 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.ClientServiceDTO;
 import com.cargosetu.mapper.ClientServiceMapper;
 import com.cargosetu.model.Clientservice;
@@ -9,6 +10,9 @@ import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -71,9 +75,10 @@ public class ClientServiceImpl implements ClientServices {
             Clientservice clientservice  = new Clientservice();
             clientservice.setName(pojo.getName());
             clientservice.setValue(pojo.getValue());
-            clientservice.setStaffId(pojo.getStaffId());
+            clientservice.setStaffId(getStaffIdFromCurrentStaff().intValue());
             clientservice.setModule(pojo.getModule());
-            clientservice.setIsActive(true);
+            clientservice.setIsActive(pojo.getIsActive());
+            clientservice.setCreatedByName(getLoggedInUSer().getFirstName());
             clientservice.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getStaffId().toString()));
             clientservice = clientServiceRepo.save(clientservice);
 
@@ -138,5 +143,38 @@ public class ClientServiceImpl implements ClientServices {
             responseDTO.setResponseMessege("Failed to fetch Client Service data");
         }
         return responseDTO;
+    }
+
+    public Long getStaffIdFromCurrentStaff() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication != null &&
+                    authentication.getPrincipal() instanceof LoggedInUser loggedInUser) {
+
+                return loggedInUser.getStaffId();
+            }
+        } catch (Exception e) {
+            // Optional: log the exception
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+    public LoggedInUser getLoggedInUSer() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication != null &&
+                    authentication.getPrincipal() instanceof LoggedInUser loggedInUser) {
+
+                return loggedInUser;
+            }
+        } catch (Exception e) {
+            // Optional: log the exception
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

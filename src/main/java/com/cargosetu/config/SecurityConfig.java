@@ -76,7 +76,8 @@ public class SecurityConfig {
                                 "/images/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/api/demo-notifications/**"
                         ).permitAll()
                         .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket
                         .requestMatchers("/topic/**").permitAll() // optional
