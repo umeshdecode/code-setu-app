@@ -18,11 +18,21 @@ public class NotificationDispatcherImpl implements NotificationDispatcher {
 
     @Override
     public void dispatch(NotificationEvent event, NotificationChannel channel, String recipient) {
+        // Sanitize recipient: trim whitespaces
+        String cleanRecipient = recipient != null ? recipient.trim() : "";
+        
+        // Ensure SMS recipient is in international E.164 format (starts with '+')
+        if (channel == NotificationChannel.SMS && !cleanRecipient.isEmpty()) {
+            if (!cleanRecipient.startsWith("+")) {
+                cleanRecipient = "+" + cleanRecipient;
+            }
+        }
+
         log.info("Dispatching event {} (ID: {}) to channel: {} for recipient: {}", 
-                event.getEventName(), event.getEventId(), channel, recipient);
+                event.getEventName(), event.getEventId(), channel, cleanRecipient);
 
         // 1. Create a PENDING log entry in the database immediately
-        logService.createPendingLog(event.getEventId(), event.getEventName(), channel, recipient);
+        logService.createPendingLog(event.getEventId(), event.getEventName(), channel, cleanRecipient);
 
         // 2. Find the provider that supports the target channel
         NotificationProvider provider = providers.stream()
@@ -33,18 +43,18 @@ public class NotificationDispatcherImpl implements NotificationDispatcher {
         if (provider == null) {
             String errorMsg = "No provider found supporting channel: " + channel;
             log.error(errorMsg);
-            logService.logFailure(event.getEventId(), channel, recipient, errorMsg);
+            logService.logFailure(event.getEventId(), channel, cleanRecipient, errorMsg);
             return;
         }
 
         // 3. Delegate execution to the provider (this call triggers @Retryable logic)
         try {
-            provider.send(event, recipient);
+            provider.send(event, cleanRecipient);
         } catch (Exception e) {
             // Fallback catch. The provider's @Recover should normally handle failures,
             // but we log here just in case a non-transient or uncaught exception slips through.
             log.error("Fatal exception during dispatch to {}: {}", channel, e.getMessage(), e);
-            logService.logFailure(event.getEventId(), channel, recipient, "Uncaught error: " + e.getMessage());
+            logService.logFailure(event.getEventId(), channel, cleanRecipient, "Uncaught error: " + e.getMessage());
         }
     }
 }
