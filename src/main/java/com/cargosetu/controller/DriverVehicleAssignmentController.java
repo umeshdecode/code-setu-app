@@ -33,7 +33,7 @@ public class DriverVehicleAssignmentController {
 
     @PutMapping("/unassign/{id}")
     public ResponseEntity<String> unassign(@PathVariable Long id) {
-        service.unassign(id);
+        service.unassign(id, "discreption");
         return ResponseEntity.ok("Unassigned successfully");
     }
 }

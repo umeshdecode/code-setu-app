@@ -302,4 +302,54 @@
         </insert>
 
     </changeSet>
+    <changeSet id="SKP0006" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME = 'Company_Asset_Doc_size'
+                  AND STAFFID = 1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
+
+
+            <column name="name" value="Company_Asset_Doc_size"/>
+
+            <column name="value"
+                    value="5"/>
+
+            <column name="STAFFID" valueNumeric="1"/>
+
+            <column name="module" value="Company_Asset_Doc_size"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+
+            <column name="created_by_name" value="super admin"/>
+
+            <column name="created_at"
+                    valueDate="2026-06-06T16:42:03"/>
+
+            <!-- Optional nullable fields -->
+            <column name="updated_by_name"
+                    valueComputed="NULL"/>
+
+            <column name="updated_by_id"
+                    valueComputed="NULL"/>
+
+            <column name="updated_at"
+                    valueComputed="NULL"/>
+
+        </insert>
+
+    </changeSet>
+
 </databaseChangeLog>

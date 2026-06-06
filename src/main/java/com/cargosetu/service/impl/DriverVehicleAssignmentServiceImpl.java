@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.awt.print.Pageable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -95,7 +94,7 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
         }
     }
     @Override
-    public void unassign(Long assignmentId) {
+    public void unassign(Long assignmentId, String discreption) {
         try {
             log.info("Unassigning assignment id {}", assignmentId);
 
@@ -113,8 +112,8 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
 
                 repository.save(assignment);
 
-                driver.setStatus("UnAssigned");
-                vehicle.setStatus("UnAssigned");
+                driver.setStatus("Available");
+                vehicle.setStatus("Available");
                 driverRepository.save(driver);
                 vehicleRepository.save(vehicle);
 
