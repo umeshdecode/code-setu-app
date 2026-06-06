@@ -36,4 +36,14 @@ public class ApplicationUtils {
         }
         return staffId;
     }
+    public  LoggedInUser getLoggedInUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof LoggedInUser) {
+            return (LoggedInUser) authentication.getPrincipal();
+        }
+        return null;
+    }
 }

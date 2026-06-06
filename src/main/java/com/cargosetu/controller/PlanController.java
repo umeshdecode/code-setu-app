@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.config.dto.ApiResponseDto;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.PlanDTO;
 import com.cargosetu.service.PlanService;
@@ -23,29 +24,29 @@ public class PlanController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_CREATE)")
     @PostMapping
-    public ResponseEntity<PlanDTO> create(@Valid @RequestBody PlanDTO dto) {
+    public ApiResponseDto create(@Valid @RequestBody PlanDTO dto) {
         log.info("Received request to create plan");
-        return ResponseEntity.ok(planService.createPlan(dto));
+        return planService.createPlan(dto);
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_UPDATE_DELETE)")
     @PutMapping("/{id}")
-    public ResponseEntity<PlanDTO> update(
+    public ApiResponseDto update(
             @PathVariable Integer id,
             @Valid @RequestBody PlanDTO dto) {
         log.info("Received request to update plan, ID: {}", id);
-        return ResponseEntity.ok(planService.updatePlan(id, dto));
+        return planService.updatePlan(id, dto);
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_READ)")
     @GetMapping("/{id}")
-    public ResponseEntity<PlanDTO> getById(@PathVariable Integer id) {
+    public ApiResponseDto getById(@PathVariable Integer id) {
         log.debug("Received request to fetch plan, ID: {}", id);
-        return ResponseEntity.ok(planService.getPlanById(id));
+        return planService.getPlanById(id);
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_READ)")
     @GetMapping
-    public ResponseEntity<List<PlanDTO>> getAll() {
+    public ApiResponseDto getAll() {
         log.debug("Received request to fetch all plans");
-        return ResponseEntity.ok(planService.getAllPlans());
+        return planService.getAllPlans();
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_UPDATE_DELETE)")
     @DeleteMapping("/{id}")

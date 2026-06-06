@@ -1,18 +1,19 @@
 package com.cargosetu.service;
 
+import com.cargosetu.config.dto.ApiResponseDto;
 import com.cargosetu.dto.PlanDTO;
 
 import java.util.List;
 
 public interface PlanService {
 
-    PlanDTO createPlan(PlanDTO planDTO);
+    ApiResponseDto createPlan(PlanDTO planDTO);
 
-    PlanDTO updatePlan(Integer planId, PlanDTO planDTO);
+    ApiResponseDto updatePlan(Integer planId, PlanDTO planDTO);
 
-    PlanDTO getPlanById(Integer planId);
+    ApiResponseDto getPlanById(Integer planId);
 
-    List<PlanDTO> getAllPlans();
+    ApiResponseDto getAllPlans();
 
     void deletePlan(Integer planId);
 }
