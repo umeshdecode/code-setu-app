@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(BaseURL.BASE_URL + UrlConstants.CustomerUrlConstants.SHIFTS)
 @Slf4j
@@ -69,6 +71,30 @@ public class ShiftingController {
             response = shiftingService.updateShifting(shiftingDTO);
         } catch (Exception e) {
             log.error("Error updating shifting with ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/shifting-types")
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)"
+    )
+    public ResponseEntity<?> getShiftingTypes() {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setData(List.of("House Shifting","Office Shifting",
+                    "Factory Shifting","Mall Shifting","Shop Shifting"
+                    ,"Warehouse Shifting","Goods Shifting",
+                    "Govt. Related Shifting",
+                    "Medical Item Shifting","Electronic Item Shift","Liquid Items Shift",
+                    "Industrial Items Shift","Others"));
+            response.setResponseMessege("Success");
+        } catch (Exception e) {
+            log.error("Error {} ", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setErrors(new Object[]{e.getMessage()});
             return ResponseEntity.internalServerError().body(response);
