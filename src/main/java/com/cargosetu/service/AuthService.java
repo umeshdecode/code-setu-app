@@ -92,7 +92,8 @@ public class AuthService {
         loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());
-        
+        loggedInUser.setCompanyId(staff.getCompanyId());
+
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
