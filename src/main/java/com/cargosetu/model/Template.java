@@ -23,4 +23,8 @@ public class Template {
     private Boolean isActive;
 
     private String filePath;
+
+    private Long companyId;
+
+    private boolean isFavoriteTemplate = false;
 }

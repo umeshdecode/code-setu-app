@@ -50,12 +50,12 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     //  Jackson
-    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
-// Remove the hibernate5 line and add this:
+//    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+//    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
-
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
     // CSV utility
     implementation 'org.apache.commons:commons-csv:1.10.0'
     implementation 'com.opencsv:opencsv:5.9'
@@ -80,6 +80,13 @@ dependencies {
 
     implementation 'com.openhtmltopdf:openhtmltopdf-svg-support:1.0.10'
 
+    // Spring Retry & AOP for reliable notifications
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Real-time Email & SMS integration
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'com.twilio.sdk:twilio:10.1.0'
 }
 
 tasks.named('test') {

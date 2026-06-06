@@ -81,6 +81,11 @@ public class CompanyDTO {
     private String website;
     private List<CompanyAssetDTO> assets;
 
+    private String bankName ="";
+    private String accountHolder = "";
+    private String accountNo = "";
+    private String ifscCode = "";
+
     public static CompanyDTO from(Company c,
                                   String logoBase64, String sealBase64) {
         String name = c.getCompanyName() != null ? c.getCompanyName().trim() : "";

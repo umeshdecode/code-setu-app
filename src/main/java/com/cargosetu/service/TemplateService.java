@@ -2,6 +2,7 @@ package com.cargosetu.service;
 
 import com.cargosetu.customer.entity.Charges;
 import com.cargosetu.customer.entity.Customer;
+import com.cargosetu.customer.entity.ExtraCharges;
 import com.cargosetu.customer.entity.Shifting;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.dto.QuotationDTO;
@@ -29,6 +30,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
@@ -113,6 +115,29 @@ public class TemplateService {
 
 
 
+        return buildStringEngine().process(htmlTemplate, ctx);
+    }
+    private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation,Map<String,Object> variableMap) {
+
+        Context ctx = new Context();
+
+        Map<String, Object> customerMap = getCustomerMap(customer);
+
+        Map<String, Object> shiftingMap = getShiftingMap(shifting);
+
+        Map<String, Object> chargesMap = getChargesMap(charges);
+
+        ctx.setVariable("company",   company);
+        ctx.setVariable("customer",  customerMap);
+        ctx.setVariable("shifting",  shiftingMap);
+        ctx.setVariable("charges",    chargesMap);
+        ctx.setVariable("quotation", quotation);
+
+        if(Objects.nonNull(variableMap)){
+            for(Map.Entry<String, Object> entry : variableMap.entrySet()){
+                ctx.setVariable(entry.getKey(),entry.getValue());
+            }
+        }
         return buildStringEngine().process(htmlTemplate, ctx);
     }
 
@@ -205,4 +230,65 @@ public class TemplateService {
     }
 
     private double nullSafe(Double v) { return v == null ? 0.0 : v; }
+
+    public String generateInvoiceHtml(Long shiftingId) throws Exception {
+        try {
+            Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
+                    .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
+
+            Customer customer = shifting.getCustomer();
+            Charges charges  = shifting.getCharge();
+
+            Company company = companyRepository.findById(customer.getCompanyId())
+                    .orElseThrow(() -> new RuntimeException("Company not found for customer"));
+
+            String logoB64 = companyService.getAssetAsBase64(company.getCompanyId(), "LOGO");
+            String sealB64 = companyService.getAssetAsBase64(company.getCompanyId(), "SEAL");
+
+            CompanyDTO companyDTO = CompanyDTO.from(company, logoB64, sealB64);
+
+            double subTotal  = computeSubTotal(charges);
+            double gstAmount = nullSafe(charges.getGstCharge());
+            double grandTotal = subTotal + gstAmount;
+
+            QuotationDTO quotation = QuotationDTO.builder()
+                    .quoteDate(LocalDate.now())
+                    .subTotal(subTotal)
+                    .grandTotal(grandTotal)
+                    .tokenMoney(null)
+                    .build();
+
+            Context ctx = new Context();
+
+            Template tmpl = templateRepository.findByType("INVOICE").orElseThrow(() -> new RuntimeException("No active Invoice template "));
+            String htmlContent;
+            try {
+                if(tmpl.getFilePath() != null &&  !tmpl.getFilePath().isEmpty()) {
+                    htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
+                }else{
+                    htmlContent = tmpl.getHtmlContent();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
+            }
+
+            Map<String,Object> variableMap = new HashMap<>();
+            variableMap.put("invoiceNo","INV-" + shiftingId + "-2026");
+            variableMap.put("invoiceDate", LocalDate.now());
+            variableMap.put("dueDate", LocalDate.now().plusDays(7));
+            variableMap.put("subTotal",subTotal);
+            variableMap.put("grandTotal",grandTotal);
+            String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotation,variableMap);
+
+            return filledHtml;
+        } catch (RuntimeException e) {
+e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
+
+
 }
