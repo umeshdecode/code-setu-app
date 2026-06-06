@@ -12,7 +12,7 @@ public class ClientServiceDTO {
     private String module;
     private String name;
     private Integer staffId;
-    private Boolean isActive;
+    private String isActive;
     private Boolean isDeleted;
     private String createdByName;
     private Long createdBy;

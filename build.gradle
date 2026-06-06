@@ -50,11 +50,12 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     //  Jackson
-//    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
-//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-//    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    // Align dataformat xml with databind to avoid NoSuchMethodError
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
+// Remove the hibernate5 line and add this:
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
     // CSV utility
     implementation 'org.apache.commons:commons-csv:1.10.0'
