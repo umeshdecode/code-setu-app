@@ -57,4 +57,7 @@ public class Shifting {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "charge_id", referencedColumnName = "charge_id")
     private Charges charge;
+
+    @Column(name = "shift_status")
+    private String shiftStatus;
 }
