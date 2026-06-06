@@ -28,4 +28,7 @@ public class Clientservice extends AbstractModel {
     @Column(nullable = false, length = 40)
     private String module;
 
+    @Column(name = "status", nullable = false, length = 40)
+    private String status;
+
 }
