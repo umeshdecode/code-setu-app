@@ -59,5 +59,7 @@ public class LoggedInUser implements UserDetails {
 
     private String password;
 
+    private Integer companyId;
+
 
 }

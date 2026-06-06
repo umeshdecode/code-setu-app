@@ -5,14 +5,15 @@ import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Clientservice;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.model.Staff;
 import com.cargosetu.repo.ClientServiceRepo;
 import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
 import com.cargosetu.utils.utillity.FileUtility;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -25,9 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
 @Service
 @Slf4j
@@ -40,8 +38,11 @@ public class CompanyServImpl implements CompanyService {
     private ClientServiceRepo clientServiceRepo;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private StaffRepository staffRepository;
+
     @Override
-    public GenericDataDTO createCompany(CompanyDTO companyDto) {
+    public GenericDataDTO createCompany(CompanyDTO companyDto, Long staffId) {
         GenericDataDTO response = new GenericDataDTO();
         String prefix = "COPTIC";
         String suffix = "6293";
@@ -63,7 +64,11 @@ public class CompanyServImpl implements CompanyService {
             Company company = new Company(companyDto);
             company.setCompanyUUID(UUIDGenerator.generate(prefix,suffix));
             Company saved = companyRepository.save(company);
-
+            Optional<Staff> staff = staffRepository.findById(staffId);
+            if(staff.isPresent()){
+                staff.get().setCompanyId(saved.getCompanyId());
+                staffRepository.save(staff.get());
+            }
             response.setResponseMessege("Company created successfully");
             response.setResponseCode(200);
             response.setData(saved);
@@ -324,6 +329,29 @@ public class CompanyServImpl implements CompanyService {
             log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
             return null;   // template handles null → shows placeholder box
         }
+    }
+
+    @Override
+    public GenericDataDTO getCompany(Integer companyId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+
+            Company company = companyRepository.findById(companyId).orElse(null);
+            if (company == null) {
+                response.setResponseMessege("Company not found");
+                response.setResponseCode(404);
+                return response;
+            }
+
+            response.setResponseMessege("Company fetched successfully");
+            response.setResponseCode(200);
+            response.setData(company);
+
+        } catch (Exception e) {
+            response.setResponseMessege("Failed to fetch company");
+            response.setResponseCode(500);
+        }
+        return response;
     }
 
     /** Infer MIME type from file extension. */
