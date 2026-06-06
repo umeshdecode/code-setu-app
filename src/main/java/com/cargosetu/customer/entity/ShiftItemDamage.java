@@ -1,5 +1,6 @@
 package com.cargosetu.customer.entity;
 
+import com.cargosetu.shifting.entity.ShiftInventoryItem;
 import jakarta.persistence.*;
 
 
@@ -17,5 +18,5 @@ public class ShiftItemDamage {
 
     @ManyToOne
     @JoinColumn(name = "item_id")
-    private ShiftItem shiftItem;
+    private ShiftInventoryItem shiftItem;
 }

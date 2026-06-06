@@ -1,8 +1,11 @@
 package com.cargosetu.customer.entity;
+
 import jakarta.persistence.*;
+import lombok.Data;
 
 @Entity
 @Table(name = "tblm_packaging_material")
+@Data
 public class PackagingMaterial {
 
     @Id
@@ -12,4 +15,6 @@ public class PackagingMaterial {
     private String materialName;
 
     private String unit;
+    @Column(nullable = false)
+    private Boolean active = true;
 }

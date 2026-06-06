@@ -16,6 +16,10 @@ public class UrlConstants {
 
     public interface CustomerUrlConstants {
         public static final String CUSTOMER = "/customer";
+        public static final String SHIFTS = "/shifts";
     }
 
+    public interface ShiftingUrlConstants {
+        public static final String SHIFT_INVENTORY = "/shift-inventory";
+    }
 }
