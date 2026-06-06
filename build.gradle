@@ -57,7 +57,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
 // Remove the hibernate5 line and add this:
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
-
     // CSV utility
     implementation 'org.apache.commons:commons-csv:1.10.0'
     implementation 'com.opencsv:opencsv:5.9'
