@@ -19,6 +19,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
+import com.cargosetu.notification.event.CustomerCreatedEvent;
+import com.cargosetu.notification.event.CustomerUpdatedEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,9 @@ public class CustomerService {
 
     @Autowired
     private CustomerRepository customerRepository;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     public ValidationResponse validateCustomerCreateRequest(CustomerDTO customerDTO) {
         ValidationResponse validationResponse = new ValidationResponse(true, CommonStatusCode.MSG_VALIDATION_SUCCESS);
@@ -58,6 +64,14 @@ public class CustomerService {
             genericDataDTO.setResponseMessege("customer created successfully!");
             genericDataDTO.setResponseCode(CommonStatusCode.CREATED);
             genericDataDTO.setData(customer);
+
+            // Publish CustomerCreatedEvent
+            eventPublisher.publishEvent(new CustomerCreatedEvent(
+                customer.getCustomerId(),
+                customer.getEmail(),
+                customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                customer.getMobileNo()
+            ));
         }else  {
             genericDataDTO.setResponseMessege("customer not created!");
             genericDataDTO.setResponseCode(CommonStatusCode.FAIL);
@@ -101,6 +115,14 @@ public class CustomerService {
                 updateResponse.setData(customerMapper.toDto(customer));
                 updateResponse.setResponseCode(CommonStatusCode.SUCCESS);
                 updateResponse.setResponseMessege("customer updated successfully!");
+
+                // Publish CustomerUpdatedEvent
+                eventPublisher.publishEvent(new CustomerUpdatedEvent(
+                    customer.getCustomerId(),
+                    customer.getEmail(),
+                    customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                    customer.getMobileNo()
+                ));
             }else {
                 updateResponse.setResponseCode(CommonStatusCode.FAIL);
                 updateResponse.setResponseMessege("something went wrong, try after sometime");

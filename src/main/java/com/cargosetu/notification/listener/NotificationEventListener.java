@@ -3,6 +3,8 @@ package com.cargosetu.notification.listener;
 import com.cargosetu.notification.event.OrderCreatedEvent;
 import com.cargosetu.notification.event.StaffCreatedEvent;
 import com.cargosetu.notification.event.UserRegisteredEvent;
+import com.cargosetu.notification.event.CustomerCreatedEvent;
+import com.cargosetu.notification.event.CustomerUpdatedEvent;
 import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.notification.service.NotificationDispatcher;
 import lombok.RequiredArgsConstructor;
@@ -73,6 +75,48 @@ public class NotificationEventListener {
         // Dispatch email notification to staff email address
         if (event.email() != null && !event.email().isBlank()) {
             dispatcher.dispatch(event, NotificationChannel.EMAIL, event.email());
+        }
+    }
+
+    /**
+     * Listens for CustomerCreatedEvent. Executed AFTER the database transaction successfully commits.
+     * Runs asynchronously on a dedicated thread pool thread.
+     */
+    @Async("notificationTaskExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void handleCustomerCreatedEvent(CustomerCreatedEvent event) {
+        log.info("[Listener Thread: {}] Intercepted CustomerCreatedEvent (ID: {}). Starting dispatch.",
+                Thread.currentThread().getName(), event.eventId());
+
+        // Dispatch email notification
+        if (event.email() != null && !event.email().isBlank()) {
+            dispatcher.dispatch(event, NotificationChannel.EMAIL, event.email());
+        }
+
+        // Dispatch SMS notification
+        if (event.mobileNo() != null && !event.mobileNo().isBlank()) {
+            dispatcher.dispatch(event, NotificationChannel.SMS, event.mobileNo());
+        }
+    }
+
+    /**
+     * Listens for CustomerUpdatedEvent. Executed AFTER the database transaction successfully commits.
+     * Runs asynchronously on a dedicated thread pool thread.
+     */
+    @Async("notificationTaskExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void handleCustomerUpdatedEvent(CustomerUpdatedEvent event) {
+        log.info("[Listener Thread: {}] Intercepted CustomerUpdatedEvent (ID: {}). Starting dispatch.",
+                Thread.currentThread().getName(), event.eventId());
+
+        // Dispatch email notification
+        if (event.email() != null && !event.email().isBlank()) {
+            dispatcher.dispatch(event, NotificationChannel.EMAIL, event.email());
+        }
+
+        // Dispatch SMS notification
+        if (event.mobileNo() != null && !event.mobileNo().isBlank()) {
+            dispatcher.dispatch(event, NotificationChannel.SMS, event.mobileNo());
         }
     }
 }
