@@ -55,5 +55,11 @@ public class PlanController {
         planService.deletePlan(id);
         return ResponseEntity.ok("Plan deleted successfully");
     }
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_READ)")
+    @GetMapping("/public")
+    public ApiResponseDto getPublicPlan() {
+        log.debug("Received request to fetch all plans");
+        return planService.getAllPlans();
+    }
 }
 
