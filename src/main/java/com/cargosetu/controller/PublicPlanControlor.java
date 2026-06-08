@@ -13,13 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Slf4j
-@RequestMapping(BaseURL.PUBLIC_PLAN+ UrlConstants.PLAN)
+@RequestMapping(UrlConstants.PUBLIC)
 @RequiredArgsConstructor
 public class PublicPlanControlor {
     private final PlanService planService;
 
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).PLAN_READ)")
-    @GetMapping("/public")
+    @GetMapping(UrlConstants.PLAN)
     public ApiResponseDto getPublicPlan() {
         log.debug("Received request to fetch all plans");
         return planService.getAllPlans();

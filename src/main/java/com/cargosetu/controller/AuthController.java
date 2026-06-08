@@ -70,7 +70,7 @@ public class AuthController {
             if (Objects.nonNull(staff)) {
                 dto.setData(staff);
                 dto.setResponseCode(CommonStatusCode.CREATED);
-                dto.setResponseMessege(CommonConstants.STAFF + CommonStatusCode.MSG_CREATED);
+                dto.setResponseMessege("You are registered successfully!");
             } else {
                 dto.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
                 dto.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
