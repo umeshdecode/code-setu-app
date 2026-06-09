@@ -95,7 +95,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://127.0.0.1:31201","http://localhost:4200","https://code-setu-app.onrender.com"));
+        configuration.setAllowedOrigins(List.of("http://127.0.0.1:31201","http://localhost:4200","https://code-setu-app.onrender.com","https://code-setu-app-ui.umeshsharma-code.workers.dev"));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization","Content-Type"));
         configuration.setAllowCredentials(true);
