@@ -1,5 +1,6 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Clientservice;
@@ -174,16 +175,36 @@ public class CompanyServImpl implements CompanyService {
     }
 
     @Override
-    public GenericDataDTO getAllCompanies() {
+    public GenericDataDTO getAllCompanies(LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             log.info("Fetching all companies");
 
-            List<Company> list = companyRepository.findAll();
+            if(user.getStaffId() == 1){
+                List<Company> list = companyRepository.findAll();
+                response.setResponseMessege("Companies fetched successfully");
+                response.setResponseCode(200);
+                response.setDataList(list);
+            }else {
+                if(user.getCompanyId() != null){
+                    Company company = companyRepository.findById(user.getCompanyId()).orElse(null);
+                    if (company == null) {
+                        response.setResponseMessege("Company not found");
+                        response.setResponseCode(404);
+                        return response;
+                    }
 
-            response.setResponseMessege("Companies fetched successfully");
-            response.setResponseCode(200);
-            response.setDataList(list);
+                    response.setResponseMessege("Company fetched successfully");
+                    response.setResponseCode(200);
+                    response.setData(company);
+                }else{
+                    response.setResponseMessege("Company not found");
+                    response.setResponseCode(404);
+                    return response;
+                }
+            }
+
+            return response;
 
         } catch (Exception e) {
             log.error("Error fetching companies", e);
