@@ -59,9 +59,9 @@ public class CompanyController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")
     @GetMapping
-    public GenericDataDTO getAllCompanies() {
+    public GenericDataDTO getAllCompanies(@AuthenticationPrincipal LoggedInUser user) {
         log.info("API: Get All Companies");
-        return companyService.getAllCompanies();
+        return companyService.getAllCompanies(user);
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")

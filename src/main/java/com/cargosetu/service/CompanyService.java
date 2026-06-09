@@ -1,5 +1,6 @@
 package com.cargosetu.service;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.utils.GenericDataDTO;
@@ -14,7 +15,7 @@ public interface CompanyService {
 
     GenericDataDTO getCompanyById(String uuid);
 
-    GenericDataDTO getAllCompanies();
+    GenericDataDTO getAllCompanies(LoggedInUser user);
 
     GenericDataDTO deleteCompany(Integer id);
 
