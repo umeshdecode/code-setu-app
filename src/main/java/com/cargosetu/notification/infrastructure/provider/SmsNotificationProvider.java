@@ -3,8 +3,8 @@ package com.cargosetu.notification.infrastructure.provider;
 import com.cargosetu.notification.event.NotificationEvent;
 import com.cargosetu.notification.exception.NotificationDeliveryException;
 import com.cargosetu.notification.model.NotificationChannel;
-import com.cargosetu.notification.model.NotificationLog;
-import com.cargosetu.notification.repository.NotificationLogRepository;
+import com.cargosetu.notification.model.SmsNotificationAudit;
+import com.cargosetu.notification.repository.SmsNotificationAuditRepository;
 import com.cargosetu.notification.service.NotificationLogService;
 import com.cargosetu.notification.service.NotificationProvider;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import java.util.Optional;
 public class SmsNotificationProvider implements NotificationProvider {
 
     private final NotificationLogService logService;
-    private final NotificationLogRepository repository;
+    private final SmsNotificationAuditRepository smsAuditRepository;
 
     @Value("${app.notification.twilio.from-number}")
     private String fromNumber;
@@ -44,10 +44,10 @@ public class SmsNotificationProvider implements NotificationProvider {
         logService.logAttempt(event.getEventId(), NotificationChannel.SMS, recipient);
 
         // Fetch current attempts from DB to simulate transient / permanent failures (useful in mock & testing)
-        Optional<NotificationLog> logEntry = repository.findByEventIdAndChannelAndRecipient(
-                event.getEventId(), NotificationChannel.SMS, recipient);
+        Optional<SmsNotificationAudit> logEntry = smsAuditRepository.findByReferenceIdAndMobileNumber(
+                event.getEventId().toString(), recipient);
         
-        int currentAttempt = logEntry.map(NotificationLog::getAttempts).orElse(1);
+        int currentAttempt = logEntry.map(SmsNotificationAudit::getRetryCount).orElse(1);
         log.info("SMS Send Attempt #{} for event: {}", currentAttempt, event.getEventName());
 
         // Failures simulation logic for testing
@@ -57,6 +57,15 @@ public class SmsNotificationProvider implements NotificationProvider {
         } else if (recipient.contains("transient-fail") && currentAttempt < 3) {
             log.warn("Simulating transient SMS failure on attempt #{}", currentAttempt);
             throw new NotificationDeliveryException("SMS gateway network timeout (Transient Simulated Failure)");
+        }
+
+        String smsText = "CargoSetu Alert: Event " + event.getEventName() + " triggered (ID: " + event.getEventId() + ")";
+
+        // Update the message in the audit log
+        if (logEntry.isPresent()) {
+            SmsNotificationAudit audit = logEntry.get();
+            audit.setMessage(smsText);
+            smsAuditRepository.save(audit);
         }
 
         if (mockEnabled) {
@@ -73,7 +82,7 @@ public class SmsNotificationProvider implements NotificationProvider {
                 com.twilio.rest.api.v2010.account.Message.creator(
                         new com.twilio.type.PhoneNumber(recipient), // To
                         new com.twilio.type.PhoneNumber(fromNumber), // From
-                        "CargoSetu Alert: Event " + event.getEventName() + " triggered (ID: " + event.getEventId() + ")"
+                        smsText
                 ).create();
             } catch (Exception e) {
                 log.error("Failed to send Twilio SMS to: {}", recipient, e);

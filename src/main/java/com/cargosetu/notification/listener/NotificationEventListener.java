@@ -5,10 +5,12 @@ import com.cargosetu.notification.event.StaffCreatedEvent;
 import com.cargosetu.notification.event.UserRegisteredEvent;
 import com.cargosetu.notification.event.CustomerCreatedEvent;
 import com.cargosetu.notification.event.CustomerUpdatedEvent;
+import com.cargosetu.notification.event.InquiryCreatedEvent;
 import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.notification.service.NotificationDispatcher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -20,6 +22,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class NotificationEventListener {
 
     private final NotificationDispatcher dispatcher;
+
+    @Value("${app.notification.email.support}")
+    private String supportEmail;
 
     /**
      * Listens for UserRegisteredEvent. Executed AFTER the database transaction successfully commits.
@@ -117,6 +122,29 @@ public class NotificationEventListener {
         // Dispatch SMS notification
         if (event.mobileNo() != null && !event.mobileNo().isBlank()) {
             dispatcher.dispatch(event, NotificationChannel.SMS, event.mobileNo());
+        }
+    }
+
+    /**
+     * Listens for InquiryCreatedEvent. Executed AFTER the database transaction successfully commits.
+     * Runs asynchronously on a dedicated thread pool thread.
+     */
+    @Async("notificationTaskExecutor")
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void handleInquiryCreatedEvent(InquiryCreatedEvent event) {
+        log.info("[Listener Thread: {}] Intercepted InquiryCreatedEvent (ID: {}). Starting dispatch.",
+                Thread.currentThread().getName(), event.eventId());
+
+        // 1. Dispatch support alert email to internal support team
+        if (supportEmail != null && !supportEmail.isBlank()) {
+            log.info("Dispatching internal support alert to: {}", supportEmail);
+            dispatcher.dispatch(event, NotificationChannel.EMAIL, supportEmail);
+        }
+
+        // 2. Dispatch acknowledgement email to customer
+        if (event.email() != null && !event.email().isBlank()) {
+            log.info("Dispatching customer acknowledgement email to: {}", event.email());
+            dispatcher.dispatch(event, NotificationChannel.EMAIL, event.email());
         }
     }
 }

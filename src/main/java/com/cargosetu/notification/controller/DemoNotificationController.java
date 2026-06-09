@@ -1,7 +1,11 @@
 package com.cargosetu.notification.controller;
 
-import com.cargosetu.notification.model.NotificationLog;
-import com.cargosetu.notification.repository.NotificationLogRepository;
+import com.cargosetu.notification.model.EmailNotificationAudit;
+import com.cargosetu.notification.model.SmsNotificationAudit;
+import com.cargosetu.notification.model.PushNotificationAudit;
+import com.cargosetu.notification.repository.EmailNotificationAuditRepository;
+import com.cargosetu.notification.repository.SmsNotificationAuditRepository;
+import com.cargosetu.notification.repository.PushNotificationAuditRepository;
 import com.cargosetu.notification.service.DemoBusinessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +22,9 @@ import java.util.List;
 public class DemoNotificationController {
 
     private final DemoBusinessService businessService;
-    private final NotificationLogRepository repository;
+    private final EmailNotificationAuditRepository emailAuditRepository;
+    private final SmsNotificationAuditRepository smsAuditRepository;
+    private final PushNotificationAuditRepository pushAuditRepository;
 
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(
@@ -48,11 +54,21 @@ public class DemoNotificationController {
         
         businessService.createOrder(orderId, email, phone, name, BigDecimal.valueOf(amount));
         return ResponseEntity.ok("Order creation business transaction committed successfully! " +
-                "Check background thread logs to verify SMS and Email notifications.");
+                 "Check background thread logs to verify SMS and Email notifications.");
     }
 
-    @GetMapping("/logs")
-    public ResponseEntity<List<NotificationLog>> getLogs() {
-        return ResponseEntity.ok(repository.findAll());
+    @GetMapping("/email-logs")
+    public ResponseEntity<List<EmailNotificationAudit>> getEmailLogs() {
+        return ResponseEntity.ok(emailAuditRepository.findAll());
+    }
+
+    @GetMapping("/sms-logs")
+    public ResponseEntity<List<SmsNotificationAudit>> getSmsLogs() {
+        return ResponseEntity.ok(smsAuditRepository.findAll());
+    }
+
+    @GetMapping("/push-logs")
+    public ResponseEntity<List<PushNotificationAudit>> getPushLogs() {
+        return ResponseEntity.ok(pushAuditRepository.findAll());
     }
 }
