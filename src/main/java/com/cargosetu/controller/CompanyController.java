@@ -79,6 +79,11 @@ public class CompanyController {
         if(Objects.nonNull(user) && user.getCompanyId() != null){
             return companyService.getCompany(user.getCompanyId());
         }
+        if(Objects.nonNull(user) && user.getStaffId() !=null){{
+            return companyService.getCompanyByStaffId(user.getStaffId());
+        }
+
+        }
         response.setResponseCode(404);
         response.setResponseMessege("Company not found");
         return response;

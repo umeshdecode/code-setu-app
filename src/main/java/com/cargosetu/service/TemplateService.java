@@ -112,6 +112,7 @@ public class TemplateService {
         ctx.setVariable("shifting",  shiftingMap);
         ctx.setVariable("charges",    chargesMap);
         ctx.setVariable("quotation", quotation);
+        ctx.setVariable("extras",    charges.getExtraCharges());
 
 
 
@@ -132,6 +133,7 @@ public class TemplateService {
         ctx.setVariable("shifting",  shiftingMap);
         ctx.setVariable("charges",    chargesMap);
         ctx.setVariable("quotation", quotation);
+        ctx.setVariable("extras",    charges.getExtraCharges());
 
         if(Objects.nonNull(variableMap)){
             for(Map.Entry<String, Object> entry : variableMap.entrySet()){

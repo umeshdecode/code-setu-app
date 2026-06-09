@@ -351,5 +351,76 @@
         </insert>
 
     </changeSet>
+    <changeSet id="SKP0007" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmcompany
+                WHERE company_id = 1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmcompany">
+
+            <column name="company_id" valueNumeric="1"/>
+
+            <column name="company_name" value="Cargo_Setu"/>
+
+            <column name="company_email" value="shubhaampatel2609@gmail.com"/>
+
+            <column name="company_uuid" value="JAVAUZK0395HM8387"/>
+
+            <column name="address"
+                    value="H-603 LakshmiNayanan Residency , near devbhumi banglow south bopal"/>
+
+            <column name="city" value="Ahmedabad"/>
+
+            <column name="country" value="India"/>
+
+            <column name="state" value="Gujarat"/>
+
+            <column name="contact_no_1" valueNumeric="8518737838"/>
+
+            <column name="contact_no_2" valueNumeric="8518737838"/>
+
+            <column name="landline_no" value="8518737838"/>
+
+            <column name="toll_free_number" value="8518737838"/>
+
+            <column name="whatsapp_number" valueNumeric="8518737838"/>
+
+            <column name="gst_number" value="24AAAGM0289C1ZP"/>
+
+            <column name="pan_number" value="KSJDU8373J"/>
+
+            <!-- Nullable Business Fields -->
+            <column name="branch" valueComputed="NULL"/>
+
+            <column name="main_branch" valueComputed="NULL"/>
+
+            <!-- AbstractModel Fields -->
+
+            <column name="is_active" valueBoolean="true"/>
+
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_at"
+                    valueDate="CURRENT_TIMESTAMP"/>
+
+            <column name="created_by" valueNumeric="1"/>
+
+            <column name="created_by_name" valueComputed="NULL"/>
+
+            <column name="updated_at" valueComputed="NULL"/>
+
+            <column name="updated_by_id" valueComputed="NULL"/>
+
+            <column name="updated_by_name" valueComputed="NULL"/>
+
+
+        </insert>
+
+    </changeSet>
 
 </databaseChangeLog>

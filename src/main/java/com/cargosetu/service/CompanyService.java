@@ -23,4 +23,6 @@ public interface CompanyService {
     String getAssetAsBase64(Integer companyId, String assetType);
 
     GenericDataDTO getCompany(Integer companyId);
+
+    GenericDataDTO getCompanyByStaffId(Long staffId);
 }

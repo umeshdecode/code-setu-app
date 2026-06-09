@@ -17,6 +17,7 @@ import com.cargosetu.utils.utillity.FileUtility;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -351,6 +352,52 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseMessege("Failed to fetch company");
             response.setResponseCode(500);
         }
+        return response;
+    }
+
+    @Override
+    public GenericDataDTO getCompanyByStaffId(Long staffId) {
+
+        log.info("Fetching company details for staffId: {}", staffId);
+
+        GenericDataDTO response = new GenericDataDTO();
+
+        try {
+            Company company = companyRepository.findCompanyByStaffId(staffId).orElseThrow(() -> {
+                        log.warn("Company not found for staffId: {}", staffId);
+
+                        return new ResourceNotFoundException(
+                                "Company",
+                                "staffId",
+                                new Exception()
+                        );
+                    });
+
+            response.setData(company);
+            response.setResponseCode(HttpStatus.OK.value());
+            response.setResponseMessege("Company details fetched successfully.");
+
+            log.info("Company details fetched successfully. CompanyId: {}, staffId: {}",
+                    company.getCompanyId(),
+                    staffId);
+
+        } catch (ResourceNotFoundException ex) {
+
+            response.setResponseCode(HttpStatus.NO_CONTENT.value());
+            response.setResponseMessege(ex.getMessage());
+
+            log.warn("No company found for staffId: {}", staffId);
+
+        } catch (Exception ex) {
+
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setResponseMessege("Failed to fetch company details.");
+
+            log.error("Unexpected error while fetching company details for staffId: {}",
+                    staffId,
+                    ex);
+        }
+
         return response;
     }
 
