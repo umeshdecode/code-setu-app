@@ -10,6 +10,7 @@ public class UrlConstants {
     public static final String UPLOAD_DOCUMENT = "/doc-upload";
     public static final String PLAN = "/plan";
     public static final String PUBLIC = "/public";
+    public static final String SERVER_ALIVE = "/isAlive";
 
     public interface StaffUrlConstants {
         public static final String STAFF = "/staff";
