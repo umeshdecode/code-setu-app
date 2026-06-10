@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.service.StaffService;
@@ -9,6 +10,7 @@ import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
@@ -91,18 +93,23 @@ public class StaffController {
                     "or hasRole(T(com.cargosetu.utils.CommonConstants.RolesConstants).COMPANY_ADMIN)"
     )
     @GetMapping
-    public GenericDataDTO getAllStaff(
-            @RequestParam(required = false, defaultValue = "0") int page,
-            @RequestParam(required = false, defaultValue = "5") int size) {
+    public GenericDataDTO getAllStaff(@AuthenticationPrincipal LoggedInUser user,
+                                      @RequestParam(required = false, defaultValue = "0") int page,
+                                      @RequestParam(required = false, defaultValue = "5") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<StaffDTO> staffPage = staffService.getAllStaff(pageable);
-
         GenericDataDTO dto = new GenericDataDTO();
-        dto.setData(staffPage.getContent());
-        dto.setResponseCode(HttpStatus.OK.value());
-        dto.setResponseMessege("Staff fetched successfully");
+        try {
+            Page<StaffDTO> staffPage = staffService.getAllStaff(user,pageable);
+            dto.setData(staffPage.getContent());
+            dto.setResponseCode(HttpStatus.OK.value());
+            dto.setResponseMessege("Staff fetched successfully");
+        } catch (Exception e) {
+            dto.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            dto.setResponseMessege(e.getMessage());
+            e.printStackTrace();
+        }
 
         return dto;
     }

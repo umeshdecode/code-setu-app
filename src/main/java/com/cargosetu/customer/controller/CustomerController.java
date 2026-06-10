@@ -1,5 +1,6 @@
 package com.cargosetu.customer.controller;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.utils.UrlConstants.CustomerUrlConstants;
 import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
@@ -10,6 +11,7 @@ import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,13 +97,13 @@ public class CustomerController {
     }
     @GetMapping
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)")
-    public GenericDataDTO getCustomerData(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
+    public GenericDataDTO getCustomerData(@AuthenticationPrincipal LoggedInUser user, @RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
         GenericDataDTO customerResponse = new GenericDataDTO();
         customerResponse.setResponseCode(CommonStatusCode.FAIL);
         customerResponse.setResponseMessege(CommonStatusCode.MSG_BAD_REQUEST);
         if(pageNumber == null) pageNumber = 0;
         if(pageSize == null) pageSize = 5;
-        customerResponse = customerService.getAllCustomer(pageNumber,pageSize);
+        customerResponse = customerService.getAllCustomer(user,pageNumber,pageSize);
 
         if (customerResponse.getResponseCode() == null) {
             customerResponse.setResponseCode(CommonStatusCode.FAIL);

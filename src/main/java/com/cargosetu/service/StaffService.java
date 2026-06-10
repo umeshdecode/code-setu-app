@@ -1,5 +1,6 @@
 package com.cargosetu.service;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.handler.CustomValidationException;
@@ -173,8 +174,15 @@ public class StaffService {
     }
 
     @Transactional
-    public Page<StaffDTO> getAllStaff(Pageable pageable) {
-        return staffRepository.findAll(pageable).map(staffMapper::toDto);
+    public Page<StaffDTO> getAllStaff(LoggedInUser user,Pageable pageable) throws Exception {
+
+        if(user.getStaffId() == 1){
+            return staffRepository.findAll(pageable).map(staffMapper::toDto);
+        }
+        if(Objects.isNull(user.getCompanyId())){
+            throw new Exception("Company not found,create Company first!");
+        }
+        return staffRepository.findAllByCompanyIdOrderByStaffIdDesc(user.getCompanyId(), pageable).map(staffMapper::toDto);
     }
 
 

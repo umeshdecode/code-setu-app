@@ -1,5 +1,6 @@
 package com.cargosetu.customer.service;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
 import com.cargosetu.customer.dtos.ShiftingDTO;
@@ -12,10 +13,12 @@ import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
 import jakarta.persistence.GeneratedValue;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,6 +52,7 @@ public class CustomerService {
         return validationResponse;
     }
 
+    @Transactional
     public GenericDataDTO createCustomer(CustomerDTO customerDTO) {
         GenericDataDTO genericDataDTO = new GenericDataDTO();
         Customer customer = new Customer();
@@ -168,14 +172,27 @@ public class CustomerService {
         return customerResponse;
     }
 
-    public GenericDataDTO getAllCustomer(Integer pageNumber, Integer pageSize) {
+    public GenericDataDTO getAllCustomer(LoggedInUser user,Integer pageNumber, Integer pageSize) {
         GenericDataDTO response = new GenericDataDTO();
-
+        Page<Customer> customers = null;
         try {
             log.info("Fetching all customers from database");
             Pageable pageable = PageRequest.of(pageNumber, pageSize);
-            Page<Customer> customers = customerRepository.findByIsDeleteOrderByCustomerIdDesc
-                    (false, pageable);
+
+            if(user.getStaffId() == 1){
+                 customers = customerRepository.findByIsDeleteOrderByCustomerIdDesc
+                        (false, pageable);
+            }else{
+                if(user.getCompanyId() == null){
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Please Create your Company");
+                    return response;
+                }
+                customers = customerRepository.findByCompanyIdAndIsDeleteOrderByCustomerIdDesc
+                        (user.getCompanyId(),false, pageable);
+            }
+
+
             if (customers.isEmpty()) {
                 log.warn("No customers found in database");
                 response.setResponseCode(CommonStatusCode.NOT_FOUND);

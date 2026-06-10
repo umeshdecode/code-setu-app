@@ -72,6 +72,7 @@ public class SecurityConfig {
                                 "/auth/refresh",
                                 "/login.html",
                                 "/css/**",
+                                "/resources/static/assests**",
                                 "/js/**",
                                 "/images/**",
                                 "/swagger-ui/**",

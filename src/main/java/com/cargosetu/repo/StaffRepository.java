@@ -1,6 +1,8 @@
 package com.cargosetu.repo;
 
 import com.cargosetu.model.Staff;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,5 +15,5 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     Optional<Staff> findByEmail(String email);
     Optional<Staff> findByEmailOrUserName(String email,String username);
-
+    Page<Staff> findAllByCompanyIdOrderByStaffIdDesc(Integer companyId, Pageable pageable);
 }
