@@ -4,8 +4,12 @@ import com.cargosetu.config.dto.ApiResponseDto;
 import com.cargosetu.dto.InquiryRequest;
 import com.cargosetu.model.CustomerInquiry;
 import com.cargosetu.model.InquiryStatus;
-import com.cargosetu.notification.event.InquiryCreatedEvent;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.repo.InquiryRepository;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpStatus;
@@ -25,6 +29,9 @@ public class InquiryService {
 
     private final InquiryRepository repository;
     private final ApplicationEventPublisher eventPublisher;
+
+    @Value("${app.notification.email.support}")
+    private String supportEmail;
 
     public ApiResponseDto createInquiry(InquiryRequest request) {
 
@@ -56,18 +63,36 @@ public class InquiryService {
 
             /*
              * Publish event after successful DB save.
-             * Email failures should not impact inquiry creation.
              */
-            eventPublisher.publishEvent(
-                    new InquiryCreatedEvent(
-                            inquiryNo,
-                            request.getName(),
-                            request.getEmail(),
-                            request.getPhone(),
-                            request.getSubject(),
-                            request.getMessage()
-                    )
+            // Publish generic events for customer acknowledgment and support team alert
+            Map<String, Object> variables = Map.of(
+                "inquiryNumber", inquiryNo,
+                "name", request.getName() != null ? request.getName() : "",
+                "email", request.getEmail() != null ? request.getEmail() : "",
+                "phone", request.getPhone() != null ? request.getPhone() : "",
+                "subject", request.getSubject() != null ? request.getSubject() : "",
+                "message", request.getMessage() != null ? request.getMessage() : ""
             );
+
+            // 1. Customer Acknowledgment
+            if (request.getEmail() != null && !request.getEmail().isBlank()) {
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                    "INQUIRY_CREATED",
+                    List.of(request.getEmail()),
+                    NotificationChannel.EMAIL,
+                    variables
+                ));
+            }
+
+            // 2. Support Alert
+            if (supportEmail != null && !supportEmail.isBlank()) {
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                    "INQUIRY_CREATED_SUPPORT",
+                    List.of(supportEmail),
+                    NotificationChannel.EMAIL,
+                    variables
+                ));
+            }
 
             log.info("InquiryCreatedEvent published successfully. inquiryNo={}",
                     inquiryNo);

@@ -24,7 +24,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
-import com.cargosetu.notification.event.StaffCreatedEvent;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import java.util.Map;
+import java.util.List;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -79,13 +82,29 @@ public class StaffService {
         Staff savedStaff = staffRepository.save(staff);
         staffDTO = staffMapper.toDto(savedStaff);
 
-        // Publish event for asynchronous notification post-commit
-        eventPublisher.publishEvent(new StaffCreatedEvent(
-            savedStaff.getStaffId(),
-            savedStaff.getEmail(),
-            savedStaff.getFirstName() + " " + savedStaff.getLastName(),
-            savedStaff.getUserName()
-        ));
+        // Publish generic email and SMS events
+        Map<String, Object> variables = Map.of(
+            "staffId", savedStaff.getStaffId(),
+            "email", savedStaff.getEmail() != null ? savedStaff.getEmail() : "",
+            "name", (savedStaff.getFirstName() != null ? savedStaff.getFirstName() : "") + " " + (savedStaff.getLastName() != null ? savedStaff.getLastName() : ""),
+            "username", savedStaff.getUserName() != null ? savedStaff.getUserName() : ""
+        );
+        if (savedStaff.getEmail() != null && !savedStaff.getEmail().isBlank()) {
+            eventPublisher.publishEvent(new GenericNotificationEvent(
+                "STAFF_CREATED",
+                List.of(savedStaff.getEmail()),
+                NotificationChannel.EMAIL,
+                variables
+            ));
+        }
+        if (savedStaff.getMobileNumber() != null && !savedStaff.getMobileNumber().isBlank()) {
+            eventPublisher.publishEvent(new GenericNotificationEvent(
+                "STAFF_CREATED",
+                List.of(savedStaff.getMobileNumber()),
+                NotificationChannel.SMS,
+                variables
+            ));
+        }
 
         return staffDTO;
     }
