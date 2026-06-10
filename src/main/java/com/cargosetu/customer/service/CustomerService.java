@@ -23,8 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
-import com.cargosetu.notification.event.CustomerCreatedEvent;
-import com.cargosetu.notification.event.CustomerUpdatedEvent;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import java.util.Map;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,13 +70,29 @@ public class CustomerService {
             genericDataDTO.setResponseCode(CommonStatusCode.CREATED);
             genericDataDTO.setData(customer);
 
-            // Publish CustomerCreatedEvent
-            eventPublisher.publishEvent(new CustomerCreatedEvent(
-                customer.getCustomerId(),
-                customer.getEmail(),
-                customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
-                customer.getMobileNo()
-            ));
+            // Publish generic events for email and SMS notification
+            Map<String, Object> variables = Map.of(
+                "customerId", customer.getCustomerId(),
+                "email", customer.getEmail() != null ? customer.getEmail() : "",
+                "name", customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                "mobileNo", customer.getMobileNo() != null ? customer.getMobileNo() : ""
+            );
+            if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                    "CUSTOMER_CREATED",
+                    List.of(customer.getEmail()),
+                    NotificationChannel.EMAIL,
+                    variables
+                ));
+            }
+            if (customer.getMobileNo() != null && !customer.getMobileNo().isBlank()) {
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                    "CUSTOMER_CREATED",
+                    List.of(customer.getMobileNo()),
+                    NotificationChannel.SMS,
+                    variables
+                ));
+            }
         }else  {
             genericDataDTO.setResponseMessege("customer not created!");
             genericDataDTO.setResponseCode(CommonStatusCode.FAIL);
@@ -120,13 +137,21 @@ public class CustomerService {
                 updateResponse.setResponseCode(CommonStatusCode.SUCCESS);
                 updateResponse.setResponseMessege("customer updated successfully!");
 
-                // Publish CustomerUpdatedEvent
-                eventPublisher.publishEvent(new CustomerUpdatedEvent(
-                    customer.getCustomerId(),
-                    customer.getEmail(),
-                    customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
-                    customer.getMobileNo()
-                ));
+                // Publish generic event for email notification
+                Map<String, Object> variables = Map.of(
+                    "customerId", customer.getCustomerId(),
+                    "email", customer.getEmail() != null ? customer.getEmail() : "",
+                    "name", customer.getFirstName() + " " + (customer.getLastName() != null ? customer.getLastName() : ""),
+                    "mobileNo", customer.getMobileNo() != null ? customer.getMobileNo() : ""
+                );
+                if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                    eventPublisher.publishEvent(new GenericNotificationEvent(
+                        "CUSTOMER_UPDATED",
+                        List.of(customer.getEmail()),
+                        NotificationChannel.EMAIL,
+                        variables
+                    ));
+                }
             }else {
                 updateResponse.setResponseCode(CommonStatusCode.FAIL);
                 updateResponse.setResponseMessege("something went wrong, try after sometime");
