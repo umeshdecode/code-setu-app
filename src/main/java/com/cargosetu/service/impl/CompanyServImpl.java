@@ -197,7 +197,7 @@ public class CompanyServImpl implements CompanyService {
 
                     response.setResponseMessege("Company fetched successfully");
                     response.setResponseCode(200);
-                    response.setData(company);
+                    response.setDataList(List.of(company));
                 }else{
                     response.setResponseMessege("Company not found");
                     response.setResponseCode(404);

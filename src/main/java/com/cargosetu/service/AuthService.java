@@ -137,6 +137,10 @@ public class AuthService {
             user.setRoles(new HashSet<>((List<String>) claims.get("roles")));
             user.setPermissions(new HashSet<>((List<String>) claims.get("permissions")));
 
+            if(user.getStaffId() != null){
+                Optional<Staff> byId = staffRepository.findById(user.getStaffId());
+                byId.ifPresent(staff -> user.setCompanyId(staff.getCompanyId()));
+            }
             // Generate a fresh token using your existing method
             String newToken = jwtUtils.generateToken(user);
 
