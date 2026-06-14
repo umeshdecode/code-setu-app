@@ -19,31 +19,15 @@ public class OtpAuthController {
     private final OtpService otpService;
 
     @PostMapping("/send")
-    public ResponseEntity<Map<String, Object>> sendOtp(@RequestParam String mobileNumber) {
-        log.info("REST request to send OTP to: {}", mobileNumber);
-        Map<String, Object> response = otpService.sendOtp(mobileNumber);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/send-json")
-    public ResponseEntity<Map<String, Object>> sendOtpJson(@RequestBody OtpSendRequest request) {
-        log.info("REST request to send OTP (JSON) to: {}", request.getMobileNumber());
+    public ResponseEntity<Map<String, Object>> sendOtp(@RequestBody OtpSendRequest request) {
+        log.info("REST request to send OTP to: {}", request.getMobileNumber());
         Map<String, Object> response = otpService.sendOtp(request.getMobileNumber());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<TokenResponse> verifyOtp(
-            @RequestParam String mobileNumber,
-            @RequestParam String otpCode) {
-        log.info("REST request to verify OTP for: {}", mobileNumber);
-        TokenResponse response = otpService.verifyOtpAndLogin(mobileNumber, otpCode);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/verify-json")
-    public ResponseEntity<TokenResponse> verifyOtpJson(@RequestBody OtpVerifyRequest request) {
-        log.info("REST request to verify OTP (JSON) for: {}", request.getMobileNumber());
+    public ResponseEntity<TokenResponse> verifyOtp(@RequestBody OtpVerifyRequest request) {
+        log.info("REST request to verify OTP for: {}", request.getMobileNumber());
         TokenResponse response = otpService.verifyOtpAndLogin(request.getMobileNumber(), request.getOtpCode());
         return ResponseEntity.ok(response);
     }

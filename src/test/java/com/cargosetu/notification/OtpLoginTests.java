@@ -177,37 +177,7 @@ class OtpLoginTests {
     }
 
     @Test
-    void testOtpLogin_RestController_SendAndVerifyQueryParam_Success() throws Exception {
-        // Create customer
-        Customer customer = new Customer();
-        customer.setFirstName("WebTest1");
-        customer.setMobileNo("5555555555");
-        customer.setUuid(UUID.randomUUID().toString());
-        customer.setIsDelete(false);
-        customerRepository.save(customer);
-
-        // 1. Send OTP (Query Param)
-        mockMvc.perform(post("/auth/otp/send")
-                        .param("mobileNumber", "5555555555")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.mockOtp").exists());
-
-        OtpVerification otp = otpRepository.findTopByMobileNumberOrderByCreatedAtDesc("5555555555").get();
-        String otpCode = otp.getOtpCode();
-
-        // 2. Verify OTP (Query Param)
-        mockMvc.perform(post("/auth/otp/verify")
-                        .param("mobileNumber", "5555555555")
-                        .param("otpCode", otpCode)
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty());
-    }
-
-    @Test
-    void testOtpLogin_RestController_SendAndVerifyJson_Success() throws Exception {
+    void testOtpLogin_RestController_SendAndVerify_Success() throws Exception {
         // Create customer
         Customer customer = new Customer();
         customer.setFirstName("WebTest2");
@@ -217,7 +187,7 @@ class OtpLoginTests {
         customerRepository.save(customer);
 
         // 1. Send OTP (JSON)
-        mockMvc.perform(post("/auth/otp/send-json")
+        mockMvc.perform(post("/auth/otp/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"mobileNumber\":\"4444444444\"}"))
                 .andExpect(status().isOk())
@@ -228,7 +198,7 @@ class OtpLoginTests {
         String otpCode = otp.getOtpCode();
 
         // 2. Verify OTP (JSON)
-        mockMvc.perform(post("/auth/otp/verify-json")
+        mockMvc.perform(post("/auth/otp/verify")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"mobileNumber\":\"4444444444\",\"otpCode\":\"" + otpCode + "\"}"))
                 .andExpect(status().isOk())
