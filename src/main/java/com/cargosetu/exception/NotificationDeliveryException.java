@@ -1,4 +1,4 @@
-package com.cargosetu.notification.exception;
+package com.cargosetu.exception;
 
 public class NotificationDeliveryException extends RuntimeException {
     

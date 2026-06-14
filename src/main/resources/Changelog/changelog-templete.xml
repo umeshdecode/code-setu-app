@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="SKP0101" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM notification_template
+                WHERE template_code = 'CUSTOMER_CREATED'
+                  AND channel = 'EMAIL'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="notification_template">
+            <column name="template_code" value="CUSTOMER_CREATED"/>
+            <column name="channel"
+                    value="EMAIL"/>
+            <column name="subject_template"
+                    value="Welcome to CargoSetu, {{name}}!"/>
+            <column name="body_template"
+                    value="Dear {{name}},
+Your account has been successfully created with customer ID: {{customerId}}.
+Mobile Number: {{mobileNo}}
+Best regards,
+CargoSetu Team"/>
+            <column name="is_active"
+                    valueBoolean="true"/>
+            <column name="created_at"
+                    valueComputed="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+    <changeSet id="SKP0102" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM notification_template
+                WHERE template_code='CUSTOMER_CREATED'
+                  AND channel='SMS'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="notification_template">
+
+            <column name="template_code"
+                    value="CUSTOMER_CREATED"/>
+
+            <column name="channel"
+                    value="SMS"/>
+
+            <column name="body_template"
+                    value="Hello {{name}}, welcome to CargoSetu! Your account is active."/>
+
+            <column name="is_active"
+                    valueBoolean="true"/>
+
+            <column name="created_at"
+                    valueComputed="CURRENT_TIMESTAMP"/>
+
+        </insert>
+
+    </changeSet>
+    <changeSet id="SKP0103" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM notification_template
+                WHERE template_code='CUSTOMER_CREATED'
+                  AND channel='SMS'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="notification_template">
+
+            <column name="template_code"
+                    value="CUSTOMER_CREATED"/>
+
+            <column name="channel"
+                    value="SMS"/>
+
+            <column name="body_template"
+                    value="Hello {{name}}, welcome to CargoSetu! Your account is active."/>
+
+            <column name="is_active"
+                    valueBoolean="true"/>
+
+            <column name="created_at"
+                    valueComputed="CURRENT_TIMESTAMP"/>
+
+        </insert>
+
+    </changeSet>
+</databaseChangeLog>

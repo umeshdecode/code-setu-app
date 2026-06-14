@@ -15,5 +15,6 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     Optional<Staff> findByEmail(String email);
     Optional<Staff> findByEmailOrUserName(String email,String username);
+    Optional<Staff> findByMobileNumberAndIsDeleted(String mobileNumber, boolean isDeleted);
     Page<Staff> findAllByCompanyIdOrderByStaffIdDesc(Integer companyId, Pageable pageable);
 }

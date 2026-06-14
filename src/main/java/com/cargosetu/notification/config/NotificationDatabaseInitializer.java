@@ -127,6 +127,14 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 "Dear {{name}},\n\nWe have received your payment of {{amount}} for invoice {{invoiceNumber}}.\n\nTransaction ID: {{transactionId}}\n\nBest regards,\nCargoSetu Team"
         ));
 
+        // 14. OTP_SMS - SMS
+        defaultTemplates.add(createTemplate(
+                "OTP_SMS",
+                NotificationChannel.SMS,
+                null,
+                "Your CargoSetu OTP is {{otpCode}}. Please do not share it with anyone."
+        ));
+
         // Save templates if not already present
         for (NotificationTemplate t : defaultTemplates) {
             templateRepository.findByTemplateCodeAndChannel(t.getTemplateCode(), t.getChannel())

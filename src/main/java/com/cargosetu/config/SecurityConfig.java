@@ -66,10 +66,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(
-                                "/auth/login",
-                                "/auth/user/register",
-                                "/auth/google",
-                                "/auth/refresh",
+                                "/auth/**",
                                 "/login.html",
                                 "/css/**",
                                 "/resources/static/assests**",

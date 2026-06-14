@@ -1,6 +1,6 @@
 package com.cargosetu.notification.infrastructure.channel;
 
-import com.cargosetu.notification.exception.NotificationDeliveryException;
+import com.cargosetu.exception.NotificationDeliveryException;
 import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.notification.model.NotificationStatus;
 import com.cargosetu.notification.model.NotificationAudit;
