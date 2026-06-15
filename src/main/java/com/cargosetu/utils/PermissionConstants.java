@@ -65,4 +65,10 @@ public class PermissionConstants {
     public static final String TRIP_READ = PERM_PREFIX + "TRIP_READ";
     public static final String TRIP_UPDATE = PERM_PREFIX + "TRIP_UPDATE";
     public static final String TRIP_DELETE = PERM_PREFIX + "TRIP_DELETE";
+
+    // trip status history permissions
+    public static final String TRIP_STATUS_HISTORY_CREATE = PERM_PREFIX + "TRIP_STATUS_HISTORY_CREATE";
+    public static final String TRIP_STATUS_HISTORY_READ = PERM_PREFIX + "TRIP_STATUS_HISTORY_READ";
+    public static final String TRIP_STATUS_HISTORY_UPDATE = PERM_PREFIX + "TRIP_STATUS_HISTORY_UPDATE";
+    public static final String TRIP_STATUS_HISTORY_DELETE = PERM_PREFIX + "TRIP_STATUS_HISTORY_DELETE";
 }
