@@ -59,4 +59,10 @@ public class PermissionConstants {
     public static final String SHIFT_INVENTORY_READ = PERM_PREFIX + "SHIFT_INVENTORY_READ";
     public static final String SHIFT_INVENTORY_UPDATE = PERM_PREFIX + "SHIFT_INVENTORY_UPDATE";
     public static final String SHIFT_INVENTORY_STATUS_UPDATE = PERM_PREFIX + "SHIFT_INVENTORY_STATUS_UPDATE";
+
+    // trip permissions
+    public static final String TRIP_CREATE = PERM_PREFIX + "TRIP_CREATE";
+    public static final String TRIP_READ = PERM_PREFIX + "TRIP_READ";
+    public static final String TRIP_UPDATE = PERM_PREFIX + "TRIP_UPDATE";
+    public static final String TRIP_DELETE = PERM_PREFIX + "TRIP_DELETE";
 }

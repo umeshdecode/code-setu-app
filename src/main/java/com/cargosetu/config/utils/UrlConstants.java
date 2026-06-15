@@ -26,4 +26,8 @@ public class UrlConstants {
     public interface ShiftingUrlConstants {
         public static final String SHIFT_INVENTORY = "/shift-inventory";
     }
+
+    public interface TripUrlConstants {
+        public static final String TRIP = "/trip";
+    }
 }
