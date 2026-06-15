@@ -30,5 +30,6 @@ public class UrlConstants {
     public interface TripUrlConstants {
         public static final String TRIP = "/trip";
         public static final String TRIP_STATUS_HISTORY = "/trip-status-history";
+        public static final String TRIP_EXPENSE = "/trip-expense";
     }
 }

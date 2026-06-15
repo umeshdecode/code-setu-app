@@ -1,11 +1,13 @@
 package com.cargosetu.model;
 
 import jakarta.persistence.*;
+import lombok.Data;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "tbl_trip_expense")
+@Data
 public class TripExpense {
 
     @Id
