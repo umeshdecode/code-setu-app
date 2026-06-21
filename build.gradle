@@ -62,7 +62,7 @@ dependencies {
     implementation 'com.opencsv:opencsv:5.9'
 
     implementation 'commons-io:commons-io:2.15.1'
-
+    implementation 'com.microsoft.playwright:playwright:1.49.0'
 
     //Liquibase
     implementation 'org.liquibase:liquibase-core:4.23.2'

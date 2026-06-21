@@ -133,6 +133,9 @@ public class CompanyServImpl implements CompanyService {
             if (company.getCountry() != null) {
                 existing.setCountry(company.getCountry());
             }
+            if(company.getWebsite() != null){
+                existing.setWebsite(company.getWebsite());
+            }
 
             existing.setUpdatedAt(LocalDateTime.now());
 

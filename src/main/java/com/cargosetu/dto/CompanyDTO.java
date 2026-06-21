@@ -109,6 +109,7 @@ public class CompanyDTO {
                 .branch(c.getBranch())
                 .logoBase64(logoBase64)
                 .sealBase64(sealBase64)
+                .website(c.getWebsite())
                 .build();
     }
 }

@@ -11,6 +11,7 @@ import com.cargosetu.model.CompanyAsset;
 import com.cargosetu.model.Template;
 import com.cargosetu.repo.*;
 import com.cargosetu.utils.utillity.FileUtility;
+import com.cargosetu.utils.utillity.PdfGenerator;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,8 @@ public class TemplateService {
     private final CompanyService companyService;
     @Autowired
     private ClientServiceRepo clientServiceRepo;
+    @Autowired
+    private PdfGenerator pdfGenerator;
 
     public void createTemplate(MultipartFile file, Template template) {
         List<String> filePath = FileUtility.saveMultipartFile(new MultipartFile[]{file}, clientServiceRepo.findByName("Template").orElseThrow().getName());
@@ -54,7 +57,7 @@ public class TemplateService {
         templateRepository.save(template);
     }
 
-    public String generateQuotationPdf(Long shiftingId) throws Exception {
+    public byte[] generateQuotationPdf(Long shiftingId) throws Exception {
         Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
                 .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
 
@@ -93,8 +96,8 @@ public class TemplateService {
         }
         String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotationDTO);
 
-//        return htmlToPdfConverter(filledHtml);
-        return filledHtml;
+        byte[] bytes = pdfGenerator.generatePdf(filledHtml);
+        return bytes;
     }
 
     private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation) {
