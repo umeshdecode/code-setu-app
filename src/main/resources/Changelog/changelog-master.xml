@@ -492,5 +492,25 @@
             <column name="created_by_name" value="super admin"/>
         </insert>
     </changeSet>
-
+    <changeSet id="SKP00010" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='TRIP_DOCS'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tblmclientservice">
+            <column name="name" value="TRIP_DOCS"/>
+            <column name="value" value="D:\\cargo project\\document"/>
+            <column name="STAFFID" valueNumeric="1"/>
+            <column name="module" value="TRIP_DOCS"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>
