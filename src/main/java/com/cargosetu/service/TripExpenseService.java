@@ -123,6 +123,7 @@ public class TripExpenseService {
             if (dto.getBillNumber() != null) entity.setBillNumber(dto.getBillNumber());
             if (dto.getReceiptUrl() != null) entity.setReceiptUrl(dto.getReceiptUrl());
             if (dto.getExpenseDate() != null) entity.setExpenseDate(dto.getExpenseDate());
+            if (dto.getApproved() != null) entity.setApproved(dto.getApproved());
             if (dto.getTripId() != null) {
                 tripRepository.findById(dto.getTripId()).ifPresent(entity::setTrip);
             }

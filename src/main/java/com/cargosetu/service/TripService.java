@@ -4,6 +4,7 @@ import com.cargosetu.dto.TripDTO;
 import com.cargosetu.mapper.TripMapper;
 import com.cargosetu.model.Driver;
 import com.cargosetu.model.Trip;
+import com.cargosetu.model.TripStatus;
 import com.cargosetu.model.Vehicle;
 import com.cargosetu.repo.DriverRepository;
 import com.cargosetu.repo.ShiftingRepository;
@@ -11,11 +12,13 @@ import com.cargosetu.repo.TripRepository;
 import com.cargosetu.repo.VehicleRepository;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -157,6 +160,12 @@ public class TripService {
             }
             if (tripDTO.getActive() != null) {
                 existingTrip.setActive(tripDTO.getActive());
+            }
+            if (tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.STARTED) ) {
+                existingTrip.setActualStartTime(LocalDateTime.now());
+            }
+            if (tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.COMPLETED) ) {
+                existingTrip.setActualEndTime(LocalDateTime.now());
             }
 
             if (tripDTO.getShiftingId() != null) {

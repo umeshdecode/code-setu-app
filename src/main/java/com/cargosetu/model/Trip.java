@@ -27,6 +27,7 @@ public class Trip {
     private Vehicle vehicle;
 
     private LocalDateTime plannedStartTime;
+    private LocalDateTime plannedEenTime;
 
     private LocalDateTime actualStartTime;
 

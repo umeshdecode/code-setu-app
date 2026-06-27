@@ -29,4 +29,8 @@ public class TripExpense {
     private String receiptUrl;
 
     private LocalDate expenseDate;
+    private Boolean approved;
+    private String approvedBy;
+
+    private LocalDate approvedAt;
 }

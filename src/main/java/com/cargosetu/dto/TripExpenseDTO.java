@@ -15,4 +15,6 @@ public class TripExpenseDTO {
     private String billNumber;
     private String receiptUrl;
     private LocalDate expenseDate;
+    private Boolean approved;
+    private String approvedBy;
 }
