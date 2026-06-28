@@ -73,7 +73,7 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
     public List<AssignedDriverToVehicleDto> getAllAssignments() {
         try {
             log.info("Fetching all assignments");
-            List<DriverVehicleAssignment> assignmentList =  repository.findAll();
+            List<DriverVehicleAssignment> assignmentList =  repository.findAllByOrderByIdDesc();
             List<AssignedDriverToVehicleDto> driverToVehicleDtos = new ArrayList<>();
             for (DriverVehicleAssignment assignment : assignmentList){
                 AssignedDriverToVehicleDto assignedDriverToVehicleDto = new AssignedDriverToVehicleDto();

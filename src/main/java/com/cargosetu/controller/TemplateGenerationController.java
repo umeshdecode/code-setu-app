@@ -85,12 +85,21 @@ public class TemplateGenerationController {
 //        }
 //    }
 
-    @GetMapping(value = "/{shiftingId}/invoice", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> getInvoiceHtml(@PathVariable Long shiftingId) throws Exception {
-        String filledInvoiceHtml = templateService.generateInvoiceHtml(shiftingId);
-
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_HTML)
-                .body(filledInvoiceHtml);
+    @GetMapping(value = "/{shiftingId}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<?> getInvoiceHtml(@PathVariable Long shiftingId) throws Exception {
+        byte[] pdf = templateService.generateInvoiceHtml(shiftingId);
+        try {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
 }

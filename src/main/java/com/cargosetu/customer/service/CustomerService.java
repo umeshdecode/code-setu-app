@@ -1,6 +1,7 @@
 package com.cargosetu.customer.service;
 
 import com.cargosetu.config.dto.LoggedInUser;
+import com.cargosetu.customer.dtos.ChargesDTO;
 import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
 import com.cargosetu.customer.dtos.ShiftingDTO;
@@ -9,6 +10,8 @@ import com.cargosetu.customer.entity.Shifting;
 import com.cargosetu.customer.repository.CustomerRepository;
 import com.cargosetu.dto.ValidationResponse;
 import com.cargosetu.mapper.CustomerMapper;
+import com.cargosetu.mapper.ShiftingMapper;
+import com.cargosetu.repo.ShiftingRepository;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
@@ -44,6 +47,12 @@ public class CustomerService {
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
+
+    @Autowired
+    private ShiftingMapper shiftingMapper;
+
+    @Autowired
+    private ShiftingRepository shiftingRepository;
 
     public ValidationResponse validateCustomerCreateRequest(CustomerDTO customerDTO) {
         ValidationResponse validationResponse = new ValidationResponse(true, CommonStatusCode.MSG_VALIDATION_SUCCESS);
@@ -107,7 +116,7 @@ public class CustomerService {
     }
 
 
-    public ValidationResponse validateCustomerUpdateRequest(CustomerUpdateDto customerDTO) {
+    public ValidationResponse validateCustomerUpdateRequest(CustomerDTO customerDTO) {
         ValidationResponse validationResponse = new ValidationResponse(true, CommonStatusCode.MSG_VALIDATION_SUCCESS);
         if(Objects.isNull(customerDTO)) return  new ValidationResponse(false, "Invalid Request!!");
         if(customerDTO.getFirstName() == null) return new ValidationResponse(false, "customer name is required!!");
@@ -120,24 +129,33 @@ public class CustomerService {
         return validationResponse;
     }
 
-    public GenericDataDTO updateCustomer(CustomerUpdateDto customerDTO) {
+    public GenericDataDTO updateCustomer(CustomerDTO customerDTO) {
         GenericDataDTO updateResponse = new GenericDataDTO();
         try {
             Optional<Customer> dbCust = customerRepository.findByCustomerIdAndIsDelete(customerDTO.getCustomerId(),false);
             if(dbCust.isPresent()) {
                 Customer customer = dbCust.get();
-                customer.setFirstName(customerDTO.getFirstName());
-                customer.setLastName(customerDTO.getLastName());
-                customer.setEmail(customerDTO.getEmail());
-                customer.setMobileNo(customerDTO.getMobileNo());
-                customer.setAlternateMobileNo(customerDTO.getAlternateMobileNo());
-                customer.setWorkEmail(customerDTO.getWorkEmail());
+                if (customerDTO.getFirstName() != null) customer.setFirstName(customerDTO.getFirstName());
+                if (customerDTO.getLastName() != null) customer.setLastName(customerDTO.getLastName());
+                if (customerDTO.getEmail() != null) customer.setEmail(customerDTO.getEmail());
+                if (customerDTO.getMobileNo() != null) customer.setMobileNo(customerDTO.getMobileNo());
+                if (customerDTO.getAlternateMobileNo() != null) customer.setAlternateMobileNo(customerDTO.getAlternateMobileNo());
+                if (customerDTO.getWorkEmail() != null) customer.setWorkEmail(customerDTO.getWorkEmail());
+
+                List<ShiftingDTO> shiftings = customerDTO.getShiftings();
+                if (shiftings != null && !shiftings.isEmpty()) {
+                    List<Shifting> list = shiftings.stream()
+                            .map(shifting -> shiftingMapper.toEntity(shifting))
+                            .toList();
+                    shiftingRepository.saveAll(list);
+                    customer.setShiftings(list);
+                }
+
                 customer = customerRepository.save(customer);
                 updateResponse.setData(customerMapper.toDto(customer));
                 updateResponse.setResponseCode(CommonStatusCode.SUCCESS);
                 updateResponse.setResponseMessege("customer updated successfully!");
 
-                // Publish generic event for email notification
                 Map<String, Object> variables = Map.of(
                     "customerId", customer.getCustomerId(),
                     "email", customer.getEmail() != null ? customer.getEmail() : "",
@@ -153,11 +171,14 @@ public class CustomerService {
                     ));
                 }
             }else {
-                updateResponse.setResponseCode(CommonStatusCode.FAIL);
-                updateResponse.setResponseMessege("something went wrong, try after sometime");
+                updateResponse.setResponseCode(CommonStatusCode.NOT_FOUND);
+                updateResponse.setResponseMessege("Customer not found");
             }
         } catch (Exception e) {
-            log.error("error while updating customer");
+            log.error("error while updating customer: {}", e.getMessage(), e);
+            updateResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            updateResponse.setResponseMessege("An error occurred while updating customer");
+            updateResponse.setErrors(new Object[]{e.getMessage()});
         }
         return updateResponse;
     }

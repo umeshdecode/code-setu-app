@@ -49,7 +49,7 @@ public class CustomerController {
             "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_UPDATE)"
     )
     @PutMapping
-    public GenericDataDTO updateCustomer(@RequestBody CustomerUpdateDto customerDTO) {
+    public GenericDataDTO updateCustomer(@RequestBody CustomerDTO customerDTO) {
         GenericDataDTO genericDataDTO = new GenericDataDTO();
         genericDataDTO.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
         genericDataDTO.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);

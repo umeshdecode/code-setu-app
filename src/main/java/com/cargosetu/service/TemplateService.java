@@ -51,7 +51,7 @@ public class TemplateService {
     public void createTemplate(MultipartFile file, Template template) {
         List<String> filePath = FileUtility.saveMultipartFile(new MultipartFile[]{file}, clientServiceRepo.findByName("Template").orElseThrow().getName());
 
-        if(filePath != null && filePath.size() > 0) {
+        if (filePath != null && filePath.size() > 0) {
             template.setFilePath(filePath.get(0));
         }
         templateRepository.save(template);
@@ -62,7 +62,7 @@ public class TemplateService {
                 .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
 
         Customer customer = shifting.getCustomer();
-        Charges charges  = shifting.getCharge();
+        Charges charges = shifting.getCharge();
 
         Company company = companyRepository.findById(customer.getCompanyId())
                 .orElseThrow(() -> new RuntimeException("Company not found for customer"));
@@ -72,7 +72,7 @@ public class TemplateService {
 
         CompanyDTO companyDTO = CompanyDTO.from(company, logoB64, sealB64);
 
-        double subTotal  = computeSubTotal(charges);
+        double subTotal = computeSubTotal(charges);
         double gstAmount = nullSafe(charges.getGstCharge());
         double grandTotal = subTotal + gstAmount;
 
@@ -80,15 +80,15 @@ public class TemplateService {
                 .quoteDate(LocalDate.now())
                 .subTotal(subTotal)
                 .grandTotal(grandTotal)
-                .tokenMoney(null)      
+                .tokenMoney(null)
                 .build();
 
         Template tmpl = templateRepository.findByType("QUOTATION").orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB"));
         String htmlContent;
         try {
-            if(tmpl.getFilePath() != null &&  !tmpl.getFilePath().isEmpty()) {
+            if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
                 htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
-            }else{
+            } else {
                 htmlContent = tmpl.getHtmlContent();
             }
         } catch (Exception e) {
@@ -110,18 +110,18 @@ public class TemplateService {
 
         Map<String, Object> chargesMap = getChargesMap(charges);
 
-        ctx.setVariable("company",   company);
-        ctx.setVariable("customer",  customerMap);
-        ctx.setVariable("shifting",  shiftingMap);
-        ctx.setVariable("charges",    chargesMap);
+        ctx.setVariable("company", company);
+        ctx.setVariable("customer", customerMap);
+        ctx.setVariable("shifting", shiftingMap);
+        ctx.setVariable("charges", chargesMap);
         ctx.setVariable("quotation", quotation);
-        ctx.setVariable("extras",    charges.getExtraCharges());
-
+        ctx.setVariable("extras", charges.getExtraCharges());
 
 
         return buildStringEngine().process(htmlTemplate, ctx);
     }
-    private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation,Map<String,Object> variableMap) {
+
+    private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation, Map<String, Object> variableMap) {
 
         Context ctx = new Context();
 
@@ -131,16 +131,16 @@ public class TemplateService {
 
         Map<String, Object> chargesMap = getChargesMap(charges);
 
-        ctx.setVariable("company",   company);
-        ctx.setVariable("customer",  customerMap);
-        ctx.setVariable("shifting",  shiftingMap);
-        ctx.setVariable("charges",    chargesMap);
+        ctx.setVariable("company", company);
+        ctx.setVariable("customer", customerMap);
+        ctx.setVariable("shifting", shiftingMap);
+        ctx.setVariable("charges", chargesMap);
         ctx.setVariable("quotation", quotation);
-        ctx.setVariable("extras",    charges.getExtraCharges());
+        ctx.setVariable("extras", charges.getExtraCharges());
 
-        if(Objects.nonNull(variableMap)){
-            for(Map.Entry<String, Object> entry : variableMap.entrySet()){
-                ctx.setVariable(entry.getKey(),entry.getValue());
+        if (Objects.nonNull(variableMap)) {
+            for (Map.Entry<String, Object> entry : variableMap.entrySet()) {
+                ctx.setVariable(entry.getKey(), entry.getValue());
             }
         }
         return buildStringEngine().process(htmlTemplate, ctx);
@@ -148,41 +148,43 @@ public class TemplateService {
 
     private static Map<String, Object> getChargesMap(Charges charges) {
         Map<String, Object> chargesMap = new HashMap<>();
-        chargesMap.put("transportCharge",   charges.getTransportCharge());
-        chargesMap.put("packingCharge",     charges.getPackingCharge());
-        chargesMap.put("loadingCharge",     charges.getLoadingCharge());
-        chargesMap.put("unloadingCharge",   charges.getUnloadingCharge());
-        chargesMap.put("unpackingCharge",   charges.getUnpackingCharge());
+        chargesMap.put("transportCharge", charges.getTransportCharge());
+        chargesMap.put("packingCharge", charges.getPackingCharge());
+        chargesMap.put("loadingCharge", charges.getLoadingCharge());
+        chargesMap.put("unloadingCharge", charges.getUnloadingCharge());
+        chargesMap.put("unpackingCharge", charges.getUnpackingCharge());
         chargesMap.put("carTransportCharge", charges.getCarTransportCharge());
-        chargesMap.put("riskInsureCharge",  charges.getRiskInsureCharge());
-        chargesMap.put("storageCharge",     charges.getStorageCharge());
+        chargesMap.put("riskInsureCharge", charges.getRiskInsureCharge());
+        chargesMap.put("storageCharge", charges.getStorageCharge());
         chargesMap.put("statisticalCharge", charges.getStatisticalCharge());
-        chargesMap.put("serviceCharge",     charges.getServiceCharge());
-        chargesMap.put("serviceRate",       charges.getServiceRate());
-        chargesMap.put("gstRate",           charges.getGstRate());
-        chargesMap.put("gstCharge",         charges.getGstCharge());
+        chargesMap.put("serviceCharge", charges.getServiceCharge());
+        chargesMap.put("serviceRate", charges.getServiceRate());
+        chargesMap.put("gstRate", charges.getGstRate());
+        chargesMap.put("gstCharge", charges.getGstCharge());
         return chargesMap;
     }
 
-    private static  Map<String, Object> getShiftingMap(Shifting shifting) {
+    private static Map<String, Object> getShiftingMap(Shifting shifting) {
         Map<String, Object> shiftingMap = new HashMap<>();
-        shiftingMap.put("shiftingId",       shifting.getShiftingId());
-        shiftingMap.put("fromAddress",      shifting.getFromAddress());
-        shiftingMap.put("toAddress",        shifting.getToAddress());
+        shiftingMap.put("shiftingId", shifting.getShiftingId());
+        shiftingMap.put("fromAddress", shifting.getFromAddress());
+        shiftingMap.put("toAddress", shifting.getToAddress());
+        shiftingMap.put("fromCity", shifting.getShiftFromCity());
+        shiftingMap.put("toCity", shifting.getShiftToCity());
         shiftingMap.put("shiftingStartDate", shifting.getShiftingStartDate() != null
                 ? shifting.getShiftingStartDate().toString() : null);
-        shiftingMap.put("shiftReachedDate",  shifting.getShiftReachedDate() != null
+        shiftingMap.put("shiftReachedDate", shifting.getShiftReachedDate() != null
                 ? shifting.getShiftReachedDate().toString() : null);
         return shiftingMap;
     }
 
     private static Map<String, Object> getCustomerMap(Customer customer) {
         Map<String, Object> customerMap = new HashMap<>();
-        customerMap.put("firstName",  customer.getFirstName());
-        customerMap.put("lastName",   customer.getLastName());
-        customerMap.put("mobileNo",   customer.getMobileNo());
-        customerMap.put("workEmail",  customer.getWorkEmail());
-        customerMap.put("uid",        customer.getUuid());
+        customerMap.put("firstName", customer.getFirstName());
+        customerMap.put("lastName", customer.getLastName());
+        customerMap.put("mobileNo", customer.getMobileNo());
+        customerMap.put("workEmail", customer.getWorkEmail());
+        customerMap.put("uid", customer.getUuid());
         return customerMap;
     }
 
@@ -205,6 +207,7 @@ public class TemplateService {
             return out.toByteArray();
         }
     }
+
     private byte[] htmlToPdfConverter(String html) throws Exception {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
@@ -234,15 +237,17 @@ public class TemplateService {
         return s;
     }
 
-    private double nullSafe(Double v) { return v == null ? 0.0 : v; }
+    private double nullSafe(Double v) {
+        return v == null ? 0.0 : v;
+    }
 
-    public String generateInvoiceHtml(Long shiftingId) throws Exception {
+    public byte[] generateInvoiceHtml(Long shiftingId) throws Exception {
         try {
             Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
                     .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
 
             Customer customer = shifting.getCustomer();
-            Charges charges  = shifting.getCharge();
+            Charges charges = shifting.getCharge();
 
             Company company = companyRepository.findById(customer.getCompanyId())
                     .orElseThrow(() -> new RuntimeException("Company not found for customer"));
@@ -252,7 +257,7 @@ public class TemplateService {
 
             CompanyDTO companyDTO = CompanyDTO.from(company, logoB64, sealB64);
 
-            double subTotal  = computeSubTotal(charges);
+            double subTotal = computeSubTotal(charges);
             double gstAmount = nullSafe(charges.getGstCharge());
             double grandTotal = subTotal + gstAmount;
 
@@ -268,32 +273,28 @@ public class TemplateService {
             Template tmpl = templateRepository.findByType("INVOICE").orElseThrow(() -> new RuntimeException("No active Invoice template "));
             String htmlContent;
             try {
-                if(tmpl.getFilePath() != null &&  !tmpl.getFilePath().isEmpty()) {
+                if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
                     htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
-                }else{
+                } else {
                     htmlContent = tmpl.getHtmlContent();
                 }
             } catch (Exception e) {
                 throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
             }
-
-            Map<String,Object> variableMap = new HashMap<>();
-            variableMap.put("invoiceNo","INV-" + shiftingId + "-2026");
+            Map<String, Object> variableMap = new HashMap<>();
+            variableMap.put("invoiceNo", "INV-" + shiftingId + "-2026");
             variableMap.put("invoiceDate", LocalDate.now());
             variableMap.put("dueDate", LocalDate.now().plusDays(7));
-            variableMap.put("subTotal",subTotal);
-            variableMap.put("grandTotal",grandTotal);
-            String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotation,variableMap);
+            variableMap.put("subTotal", subTotal);
+            variableMap.put("grandTotal", grandTotal);
+            String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotation, variableMap);
 
-            return filledHtml;
+            byte[] bytes = pdfGenerator.generatePdf(filledHtml);
+            return bytes;
         } catch (RuntimeException e) {
-e.printStackTrace();
+            e.printStackTrace();
         }
         return null;
     }
-
-
-
-
 
 }

@@ -19,4 +19,8 @@ public interface DriverVehicleAssignmentRepository extends JpaRepository<DriverV
     List<DriverVehicleAssignment> findByDriverIdAndActiveTrue(@Param("driverId") Long driverId);
     @Query(value = "SELECT * FROM driver_vehicle_assignments WHERE vehicle_id = :vehicleId AND active = true",
             nativeQuery = true)
-    List<DriverVehicleAssignment> findByVehicleIdAndActiveTrue(@Param("vehicleId") Long vehicleId);}
+    List<DriverVehicleAssignment> findByVehicleIdAndActiveTrue(@Param("vehicleId") Long vehicleId);
+
+    List<DriverVehicleAssignment> findAllByOrderByIdDesc();
+
+}
