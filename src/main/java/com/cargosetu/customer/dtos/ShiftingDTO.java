@@ -32,6 +32,7 @@ public class ShiftingDTO {
     private Long shiftCompletedById;
 
     private Long customerId;
+    private Integer companyId;
 
     @JsonProperty("charges")
     private ChargesDTO chargesDTO;

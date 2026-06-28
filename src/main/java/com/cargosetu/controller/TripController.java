@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.TripDTO;
 import com.cargosetu.service.TripService;
@@ -10,6 +11,7 @@ import com.cargosetu.utils.PermissionConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -25,11 +27,11 @@ public class TripController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_CREATE)")
     @PostMapping
-    public ResponseEntity<?> createTrip(@RequestBody TripDTO tripDTO) {
+    public ResponseEntity<?> createTrip(@AuthenticationPrincipal LoggedInUser user,@RequestBody TripDTO tripDTO) {
         log.info("API: Create Trip");
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = tripService.createTrip(tripDTO);
+            response = tripService.createTrip(user,tripDTO);
         } catch (Exception e) {
             log.error("Error creating trip: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -73,11 +75,11 @@ public class TripController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_UPDATE)")
     @PutMapping("/{tripId}")
-    public ResponseEntity<?> updateTrip(@PathVariable Long tripId, @RequestBody TripDTO tripDTO) {
+    public ResponseEntity<?> updateTrip(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long tripId, @RequestBody TripDTO tripDTO) {
         log.info("API: Update Trip with ID: {}", tripId);
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = tripService.updateTrip(tripId, tripDTO);
+            response = tripService.updateTrip(user,tripId, tripDTO);
         } catch (Exception e) {
             log.error("Error updating trip with ID {}: {}", tripId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);

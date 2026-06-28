@@ -111,6 +111,7 @@ public class CustomerService {
 
     private void linkCustomerToShifting(List<Shifting> shiftings, Customer customer) {
         for(Shifting shifting : shiftings) {
+            shifting.setCompanyId(customer.getCompanyId());
             shifting.setCustomer(customer);
         }
     }

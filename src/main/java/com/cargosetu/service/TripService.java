@@ -1,25 +1,19 @@
 package com.cargosetu.service;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.TripDTO;
 import com.cargosetu.mapper.TripMapper;
-import com.cargosetu.model.Driver;
-import com.cargosetu.model.Trip;
-import com.cargosetu.model.TripStatus;
-import com.cargosetu.model.Vehicle;
-import com.cargosetu.repo.DriverRepository;
-import com.cargosetu.repo.ShiftingRepository;
-import com.cargosetu.repo.TripRepository;
-import com.cargosetu.repo.VehicleRepository;
+import com.cargosetu.model.*;
+import com.cargosetu.repo.*;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -31,21 +25,23 @@ public class TripService {
     private final ShiftingRepository shiftingRepository;
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
-
+    private final TripStatusHistoryRepository tripStatusHistoryRepository;
     public TripService(TripRepository tripRepository,
                        TripMapper tripMapper,
                        ShiftingRepository shiftingRepository,
                        DriverRepository driverRepository,
-                       VehicleRepository vehicleRepository) {
+                       VehicleRepository vehicleRepository,
+                       TripStatusHistoryRepository tripStatusHistoryRepository) {
         this.tripRepository = tripRepository;
         this.tripMapper = tripMapper;
         this.shiftingRepository = shiftingRepository;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
+        this.tripStatusHistoryRepository = tripStatusHistoryRepository;
     }
 
     @Transactional
-    public GenericDataDTO createTrip(TripDTO tripDTO) {
+    public GenericDataDTO createTrip(LoggedInUser user, TripDTO tripDTO) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             Trip trip = tripMapper.toEntity(tripDTO);
@@ -70,6 +66,13 @@ public class TripService {
             }
 
             Trip savedTrip = tripRepository.save(trip);
+            TripStatusHistory tripStatusHistory = new TripStatusHistory();
+            tripStatusHistory.setOldStatus(savedTrip.getStatus().toString());
+            tripStatusHistory.setNewStatus(savedTrip.getStatus().toString());
+            tripStatusHistory.setTrip(savedTrip);
+            tripStatusHistory.setChangedBy(user.getUsername());
+            tripStatusHistory.setChangedAt(LocalDateTime.now());
+            tripStatusHistoryRepository.save(tripStatusHistory);
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Trip created successfully!");
             response.setData(tripMapper.toDto(savedTrip));
@@ -122,7 +125,7 @@ public class TripService {
     }
 
     @Transactional
-    public GenericDataDTO updateTrip(Long tripId, TripDTO tripDTO) {
+    public GenericDataDTO updateTrip(LoggedInUser user, Long tripId, TripDTO tripDTO) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             Optional<Trip> existingTripOptional = tripRepository.findById(tripId);
@@ -182,6 +185,16 @@ public class TripService {
             }
 
             existingTrip.setUpdatedAt(LocalDateTime.now());
+
+            if(!Objects.equals(existingTrip.getStatus(),tripDTO.getStatus())) {
+                TripStatusHistory tripStatusHistory = new TripStatusHistory();
+                tripStatusHistory.setOldStatus(existingTrip.getStatus().toString());
+                tripStatusHistory.setNewStatus(tripDTO.getStatus().toString());
+                tripStatusHistory.setTrip(existingTrip);
+                tripStatusHistory.setChangedBy(user.getUsername());
+                tripStatusHistory.setChangedAt(LocalDateTime.now());
+                tripStatusHistoryRepository.save(tripStatusHistory);
+            }
 
             Trip savedTrip = tripRepository.save(existingTrip);
             response.setResponseCode(CommonStatusCode.SUCCESS);

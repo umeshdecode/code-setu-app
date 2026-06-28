@@ -1,5 +1,6 @@
 package com.cargosetu.customer.controller;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.customer.dtos.ShiftingDTO;
 import com.cargosetu.customer.service.ShiftingService; // Assuming this service exists
@@ -10,6 +11,7 @@ import com.cargosetu.utils.PermissionConstants; // Assuming this exists for PreA
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -71,6 +73,22 @@ public class ShiftingController {
             response = shiftingService.updateShifting(shiftingDTO);
         } catch (Exception e) {
             log.error("Error updating shifting with ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
+    @GetMapping
+    public ResponseEntity<?> getAllShiftings(@AuthenticationPrincipal LoggedInUser user, @RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize) {
+        log.info("API: Get All Shiftings - page: {}, size: {}", pageNumber, pageSize);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shiftingService.getAllShiftings(user,pageNumber, pageSize);
+        } catch (Exception e) {
+            log.error("Error fetching all shiftings: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setErrors(new Object[]{e.getMessage()});
             return ResponseEntity.internalServerError().body(response);

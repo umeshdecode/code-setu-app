@@ -47,4 +47,6 @@ public class Trip {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+    private Integer companyId;
+    private Integer custId;
 }
