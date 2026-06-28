@@ -58,7 +58,15 @@ public class ShiftInventoryService {
             if (item.getShiftInventoryPackagings() != null) {
                 item.getShiftInventoryPackagings().forEach(pkg -> pkg.setInventoryItem(item));
             }
-
+            if (item.getLoaded() == null) {
+                item.setLoaded(false);
+            }
+            if (item.getUnloaded() == null) {
+                item.setUnloaded(false);
+            }
+            if (item.getPacked() == null) {
+                item.setPacked(false);
+            }
             ShiftInventoryItem savedItem = shiftInventoryItemRepository.save(item);
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Shift inventory item created successfully!");
