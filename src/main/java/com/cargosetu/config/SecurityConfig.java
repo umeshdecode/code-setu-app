@@ -1,6 +1,5 @@
 package com.cargosetu.config;
 
-import com.cargosetu.utils.GoogleRoleMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
-    private final GoogleRoleMapper googleRoleMapper;
 
 //    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
 //        this.jwtFilter = jwtFilter;

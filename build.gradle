@@ -88,6 +88,9 @@ dependencies {
     // Real-time Email & SMS integration
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'com.twilio.sdk:twilio:10.1.0'
+
+    // Google ID token verification (Sign in with Google)
+    implementation 'com.google.api-client:google-api-client:2.7.0'
 }
 
 tasks.named('test') {
