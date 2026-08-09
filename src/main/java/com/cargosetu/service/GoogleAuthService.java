@@ -3,8 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.config.JwtUtils;
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.dto.TokenResponse;
-import com.cargosetu.customer.entity.Customer;
-import com.cargosetu.customer.repository.CustomerRepository;
+import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
@@ -22,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.GeneralSecurityException;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -32,24 +30,27 @@ import java.util.stream.Collectors;
  * Verifies "Sign in with Google" ID tokens and issues our own JWT so the
  * frontend keeps a single token format regardless of login method.
  *
- * Staff accounts must already exist (matched by email) - Google login does not
- * provision staff. Customers are auto-created on first Google sign-in.
+ * Google is a Staff-only auth method here, mirroring email/password:
+ * loginWithGoogle only authenticates an existing Staff, signupWithGoogle
+ * only creates a new one (via the same StaffService.saveStaff used by the
+ * manual /auth/register flow, so defaults - COMPANY_ADMIN role, uuid,
+ * username, hashed password - stay identical).
  */
 @Slf4j
 @Service
 public class GoogleAuthService {
 
     private final StaffRepository staffRepository;
-    private final CustomerRepository customerRepository;
+    private final StaffService staffService;
     private final JwtUtils jwtUtils;
     private final GoogleIdTokenVerifier verifier;
 
     public GoogleAuthService(StaffRepository staffRepository,
-                              CustomerRepository customerRepository,
+                              StaffService staffService,
                               JwtUtils jwtUtils,
                               @Value("${app.auth.google.client-id:}") String googleClientId) throws GeneralSecurityException, IOException {
         this.staffRepository = staffRepository;
-        this.customerRepository = customerRepository;
+        this.staffService = staffService;
         this.jwtUtils = jwtUtils;
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
                 .setAudience(Collections.singletonList(googleClientId))
@@ -58,6 +59,42 @@ public class GoogleAuthService {
 
     @Transactional
     public TokenResponse loginWithGoogle(String idTokenString) {
+        GoogleIdToken.Payload payload = verifyToken(idTokenString);
+        String email = payload.getEmail();
+
+        Staff staff = staffRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomValidationException(HttpStatus.UNAUTHORIZED.value(),
+                        "No account found for this Google email. Please sign up first."));
+
+        return issueStaffToken(staff);
+    }
+
+    @Transactional
+    public TokenResponse signupWithGoogle(String idTokenString) {
+        GoogleIdToken.Payload payload = verifyToken(idTokenString);
+        String email = payload.getEmail();
+
+        if (staffRepository.findByEmail(email).isPresent()) {
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(),
+                    "An account with this email already exists. Please log in instead.");
+        }
+
+        StaffDTO staffDTO = new StaffDTO();
+        staffDTO.setFirstName((String) payload.get("given_name"));
+        staffDTO.setLastName((String) payload.get("family_name"));
+        staffDTO.setEmail(email);
+        staffDTO.setPassword(UUID.randomUUID().toString());
+
+        staffService.saveStaff(staffDTO, true);
+
+        Staff staff = staffRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomValidationException(HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        "Failed to create account: record disappeared!"));
+
+        return issueStaffToken(staff);
+    }
+
+    private GoogleIdToken.Payload verifyToken(String idTokenString) {
         if (idTokenString == null || idTokenString.isBlank()) {
             throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(), "Google ID token is required!");
         }
@@ -79,32 +116,7 @@ public class GoogleAuthService {
             throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Google account email is not verified!");
         }
 
-        String email = payload.getEmail();
-        String firstName = (String) payload.get("given_name");
-        String lastName = (String) payload.get("family_name");
-
-        // Staff must be pre-provisioned by an admin - no auto-create.
-        Optional<Staff> staffOpt = staffRepository.findByEmail(email);
-        if (staffOpt.isPresent()) {
-            return issueStaffToken(staffOpt.get());
-        }
-
-        // Customers can self-register via Google.
-        Customer customer = customerRepository.findByEmailAndIsDelete(email, false)
-                .orElseGet(() -> createCustomer(email, firstName, lastName));
-
-        return issueCustomerToken(customer);
-    }
-
-    private Customer createCustomer(String email, String firstName, String lastName) {
-        log.info("Auto-creating customer for first-time Google sign-in: {}", email);
-        Customer customer = new Customer();
-        customer.setUuid(UUID.randomUUID().toString());
-        customer.setEmail(email);
-        customer.setFirstName(firstName);
-        customer.setLastName(lastName);
-        customer.setIsDelete(false);
-        return customerRepository.save(customer);
+        return payload;
     }
 
     private TokenResponse issueStaffToken(Staff staff) {
@@ -124,22 +136,6 @@ public class GoogleAuthService {
         loggedInUser.setCompanyId(staff.getCompanyId());
         loggedInUser.setRoles(roles);
         loggedInUser.setPermissions(permissions);
-
-        String token = jwtUtils.generateToken(loggedInUser);
-        return new TokenResponse(token, jwtUtils.getTokenExpirationTime());
-    }
-
-    private TokenResponse issueCustomerToken(Customer customer) {
-        LoggedInUser loggedInUser = new LoggedInUser();
-        loggedInUser.setStaffId(customer.getCustomerId());
-        loggedInUser.setUuid(customer.getUuid());
-        loggedInUser.setUserName(customer.getEmail());
-        loggedInUser.setFirstName(customer.getFirstName());
-        loggedInUser.setLastName(customer.getLastName());
-        loggedInUser.setEmail(customer.getEmail());
-        loggedInUser.setCompanyId(customer.getCompanyId());
-        loggedInUser.setRoles(Set.of("CUSTOMER"));
-        loggedInUser.setPermissions(new HashSet<>());
 
         String token = jwtUtils.generateToken(loggedInUser);
         return new TokenResponse(token, jwtUtils.getTokenExpirationTime());

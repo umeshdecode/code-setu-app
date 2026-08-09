@@ -26,6 +26,13 @@ public class GoogleAuthController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/signup")
+    public ResponseEntity<TokenResponse> signup(@RequestBody GoogleLoginRequest request) {
+        log.info("REST request to sign up with Google ID token");
+        TokenResponse response = googleAuthService.signupWithGoogle(request.getIdToken());
+        return ResponseEntity.ok(response);
+    }
+
     @Data
     public static class GoogleLoginRequest {
         private String idToken;
