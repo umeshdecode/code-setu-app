@@ -359,7 +359,7 @@ Stores inbound inquiries submitted from the public inquiry form.
 | `email` | String | Contact email |
 | `phone` | String | Contact phone |
 | `message` | String | Inquiry message |
-| `status` | InquiryStatus | `OPEN`, `IN_PROGRESS`, `CLOSED` |
+| `status` | InquiryStatus | `NEW`, `CONTACTED`, `RESOLVED`, `CLOSED` (verified in `InquiryStatus.java`) |
 | `createdAt` | LocalDateTime | Submission timestamp |
 
 ---
@@ -760,7 +760,7 @@ Real-time GPS tracking points for a trip.
 | `NotificationChannel` | `EMAIL`, `SMS`, `PUSH` | NotificationTemplate, NotificationAudit |
 | `NotificationStatus` | `SENT`, `FAILED`, `PENDING` | NotificationAudit |
 | `DocumentStatus` | `PENDING`, `APPROVED`, `REJECTED` | DocumentUpload |
-| `InquiryStatus` | `OPEN`, `IN_PROGRESS`, `CLOSED` | CustomerInquiry |
+| `InquiryStatus` | `NEW`, `CONTACTED`, `RESOLVED`, `CLOSED` | CustomerInquiry |
 | `TripStatus` | Enum values in `TripStatus.java` | Trip |
 | `ExpenseType` | Enum values in `ExpenseType.java` | TripExpense |
 
