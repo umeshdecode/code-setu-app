@@ -64,6 +64,13 @@ public class AuthService {
         return true;
     }
 
+    public boolean userExists(String email) {
+        if (!StringUtils.hasText(email)) {
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(), "please enter valid email!!");
+        }
+        return staffRepository.findByEmailOrUserName(email, email).isPresent();
+    }
+
     public TokenResponse loginUser(LoginRequest loginDto) {
         Staff staff = null;
 
