@@ -1,7 +1,7 @@
 # Service Layer, DTOs, Frontend & Known Issues
 
-> Companion to [`controllers.md`](./controllers.md), [`entities.md`](./entities.md) and
-> [`api-urls.md`](./api-urls.md). Those three cover *what endpoints and tables exist*. This doc covers
+> Companion to [`controllers.md`](controllers.md), [`entities.md`](entities.md) and
+> [`api-urls.md`](api-urls.md). Those three cover *what endpoints and tables exist*. This doc covers
 > *the business-logic layer that sits between them, the DTOs that cross the wire, the Angular frontend,
 > and the gaps/risks a new feature (or a new engineer) needs to know about before building on top of this
 > codebase.*
@@ -208,6 +208,6 @@ docs (e.g. the WhatsApp/Lead/AI plan) can reference this list instead of re-desc
    rule for which to use where.
 
 None of these are addressed by the WhatsApp/Lead/AI plan in
-[`WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md`](./WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md) — they're called
+[`WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md`](../WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md) — they're called
 out here so they aren't silently assumed fixed, and so a future security-hardening pass has a single
 starting checklist instead of re-discovering all of this from scratch.

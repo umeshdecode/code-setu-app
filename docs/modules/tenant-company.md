@@ -2,8 +2,8 @@
 
 > Standalone module reference for the **Company** entity — the multi-tenant root of the application —
 > plus its two dependent aggregates, **Branch** and **CompanyAsset**. Cross-references
-> [`../controllers.md`](../controllers.md), [`../entities.md`](../entities.md), [`../api-urls.md`](../api-urls.md)
-> and [`../services-and-known-issues.md`](../services-and-known-issues.md); every claim below was checked
+> [`../controllers.md`](controllers.md), [`../entities.md`](entities.md), [`../api-urls.md`](api-urls.md)
+> and [`../services-and-known-issues.md`](services-and-known-issues.md); every claim below was checked
 > directly against source in `src/main/java/com/cargosetu/` rather than copied from those docs. For
 > security wiring details, [`../modules/auth-security.md`](auth-security.md) is the source of truth (see its
 > §7, "`MethodSecurityConfig`") — the security facts in §7 below are a summary of that file's findings,

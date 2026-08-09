@@ -2,8 +2,8 @@
 
 > Standalone module reference. Verified directly against source on 2026-08-09. Where a claim could not
 > be directly confirmed from source it is marked **(inferred)**. Cross-reference:
-> [`../controllers.md`](../controllers.md), [`../entities.md`](../entities.md),
-> [`../api-urls.md`](../api-urls.md), [`../services-and-known-issues.md`](../services-and-known-issues.md)
+> [`../controllers.md`](controllers.md), [`../entities.md`](entities.md),
+> [`../api-urls.md`](api-urls.md), [`../services-and-known-issues.md`](services-and-known-issues.md)
 > — those docs already flagged some of the issues repeated here (inert `@PreAuthorize`, non-revoking
 > refresh token, `GoogleRoleMapper` backdoor); this doc re-verifies each against the actual file rather
 > than trusting the summary.

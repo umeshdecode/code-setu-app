@@ -8,8 +8,8 @@ configuration, external integrations, business rules & validations, and dependen
 modules — all verified directly against source, with unverified claims explicitly flagged as such.
 
 For the broader picture, see also (one level up, in `docs/`):
-- [`controllers.md`](../controllers.md), [`entities.md`](../entities.md), [`api-urls.md`](../api-urls.md) — flat cross-module reference tables
-- [`services-and-known-issues.md`](../services-and-known-issues.md) — consolidated list of pre-existing security/architecture gaps that apply across modules, not owned by any one of them
+- [`controllers.md`](controllers.md), [`entities.md`](entities.md), [`api-urls.md`](api-urls.md) — flat cross-module reference tables
+- [`services-and-known-issues.md`](services-and-known-issues.md) — consolidated list of pre-existing security/architecture gaps that apply across modules, not owned by any one of them
 - [`WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md`](../WHATSAPP_LEAD_AI_IMPLEMENTATION_PLAN.md) — forward-looking design for the not-yet-built Lead/WhatsApp/AI-extraction feature
 
 ## Module list

@@ -3,9 +3,9 @@
 > Standalone module doc covering two small, unrelated-but-adjacent admin modules that happen to live at a
 > similar "platform admin" altitude: generic key/value **system configuration** (`Clientservice`) and
 > **subscription Plans**. They share nothing at the data or business-logic level — they are documented
-> together purely for organizational convenience. Cross-reference: [`../controllers.md`](../controllers.md),
-> [`../entities.md`](../entities.md), [`../api-urls.md`](../api-urls.md),
-> [`../services-and-known-issues.md`](../services-and-known-issues.md). Every claim below was checked
+> together purely for organizational convenience. Cross-reference: [`../controllers.md`](controllers.md),
+> [`../entities.md`](entities.md), [`../api-urls.md`](api-urls.md),
+> [`../services-and-known-issues.md`](services-and-known-issues.md). Every claim below was checked
 > against the source files listed in each section; anything not directly verifiable is explicitly marked
 > **[inferred]** or **[unverified]**.
 
@@ -165,7 +165,7 @@ Verified directly from `src/main/java/com/cargosetu/config/SecurityConfig.java` 
   `MethodSecurityConfig` sets `@EnableMethodSecurity(prePostEnabled = false)`
   (`src/main/java/com/cargosetu/config/MethodSecurityConfig.java` line 7), which globally disables
   `@PreAuthorize`/`@PostAuthorize` processing for the whole application (this is the same finding already
-  flagged in [`../services-and-known-issues.md`](../services-and-known-issues.md) §4 for other modules —
+  flagged in [`../services-and-known-issues.md`](services-and-known-issues.md) §4 for other modules —
   confirmed again here by direct read of the same file).
 
 **Net effect:** any authenticated staff member, in any company, can read and modify every system-config
@@ -215,7 +215,7 @@ which some call sites treat as a hard failure via `orElseThrow()` and others tol
 followed by an unguarded `.getName()` call that would NPE if the row is missing) — the row's actual content
 (`value`) plays no role.
 
-This confirms and sharpens the note already in [`../entities.md`](../entities.md) §13 ("Stores system
+This confirms and sharpens the note already in [`../entities.md`](entities.md) §13 ("Stores system
 configuration entries used by internal services (e.g., document upload path config)") — the consumption is
 real, but the specific field consumed appears to be the wrong one.
 
