@@ -26,6 +26,9 @@ public class Role extends AbstractModel {
     @Column(name = "scope", nullable = false, length = 50)
     private String scope;
 
+    @Column(name = "is_show",columnDefinition = "BOOLEAN DEFAULT TRUE", nullable = false)
+    private boolean isShow = true;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "tblm_role_permissions",
@@ -36,11 +39,12 @@ public class Role extends AbstractModel {
 
     public Role(){}
 
-    public Role(String code, String roleName, String discription, String scope) {
+    public Role(String code, String roleName, String discription, String scope,boolean isShow) {
         this.code = code;
         this.roleName = roleName;
         this.discription = discription;
         this.scope = scope;
+        this.isShow = isShow;
     }
 
 }

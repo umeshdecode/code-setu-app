@@ -57,7 +57,7 @@ public class SeedSuperAdmin implements ApplicationRunner {
     public Role seedDefaultRole(){
         Optional<Role> roleByCodeSuperAdmin = rolesRepo.findByCode(SuperAdminConstants.SUPERADMIN);
         if(roleByCodeSuperAdmin.isEmpty()){
-            Role role = new Role(SuperAdminConstants.SUPERADMIN,"Super admin","this is super admin role","PLATFORM");
+            Role role = new Role(SuperAdminConstants.SUPERADMIN,"Super admin","this is super admin role","PLATFORM",false);
 
             List<Permission> permissions = new ArrayList<>();
             permissions.add(createPermission("ROLE_CREATE","Role Create","permission for create roles","Role Module"));

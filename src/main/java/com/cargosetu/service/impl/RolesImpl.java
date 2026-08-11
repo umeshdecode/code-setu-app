@@ -35,7 +35,7 @@ public class RolesImpl implements RolesService {
     public GenericDataDTO getRolseList() {
         GenericDataDTO responseDTO = new GenericDataDTO();
         try {
-            List<Role> roles = rolesRepo.findAllByIsDeletedIsFalseOrderByRolesIdDesc();
+            List<Role> roles = rolesRepo.findAllByIsDeletedIsFalseAndIsShowIsTrueOrderByRoleNameAscRolesIdDesc();
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());

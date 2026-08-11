@@ -17,5 +17,6 @@ public interface RolesRepo extends JpaRepository<Role,Long> {
 
     List<Role> findAllByIsDeletedIsFalse();
     List<Role> findAllByIsDeletedIsFalseOrderByRolesIdDesc();
+    List<Role> findAllByIsDeletedIsFalseAndIsShowIsTrueOrderByRoleNameAscRolesIdDesc();
 
 }
