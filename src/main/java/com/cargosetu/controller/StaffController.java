@@ -74,6 +74,24 @@ public class StaffController {
         return dto;
     }
 
+    @PreAuthorize(
+            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_UPDATE_DELETE)"
+    )
+    @PutMapping("/{staffId}")
+    public GenericDataDTO updateStaff(@PathVariable("staffId") Long staffId, @RequestBody StaffDTO staffDTO){
+        GenericDataDTO dto = new GenericDataDTO();
+        StaffDTO updated = staffService.updateStaff(staffId, staffDTO);
+        if(Objects.nonNull(updated)){
+            dto.setData(updated);
+            dto.setResponseCode(CommonStatusCode.SUCCESS);
+            dto.setResponseMessege(CommonConstants.STAFF + CommonStatusCode.MSG_UPDATED);
+        }else {
+            dto.setResponseCode(CommonStatusCode.NOT_FOUND);
+            dto.setResponseMessege("Staff not found");
+        }
+        return dto;
+    }
+
     @DeleteMapping("/{staffId}")
     public GenericDataDTO deleteStaff(@PathVariable("staffId") Long staffId){
         GenericDataDTO dto = new GenericDataDTO();

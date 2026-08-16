@@ -15,29 +15,31 @@ public class RoleController {
     private RolesImpl roleService ;
 
     @GetMapping
+    @PreAuthorize("@permissionService.hasAccess('ROLE', 'READ')")
     public GenericDataDTO getRoles(){
        return roleService.getRolseList();
     }
     @GetMapping("/{id}")
+    @PreAuthorize("@permissionService.hasAccess('ROLE', 'READ')")
     public GenericDataDTO getRoleById(@PathVariable Long id) {
         return roleService.getRoleById(id);
     }
 
-    @PreAuthorize(
-            "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_CREATE)"
-    )
+    @PreAuthorize("@permissionService.hasAccess('ROLE', 'CREATE')")
     @PostMapping
     public GenericDataDTO createRole(@RequestBody RolesDTO role) {
         return roleService.createRole(role);
     }
     // UPDATE ROLE
     @PutMapping
+    @PreAuthorize("@permissionService.hasAccess('ROLE', 'UPDATE')")
     public GenericDataDTO updateRole(@RequestBody RolesDTO role) {
         return roleService.updateRole( role);
     }
 
     // DELETE ROLE
     @DeleteMapping("/{id}")
+    @PreAuthorize("@permissionService.hasAccess('ROLE', 'DELETE')")
     public GenericDataDTO deleteRole(@PathVariable Long id) {
         return roleService.deleteRole(id);
     }

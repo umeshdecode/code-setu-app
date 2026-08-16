@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===================================================== -->
+    <!-- 1. Seed Granular Module Permissions                   -->
+    <!-- ===================================================== -->
+    <changeSet id="RBAC_PERMISSIONS_SEED_20260816_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'CUSTOMER_READ'
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Customer Module -->
+        <insert tableName="tblm_permissions">
+            <column name="code" value="CUSTOMER_READ"/><column name="name" value="Customer Read"/><column name="description" value="Permission to view customer details"/><column name="module" value="Customer Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="CUSTOMER_CREATE"/><column name="name" value="Customer Create"/><column name="description" value="Permission to create customer"/><column name="module" value="Customer Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="CUSTOMER_MODIFY"/><column name="name" value="Customer Modify"/><column name="description" value="Permission to update customer"/><column name="module" value="Customer Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="CUSTOMER_DELETE"/><column name="name" value="Customer Delete"/><column name="description" value="Permission to delete customer"/><column name="module" value="Customer Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="CUSTOMER_ALL"/><column name="name" value="Customer Full Access"/><column name="description" value="Full access to customer module"/><column name="module" value="Customer Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Staff Module -->
+        <insert tableName="tblm_permissions">
+            <column name="code" value="STAFF_READ"/><column name="name" value="Staff Read"/><column name="description" value="Permission to view staff details"/><column name="module" value="Staff Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="STAFF_CREATE"/><column name="name" value="Staff Create"/><column name="description" value="Permission to create staff"/><column name="module" value="Staff Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="STAFF_MODIFY"/><column name="name" value="Staff Modify"/><column name="description" value="Permission to update staff"/><column name="module" value="Staff Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="STAFF_DELETE"/><column name="name" value="Staff Delete"/><column name="description" value="Permission to delete staff"/><column name="module" value="Staff Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="STAFF_ALL"/><column name="name" value="Staff Full Access"/><column name="description" value="Full access to staff module"/><column name="module" value="Staff Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Role Module -->
+        <insert tableName="tblm_permissions">
+            <column name="code" value="ROLE_READ"/><column name="name" value="Role Read"/><column name="description" value="Permission to view roles"/><column name="module" value="Role Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="ROLE_CREATE"/><column name="name" value="Role Create"/><column name="description" value="Permission to create roles"/><column name="module" value="Role Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="ROLE_MODIFY"/><column name="name" value="Role Modify"/><column name="description" value="Permission to update roles"/><column name="module" value="Role Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="ROLE_DELETE"/><column name="name" value="Role Delete"/><column name="description" value="Permission to delete roles"/><column name="module" value="Role Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="ROLE_ALL"/><column name="name" value="Role Full Access"/><column name="description" value="Full access to role module"/><column name="module" value="Role Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Department Module -->
+        <insert tableName="tblm_permissions">
+            <column name="code" value="DEPARTMENT_READ"/><column name="name" value="Department Read"/><column name="description" value="Permission to view departments"/><column name="module" value="Department Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="DEPARTMENT_CREATE"/><column name="name" value="Department Create"/><column name="description" value="Permission to create departments"/><column name="module" value="Department Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="DEPARTMENT_MODIFY"/><column name="name" value="Department Modify"/><column name="description" value="Permission to update departments"/><column name="module" value="Department Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="DEPARTMENT_DELETE"/><column name="name" value="Department Delete"/><column name="description" value="Permission to delete departments"/><column name="module" value="Department Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="DEPARTMENT_ALL"/><column name="name" value="Department Full Access"/><column name="description" value="Full access to department module"/><column name="module" value="Department Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Seed Company Permissions                           -->
+    <!-- ===================================================== -->
+    <changeSet id="RBAC_COMPANY_PERMISSIONS_SEED_20260816_04" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'COMPANY_READ'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_permissions">
+            <column name="code" value="COMPANY_READ"/><column name="name" value="Company Read"/><column name="description" value="Permission to view company details"/><column name="module" value="Company Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="COMPANY_CREATE"/><column name="name" value="Company Create"/><column name="description" value="Permission to create company"/><column name="module" value="Company Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="COMPANY_DELETE"/><column name="name" value="Company Delete"/><column name="description" value="Permission to delete company"/><column name="module" value="Company Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="COMPANY_UPDATE"/><column name="name" value="Company Update"/><column name="description" value="Permission to update company"/><column name="module" value="Company Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="COMPANY_UPDATE_DELETE"/><column name="name" value="Company Update/Delete"/><column name="description" value="Permission to update and delete company"/><column name="module" value="Company Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. Seed SuperAdmin Role & Bind All Permissions        -->
+    <!-- ===================================================== -->
+    <changeSet id="RBAC_SUPERADMIN_ROLE_SEED_20260816_02" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_roles"/>
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_roles WHERE code = 'SUPERADMIN'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_roles">
+            <column name="code" value="SUPERADMIN"/>
+            <column name="role_name" value="Super admin"/>
+            <column name="description" value="Super Admin role with full system access"/>
+            <column name="scope" value="PLATFORM"/>
+            <column name="is_show" valueBoolean="false"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Map all permissions to SuperAdmin role in tblm_role_permissions -->
+        <sql>
+            INSERT INTO tblm_role_permissions (role_id, permission_id)
+            SELECT r.role_id, p.permission_id
+            FROM tblm_roles r
+            CROSS JOIN tblm_permissions p
+            WHERE r.code = 'SUPERADMIN'
+              AND NOT EXISTS (
+                  SELECT 1 FROM tblm_role_permissions rp 
+                  WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+              );
+        </sql>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. Seed SuperAdmin User & Map to SuperAdmin Role      -->
+    <!-- ===================================================== -->
+    <changeSet id="RBAC_SUPERADMIN_USER_SEED_20260816_03" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_staff"/>
+            <tableExists tableName="tblm_roles"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_staff WHERE user_name = 'SUPERADMIN'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_staff">
+            <column name="uuid" value="31201SUPERADMIN31201"/>
+            <column name="user_name" value="SUPERADMIN"/>
+            <column name="email" value="superadmin@cargosetu"/>
+            <column name="first_name" value="super admin"/>
+            <column name="last_name" value="super admin"/>
+            <column name="mobile_code" value="+91"/>
+            <column name="mobile_number" value="+++"/>
+            <column name="password" value="$2a$10$c6yl2E/iNR99hiHKlg6zkOTJJAD48lhDxQzG5/3ByTMrdg/7XGrbm"/>
+            <column name="staff_type" value="SUPERADMIN"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+        </insert>
+
+        <!-- Map SUPERADMIN staff user to SUPERADMIN role -->
+        <sql>
+            INSERT INTO tblm_user_roles (staff_id, role_id)
+            SELECT s.staff_id, r.role_id
+            FROM tblm_staff s
+            JOIN tblm_roles r ON r.code = 'SUPERADMIN'
+            WHERE s.user_name = 'SUPERADMIN'
+              AND NOT EXISTS (
+                  SELECT 1 FROM tblm_user_roles ur 
+                  WHERE ur.staff_id = s.staff_id AND ur.role_id = r.role_id
+              );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

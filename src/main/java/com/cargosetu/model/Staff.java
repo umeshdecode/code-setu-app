@@ -19,10 +19,10 @@ public class Staff extends AbstractModel {
     @Column(name = "staff_id")
     private Long staffId;
 
-    @Column(name = "staff_uuid",nullable = false,unique = true)
+    @Column(name = "uuid",nullable = false,unique = true)
     private String uuid; // unique for each user or staff
 
-    @Column(name = "username",nullable = false)
+    @Column(name = "user_name",nullable = false)
     private String userName;
 
     private String firstName;
@@ -91,6 +91,8 @@ public class Staff extends AbstractModel {
 
     @Column(name = "company_id")
     private Integer companyId;
+
+    private Integer salary;
 
     public Staff(){
     }

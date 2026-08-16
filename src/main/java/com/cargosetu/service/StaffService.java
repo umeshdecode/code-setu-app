@@ -6,8 +6,10 @@ import com.cargosetu.dto.StaffDTO;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.mapper.PermissionMapper;
 import com.cargosetu.mapper.StaffMapper;
+import com.cargosetu.model.Department;
 import com.cargosetu.model.Role;
 import com.cargosetu.model.Staff;
+import com.cargosetu.repo.DepartmentRepo;
 import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.impl.RolesImpl;
@@ -39,14 +41,16 @@ public class StaffService {
 
     private final StaffRepository staffRepository;
     private final RolesRepo rolesRepo;
+    private final DepartmentRepo departmentRepo;
     private final RolesImpl rolesService;
     private final StaffMapper staffMapper;
     private final PermissionMapper permissionMapper;
     private final ApplicationEventPublisher eventPublisher;
 
-    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher) {
+    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, DepartmentRepo departmentRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
+        this.departmentRepo = departmentRepo;
         this.rolesService = rolesService;
         this.staffMapper = staffMapper;
         this.permissionMapper = permissionMapper;
@@ -57,14 +61,26 @@ public class StaffService {
         return "Staff[StaffService]";
     }
 
+    private String getCurrentUserName(LoggedInUser user){
+        if(user == null){
+            return "-";
+        }
+        String firstName = user.getFirstName() != null ? user.getFirstName() : "";
+        String lastName = user.getLastName() != null ? user.getLastName() : "";
+        return (firstName + " " + lastName).isBlank() ? "-" : firstName + " " + lastName;
+    }
+
     @Transactional
     public StaffDTO saveStaff(StaffDTO staffDTO,boolean isAdmin){
-        Staff staff = new Staff();
+        validateCreateStaffRequest(staffDTO);
 
         String generatedUUID = UUIDGenerator.generate();
-        staff = staffMapper.toEntity(staffDTO);
+        Staff staff = staffMapper.toEntity(staffDTO);
         staff.setUuid(generatedUUID);
-        staff.setUserName(staffDTO.getEmail().substring(0, staffDTO.getEmail().indexOf("@"))+staff.getUuid().substring(4));
+        String userNamePrefix = (staffDTO.getEmail() != null && staffDTO.getEmail().contains("@"))
+                ? staffDTO.getEmail().substring(0, staffDTO.getEmail().indexOf("@"))
+                : staffDTO.getEmail();
+        staff.setUserName(userNamePrefix + staff.getUuid().substring(4));
         // set user staff default role
         if(isAdmin){
             Optional<Role> companyAdminDefaultRole = rolesRepo.findByCode(CommonConstants.RolesConstants.COMPANY_ADMIN);
@@ -75,11 +91,30 @@ public class StaffService {
                 staff.setRoles(Set.of(role));
             }
         }else {
-            List<Role> roleAndPermissions = rolesRepo.findAllById(staffDTO.getRoleIds());
+            List<Role> roleAndPermissions = staffDTO.getRoleIds() != null
+                    ? rolesRepo.findAllById(staffDTO.getRoleIds())
+                    : Collections.emptyList();
             staff.setRoles(new HashSet<>(roleAndPermissions));
         }
-         String encode = new BCryptPasswordEncoder().encode(staff.getPassword());
+         if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,"Password is required");
+        }
+        String encode = new BCryptPasswordEncoder().encode(staffDTO.getPassword());
         staff.setPassword(encode);
+
+        staff.setDepartment(null);
+        if(staffDTO.getDepartment() != null && staffDTO.getDepartment().getDepartmentId() != null){
+            departmentRepo.findById(staffDTO.getDepartment().getDepartmentId()).ifPresent(staff::setDepartment);
+        }
+
+        LoggedInUser currentUser = ApplicationUtils.getCurrentUser();
+        if(currentUser != null){
+            staff.setCreatedBy(currentUser.getStaffId());
+            staff.setCreatedByName(getCurrentUserName(currentUser));
+            staff.setCompanyId(staffDTO.getCompanyId() != null
+                    ? staffDTO.getCompanyId()
+                    : currentUser.getCompanyId());
+        }
         Staff savedStaff = staffRepository.save(staff);
         staffDTO = staffMapper.toDto(savedStaff);
 
@@ -162,6 +197,9 @@ public class StaffService {
         if(staffDTO.getMobileNumber() == null || staffDTO.getMobileNumber().isBlank()){
             throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter valid mobile number");
         }
+        if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
+            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"Password is required");
+        }
 //        if(staffDTO.getUserName() == null || staffDTO.getUserName().isBlank()){
 //            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter your preferred Username");
 //        }
@@ -178,7 +216,7 @@ public class StaffService {
             Staff staff = dbStaff.get();
             staff.setIsDeleted(true);
             staff.setUpdatedAt(ApplicationUtils.getCurrentDateTime());
-            staff.setUpdatedByName((ApplicationUtils.getCurrentUser().getFirstName() != null ? ApplicationUtils.getCurrentUser().getFirstName() : "-")+(ApplicationUtils.getCurrentUser().getFirstName() != null ? ApplicationUtils.getCurrentUser().getLastName() : "-"));
+            staff.setUpdatedByName(getCurrentUserName(ApplicationUtils.getCurrentUser()));
             staff.setUpdatedById(ApplicationUtils.getCurrentUser().getStaffId());
             staffRepository.save(staff);
             log.info("Staff has been mark as deleted with staffId : {}", staffId);
@@ -190,6 +228,75 @@ public class StaffService {
     public Boolean isDuplicateUser(StaffDTO staffDTO) {
         Staff user = staffRepository.findByEmailOrUserName(staffDTO.getEmail(), staffDTO.getUserName()).orElse(null);
         return Objects.nonNull(user);
+    }
+
+    @Transactional
+    public StaffDTO updateStaff(Long staffId, StaffDTO staffDTO) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        Optional<Staff> dbStaffOpt = staffRepository.findById(staffId);
+        if (dbStaffOpt.isEmpty()) {
+            return null;
+        }
+        Staff dbStaff = dbStaffOpt.get();
+
+        Staff duplicate = staffRepository
+                .findByEmailOrUserName(staffDTO.getEmail(), staffDTO.getUserName())
+                .orElse(null);
+        if (duplicate != null && !duplicate.getStaffId().equals(staffId)) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Username/email already exists");
+        }
+
+        String existingPassword = dbStaff.getPassword();
+        String existingUserName = dbStaff.getUserName();
+
+        dbStaff.setFirstName(staffDTO.getFirstName());
+        dbStaff.setLastName(staffDTO.getLastName());
+        dbStaff.setMobileCode(staffDTO.getMobileCode());
+        dbStaff.setMobileNumber(staffDTO.getMobileNumber());
+        dbStaff.setEmail(staffDTO.getEmail());
+        dbStaff.setStaffType(staffDTO.getStaffType());
+        dbStaff.setProfileImageUrl(staffDTO.getProfileImageUrl());
+        dbStaff.setAlternateMobile(staffDTO.getAlternateMobile());
+        dbStaff.setAddress(staffDTO.getAddress());
+        dbStaff.setCity(staffDTO.getCity());
+        dbStaff.setState(staffDTO.getState());
+        dbStaff.setPincode(staffDTO.getPincode());
+        dbStaff.setLicenseNumber(staffDTO.getLicenseNumber());
+        dbStaff.setLicenseExpiryDate(staffDTO.getLicenseExpiryDate());
+        dbStaff.setIsActive(staffDTO.getIsActive());
+        dbStaff.setCompanyId(staffDTO.getCompanyId());
+        dbStaff.setSalary(staffDTO.getSalary());
+
+        if (staffDTO.getDepartment() != null && staffDTO.getDepartment().getDepartmentId() != null) {
+            Optional<Department> department = departmentRepo.findById(staffDTO.getDepartment().getDepartmentId());
+            department.ifPresent(dbStaff::setDepartment);
+        }
+
+        if (staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()) {
+            dbStaff.setPassword(existingPassword);
+        } else {
+            dbStaff.setPassword(new BCryptPasswordEncoder().encode(staffDTO.getPassword()));
+        }
+        if (staffDTO.getUserName() == null || staffDTO.getUserName().isBlank()) {
+            dbStaff.setUserName(existingUserName);
+        } else {
+            dbStaff.setUserName(staffDTO.getUserName());
+        }
+        if (staffDTO.getRoleIds() != null && !staffDTO.getRoleIds().isEmpty()) {
+            List<Role> roleAndPermissions = rolesRepo.findAllById(staffDTO.getRoleIds());
+            dbStaff.setRoles(new HashSet<>(roleAndPermissions));
+        }
+
+        dbStaff.setUpdatedAt(ApplicationUtils.getCurrentDateTime());
+        dbStaff.setUpdatedByName(getCurrentUserName(ApplicationUtils.getCurrentUser()));
+        dbStaff.setUpdatedById(ApplicationUtils.getCurrentUser().getStaffId());
+        Staff savedStaff = staffRepository.save(dbStaff);
+
+        StaffDTO savedDTO = staffMapper.toDto(savedStaff);
+        savedDTO.setRoleIds(staffDTO.getRoleIds());
+        return savedDTO;
     }
 
     @Transactional

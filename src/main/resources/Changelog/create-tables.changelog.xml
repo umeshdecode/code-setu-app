@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- 1. tblm_permissions -->
+    <changeSet id="CREATE_TBLM_PERMISSIONS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_permissions"/></not>
+        </preConditions>
+        <createTable tableName="tblm_permissions">
+            <column name="permission_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="code" type="VARCHAR(100)"><constraints nullable="false" unique="true"/></column>
+            <column name="name" type="VARCHAR(150)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="module" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 2. tblm_roles -->
+    <changeSet id="CREATE_TBLM_ROLES_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_roles"/></not>
+        </preConditions>
+        <createTable tableName="tblm_roles">
+            <column name="role_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="code" type="VARCHAR(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="role_name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="description" type="TEXT"/>
+            <column name="scope" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="is_show" type="BIT" defaultValueBoolean="true"/><column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 3. tblm_role_permissions -->
+    <changeSet id="CREATE_TBLM_ROLE_PERMISSIONS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_role_permissions"/></not>
+        </preConditions>
+        <createTable tableName="tblm_role_permissions">
+            <column name="role_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="permission_id" type="BIGINT"><constraints nullable="false"/></column>
+        </createTable>
+        <addPrimaryKey tableName="tblm_role_permissions" columnNames="role_id, permission_id" constraintName="pk_tblm_role_permissions"/>
+    </changeSet>
+
+    <!-- 4. tblm_department -->
+    <changeSet id="CREATE_TBLM_DEPARTMENT_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_department"/></not>
+        </preConditions>
+        <createTable tableName="tblm_department">
+            <column name="department_id" type="INT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="department_uuid" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="company_uuid" type="VARCHAR(255)"><constraints nullable="false"/></column>
+            <column name="dept_code" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="description" type="VARCHAR(255)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 5. tblm_staff -->
+    <changeSet id="CREATE_TBLM_STAFF_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_staff"/></not>
+        </preConditions>
+        <createTable tableName="tblm_staff">
+            <column name="staff_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="uuid" type="VARCHAR(255)"><constraints nullable="false" unique="true"/></column>
+            <column name="user_name" type="VARCHAR(100)"><constraints nullable="false" unique="true"/></column>
+            <column name="first_name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="last_name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="mobile_code" type="VARCHAR(10)"/><column name="mobile_number" type="VARCHAR(20)"/>
+            <column name="email" type="VARCHAR(150)"><constraints nullable="false" unique="true"/></column>
+            <column name="password" type="VARCHAR(255)"/><column name="staff_type" type="VARCHAR(100)"/>
+            <column name="company_id" type="INT"/><column name="department_id" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 6. tblm_user_roles -->
+    <changeSet id="CREATE_TBLM_USER_ROLES_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_user_roles"/></not>
+        </preConditions>
+        <createTable tableName="tblm_user_roles">
+            <column name="staff_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="role_id" type="BIGINT"><constraints nullable="false"/></column>
+        </createTable>
+        <addPrimaryKey tableName="tblm_user_roles" columnNames="staff_id, role_id" constraintName="pk_tblm_user_roles"/>
+    </changeSet>
+
+    <!-- 7. notification_template -->
+    <changeSet id="CREATE_NOTIFICATION_TEMPLATE_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="notification_template"/></not>
+        </preConditions>
+        <createTable tableName="notification_template">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="template_code" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="channel" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="subject_template" type="VARCHAR(255)"/>
+            <column name="body_template" type="LONGTEXT"><constraints nullable="false"/></column>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 8. notification_audit -->
+    <changeSet id="CREATE_NOTIFICATION_AUDIT_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="notification_audit"/></not>
+        </preConditions>
+        <createTable tableName="notification_audit">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="event_type" type="VARCHAR(100)"/>
+            <column name="channel" type="VARCHAR(50)"/>
+            <column name="recipient" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="error_message" type="TEXT"/>
+            <column name="retry_count" type="INT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 9. tblm_customers -->
+    <changeSet id="CREATE_TBLM_CUSTOMERS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_customers"/></not>
+        </preConditions>
+        <createTable tableName="tblm_customers">
+            <column name="customer_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="customer_code" type="VARCHAR(50)"/>
+            <column name="name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="email" type="VARCHAR(150)"/>
+            <column name="mobile_number" type="VARCHAR(20)"/>
+            <column name="address" type="TEXT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 10. tblm_shifting -->
+    <changeSet id="CREATE_TBLM_SHIFTING_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_shifting"/></not>
+        </preConditions>
+        <createTable tableName="tblm_shifting">
+            <column name="shifting_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="customer_id" type="BIGINT"/>
+            <column name="company_id" type="INT"/>
+            <column name="shifting_code" type="VARCHAR(50)"/>
+            <column name="shifting_type" type="VARCHAR(50)"/>
+            <column name="pickup_address" type="TEXT"/>
+            <column name="drop_address" type="TEXT"/>
+            <column name="shifting_date" type="DATE"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 11. tblm_charges -->
+    <changeSet id="CREATE_TBLM_CHARGES_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_charges"/></not>
+        </preConditions>
+        <createTable tableName="tblm_charges">
+            <column name="charge_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="charge_name" type="VARCHAR(100)"/>
+            <column name="amount" type="DECIMAL(12,2)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 12. tblm_extra_charges -->
+    <changeSet id="CREATE_TBLM_EXTRA_CHARGES_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_extra_charges"/></not>
+        </preConditions>
+        <createTable tableName="tblm_extra_charges">
+            <column name="extra_charges_id" type="INT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="charge_name" type="VARCHAR(100)"/>
+            <column name="charge_value" type="DOUBLE"/>
+            <column name="charge_rate" type="FLOAT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 13. tblm_packaging_material -->
+    <changeSet id="CREATE_TBLM_PACKAGING_MATERIAL_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_packaging_material"/></not>
+        </preConditions>
+        <createTable tableName="tblm_packaging_material">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="material_name" type="VARCHAR(100)"/>
+            <column name="unit_price" type="DECIMAL(12,2)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 14. tblt_shift_room -->
+    <changeSet id="CREATE_TBLT_SHIFT_ROOM_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblt_shift_room"/></not>
+        </preConditions>
+        <createTable tableName="tblt_shift_room">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="room_name" type="VARCHAR(100)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 15. tblt_shift_package -->
+    <changeSet id="CREATE_TBLT_SHIFT_PACKAGE_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblt_shift_package"/></not>
+        </preConditions>
+        <createTable tableName="tblt_shift_package">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="package_name" type="VARCHAR(100)"/>
+            <column name="description" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 16. tblt_shift_item_damage -->
+    <changeSet id="CREATE_TBLT_SHIFT_ITEM_DAMAGE_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblt_shift_item_damage"/></not>
+        </preConditions>
+        <createTable tableName="tblt_shift_item_damage">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="item_name" type="VARCHAR(100)"/>
+            <column name="damage_description" type="TEXT"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 17. shift_inventory_item -->
+    <changeSet id="CREATE_SHIFT_INVENTORY_ITEM_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="shift_inventory_item"/></not>
+        </preConditions>
+        <createTable tableName="shift_inventory_item">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shifting_id" type="BIGINT"/>
+            <column name="item_name" type="VARCHAR(150)"/>
+            <column name="quantity" type="INT"/>
+            <column name="status" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 18. shift_inventory_packaging -->
+    <changeSet id="CREATE_SHIFT_INVENTORY_PACKAGING_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="shift_inventory_packaging"/></not>
+        </preConditions>
+        <createTable tableName="shift_inventory_packaging">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="inventory_item_id" type="BIGINT"/>
+            <column name="material_name" type="VARCHAR(100)"/>
+            <column name="quantity" type="INT"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 19. shift_inventory_photo -->
+    <changeSet id="CREATE_SHIFT_INVENTORY_PHOTO_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="shift_inventory_photo"/></not>
+        </preConditions>
+        <createTable tableName="shift_inventory_photo">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="inventory_item_id" type="BIGINT"/>
+            <column name="photo_url" type="VARCHAR(500)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 20. tblm_document_upload -->
+    <changeSet id="CREATE_TBLM_DOCUMENT_UPLOAD_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_document_upload"/></not>
+        </preConditions>
+        <createTable tableName="tblm_document_upload">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="document_name" type="VARCHAR(150)"/>
+            <column name="document_url" type="VARCHAR(500)"/>
+            <column name="entity_type" type="VARCHAR(50)"/>
+            <column name="entity_id" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 21. tblm_document_master -->
+    <changeSet id="CREATE_TBLM_DOCUMENT_MASTER_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_document_master"/></not>
+        </preConditions>
+        <createTable tableName="tblm_document_master">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="code" type="VARCHAR(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="name" type="VARCHAR(100)"/>
+            <column name="description" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 22. branch -->
+    <changeSet id="CREATE_BRANCH_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="branch"/></not>
+        </preConditions>
+        <createTable tableName="branch">
+            <column name="branch_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="branch_name" type="VARCHAR(100)"/>
+            <column name="address" type="TEXT"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 23. tbl_company_assets -->
+    <changeSet id="CREATE_TBL_COMPANY_ASSETS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tbl_company_assets"/></not>
+        </preConditions>
+        <createTable tableName="tbl_company_assets">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="asset_name" type="VARCHAR(100)"/>
+            <column name="asset_url" type="VARCHAR(500)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 24. customer_inquiry -->
+    <changeSet id="CREATE_CUSTOMER_INQUIRY_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="customer_inquiry"/></not>
+        </preConditions>
+        <createTable tableName="customer_inquiry">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="name" type="VARCHAR(100)"/>
+            <column name="email" type="VARCHAR(150)"/>
+            <column name="mobile_number" type="VARCHAR(20)"/>
+            <column name="message" type="TEXT"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 25. driver -->
+    <changeSet id="CREATE_DRIVER_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="driver"/></not>
+        </preConditions>
+        <createTable tableName="driver">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="phone" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="license_number" type="VARCHAR(50)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 26. tblm_driver_advance -->
+    <changeSet id="CREATE_TBLM_DRIVER_ADVANCE_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_driver_advance"/></not>
+        </preConditions>
+        <createTable tableName="tblm_driver_advance">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="driver_id" type="BIGINT"/>
+            <column name="amount" type="DECIMAL(12,2)"/>
+            <column name="advance_date" type="DATE"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 27. driver_vehicle_assignments -->
+    <changeSet id="CREATE_DRIVER_VEHICLE_ASSIGNMENTS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="driver_vehicle_assignments"/></not>
+        </preConditions>
+        <createTable tableName="driver_vehicle_assignments">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="driver_id" type="BIGINT"/>
+            <column name="vehicle_id" type="BIGINT"/>
+            <column name="assigned_date" type="DATETIME"/>
+            <column name="unassigned_date" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 28. vehicles -->
+    <changeSet id="CREATE_VEHICLES_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicles"/></not>
+        </preConditions>
+        <createTable tableName="vehicles">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="vehicle_number" type="VARCHAR(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="vehicle_type" type="VARCHAR(50)"/>
+            <column name="capacity" type="VARCHAR(50)"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 29. tblmvahicletrack -->
+    <changeSet id="CREATE_TBLMVAHICLETRACK_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblmvahicletrack"/></not>
+        </preConditions>
+        <createTable tableName="tblmvahicletrack">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="vehicle_id" type="BIGINT"/>
+            <column name="latitude" type="DOUBLE"/>
+            <column name="longitude" type="DOUBLE"/>
+            <column name="tracked_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 30. tbl_trip -->
+    <changeSet id="CREATE_TBL_TRIP_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tbl_trip"/></not>
+        </preConditions>
+        <createTable tableName="tbl_trip">
+            <column name="trip_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_number" type="VARCHAR(50)"/>
+            <column name="vehicle_id" type="BIGINT"/>
+            <column name="driver_id" type="BIGINT"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="start_time" type="DATETIME"/>
+            <column name="end_time" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 31. trip_document -->
+    <changeSet id="CREATE_TRIP_DOCUMENT_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="trip_document"/></not>
+        </preConditions>
+        <createTable tableName="trip_document">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"/>
+            <column name="document_name" type="VARCHAR(100)"/>
+            <column name="document_url" type="VARCHAR(500)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 32. tbl_trip_expense -->
+    <changeSet id="CREATE_TBL_TRIP_EXPENSE_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tbl_trip_expense"/></not>
+        </preConditions>
+        <createTable tableName="tbl_trip_expense">
+            <column name="expense_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"/>
+            <column name="expense_type" type="VARCHAR(50)"/>
+            <column name="amount" type="DECIMAL(12,2)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 33. trip_status_history -->
+    <changeSet id="CREATE_TRIP_STATUS_HISTORY_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="trip_status_history"/></not>
+        </preConditions>
+        <createTable tableName="trip_status_history">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="changed_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 34. tblm_otp_verification -->
+    <changeSet id="CREATE_TBLM_OTP_VERIFICATION_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_otp_verification"/></not>
+        </preConditions>
+        <createTable tableName="tblm_otp_verification">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="mobile_number" type="VARCHAR(20)"/>
+            <column name="otp_code" type="VARCHAR(10)"/>
+            <column name="expiry_time" type="DATETIME"/>
+            <column name="is_verified" type="BIT" defaultValueBoolean="false"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 35. tblm_refresh_tokens -->
+    <changeSet id="CREATE_TBLM_REFRESH_TOKENS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_refresh_tokens"/></not>
+        </preConditions>
+        <createTable tableName="tblm_refresh_tokens">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="staff_id" type="BIGINT"/>
+            <column name="token" type="VARCHAR(500)"/>
+            <column name="expiry_date" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- 36. tblmplans -->
+    <changeSet id="CREATE_TBLMPLANS_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblmplans"/></not>
+        </preConditions>
+        <createTable tableName="tblmplans">
+            <column name="plan_id" type="INT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="plan_name" type="VARCHAR(100)"/>
+            <column name="price" type="DECIMAL(12,2)"/>
+            <column name="duration_days" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
