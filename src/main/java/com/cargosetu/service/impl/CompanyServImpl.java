@@ -19,6 +19,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.errors.ResourceNotFoundException;
+import com.cargosetu.service.S3StorageService;
+import com.cargosetu.dto.S3UploadResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,8 @@ public class CompanyServImpl implements CompanyService {
     private ObjectMapper objectMapper;
     @Autowired
     private StaffRepository staffRepository;
+    @Autowired
+    private S3StorageService s3StorageService;
 
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto, Long staffId) {
@@ -140,6 +144,11 @@ public class CompanyServImpl implements CompanyService {
             existing.setUpdatedAt(LocalDateTime.now());
 
             Company updated = companyRepository.save(existing);
+
+            // Handle updating of company assets (logos, seals, stamps)
+            if (company.getAssets() != null && !company.getAssets().isEmpty()) {
+                createCompanyAssets(company.getAssets(), id);
+            }
 
             response.setResponseMessege("Company updated successfully");
             response.setResponseCode(200);
@@ -288,44 +297,63 @@ public class CompanyServImpl implements CompanyService {
 
     @Override
     @Transactional
-    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets,Integer companyId) {
-
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets, Integer companyId) {
         if (companyAssets == null || companyAssets.isEmpty()) {
             return;
         }
 
-        List<CompanyAsset> assets = new ArrayList<>();
-
         for (CompanyAssetDTO dto : companyAssets) {
-
-            MultipartFile[] file = dto.getFile();
-
-            if (file == null || file.length==0) {
+            if (dto == null) {
+                continue;
+            }
+            MultipartFile[] files = dto.getFile();
+            if (files == null || files.length == 0) {
+                continue;
+            }
+            MultipartFile file = files[0];
+            if (file == null || file.isEmpty() || file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
                 continue;
             }
 
-            validateCompanyAssetFiles(file);
-            Clientservice clientservice = clientServiceRepo.findByName("COMPANY_ASSET").orElse(null);
+            validateCompanyAssetFiles(files);
 
-            String filePath = FileUtility.saveMultipartFile(file, clientservice.getName()).toString();
+            try {
+                // Upload asset to S3 (using "COMPANY_ASSETS" bucket config)
+                S3UploadResult uploadResult = s3StorageService.uploadFile(file, "COMPANY_ASSETS");
+                String s3Key = uploadResult.getS3Key();
 
-            dto.setFilePath(filePath);
-            dto.setCompanyId(companyId);
-            assets.add(convertCompanyAssetDtoToEntity(dto));
+                // Check if asset already exists for this company and asset type
+                CompanyAsset existingAsset = companyAssetRepository.findByCompanyIdAndAssetType(companyId, dto.getAssetType());
+                if (existingAsset != null) {
+                    existingAsset.setFilePath(s3Key);
+                    companyAssetRepository.save(existingAsset);
+                    log.info("Updated company asset {} for companyId={}", dto.getAssetType(), companyId);
+                } else {
+                    CompanyAsset newAsset = new CompanyAsset();
+                    newAsset.setCompanyId(companyId);
+                    newAsset.setAssetType(dto.getAssetType());
+                    newAsset.setFilePath(s3Key);
+                    companyAssetRepository.save(newAsset);
+                    log.info("Created new company asset {} for companyId={}", dto.getAssetType(), companyId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to upload company asset {} to S3", dto.getAssetType(), e);
+                throw new RuntimeException("Asset upload to S3 failed: " + e.getMessage(), e);
+            }
         }
+    }
 
-        companyAssetRepository.saveAll(assets);
-    }    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
+    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto) {
         CompanyAsset companyAsset = new CompanyAsset();
         companyAsset.setAssetType(dto.getAssetType());
         companyAsset.setFilePath(dto.getFilePath());
         companyAsset.setCompanyId(dto.getCompanyId());
         companyAsset.setId(dto.getId());
-        return  companyAsset;
+        return companyAsset;
     }
 
     /**
-     * Fetches the asset record, reads the file from disk,
+     * Fetches the asset record, reads the file from local disk or downloads from S3,
      * and returns a ready-to-use base64 data URI.
      * Returns null if no asset found or file cannot be read.
      */
@@ -345,16 +373,26 @@ public class CompanyServImpl implements CompanyService {
         }
 
         try {
-            byte[] bytes = Files.readAllBytes(Path.of(filePath));
-            String b64    = Base64.getEncoder().encodeToString(bytes);
-            String mime   = detectMimeType(filePath);
+            byte[] bytes;
+            // Check if it's a local file path
+            Path localPath = Path.of(filePath);
+            if (Files.exists(localPath)) {
+                bytes = Files.readAllBytes(localPath);
+            } else {
+                // Otherwise retrieve from S3
+                bytes = s3StorageService.downloadFile(filePath, "COMPANY_ASSETS");
+            }
+
+            String b64 = Base64.getEncoder().encodeToString(bytes);
+            String mime = detectMimeType(filePath);
             return "data:" + mime + ";base64," + b64;
 
         } catch (Exception e) {
-            log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
+            log.error("Failed to read asset from local disk or S3 path={}: {}", filePath, e.getMessage());
             return null;   // template handles null → shows placeholder box
         }
     }
+
 
     @Override
     public GenericDataDTO getCompany(Integer companyId) {

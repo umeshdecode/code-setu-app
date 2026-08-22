@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
+
 
 @Service
 @RequiredArgsConstructor

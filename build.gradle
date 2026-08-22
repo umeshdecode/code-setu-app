@@ -91,6 +91,13 @@ dependencies {
 
     // Google ID token verification (Sign in with Google)
     implementation 'com.google.api-client:google-api-client:2.7.0'
+
+    // AWS SDK v2 - S3 Storage
+    implementation 'software.amazon.awssdk:s3:2.26.25'
+    implementation 'software.amazon.awssdk:s3-transfer-manager:2.26.25'
+
+    // Image compression before S3 upload (JPG / PNG)
+    implementation 'net.coobird:thumbnailator:0.4.20'
 }
 
 tasks.named('test') {

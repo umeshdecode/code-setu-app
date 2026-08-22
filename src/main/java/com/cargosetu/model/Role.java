@@ -26,6 +26,9 @@ public class Role extends AbstractModel {
     @Column(name = "scope", nullable = false, length = 50)
     private String scope;
 
+    @Column(name = "company_id")
+    private Integer companyId;
+
     @Column(name = "is_show",columnDefinition = "BOOLEAN DEFAULT TRUE", nullable = false)
     private boolean isShow = true;
 

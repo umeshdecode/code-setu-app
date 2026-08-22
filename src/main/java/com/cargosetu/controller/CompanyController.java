@@ -42,9 +42,9 @@ public class CompanyController {
         return companyService.createCompany(company,user.getStaffId());
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
-    @PutMapping
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public GenericDataDTO updateCompany(
-            @Valid @RequestBody CompanyDTO company) {
+            @Valid @ModelAttribute CompanyDTO company) {
 
         log.info("API: Update Company {}", company.getCompanyId());
         return companyService.updateCompany(company.getCompanyId(), company);

@@ -13,10 +13,18 @@ public interface RolesRepo extends JpaRepository<Role,Long> {
     Optional<Role> findByCode(String code);
     Optional<Role> findByCodeAndIsDeletedIsFalse(String roleCode);
 
-    boolean existsByCode(String code);
+    @Query("SELECT COUNT(r) > 0 FROM Role r WHERE r.code = :code AND r.isDeleted = false AND (r.companyId = :companyId OR r.companyId IS NULL)")
+    boolean existsByCodeAndCompanyId(@org.springframework.data.repository.query.Param("code") String code, @org.springframework.data.repository.query.Param("companyId") Integer companyId);
+    
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"permissions"})
+    @Query("SELECT r FROM Role r WHERE r.isDeleted = false AND (r.companyId = :companyId OR r.companyId IS NULL)")
+    List<Role> findAllByIsDeletedIsFalseAndCompanyId(@org.springframework.data.repository.query.Param("companyId") Integer companyId);
 
-    List<Role> findAllByIsDeletedIsFalse();
+    @Query("SELECT r FROM Role r WHERE r.isDeleted = false ORDER BY r.rolesId DESC")
     List<Role> findAllByIsDeletedIsFalseOrderByRolesIdDesc();
-    List<Role> findAllByIsDeletedIsFalseAndIsShowIsTrueOrderByRoleNameAscRolesIdDesc();
+    
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"permissions"})
+    @Query("SELECT r FROM Role r WHERE r.isDeleted = false AND r.isShow = true AND (r.companyId = :companyId OR r.companyId IS NULL) ORDER BY r.roleName ASC, r.rolesId DESC")
+    List<Role> findAllByIsDeletedIsFalseAndIsShowIsTrueAndCompanyId(@org.springframework.data.repository.query.Param("companyId") Integer companyId);
 
 }

@@ -6,6 +6,7 @@ import com.cargosetu.model.Role;
 import com.cargosetu.repo.PermissionRepo;
 import com.cargosetu.repo.RolesRepo;
 import com.cargosetu.service.RolesService;
+import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
@@ -31,11 +32,13 @@ public class RolesImpl implements RolesService {
 
 //    private static final Logger logger = LoggerFactory.getLogger(RolesImpl.class);
 
+
     @Override
     public GenericDataDTO getRolseList() {
         GenericDataDTO responseDTO = new GenericDataDTO();
         try {
-            List<Role> roles = rolesRepo.findAllByIsDeletedIsFalseAndIsShowIsTrueOrderByRoleNameAscRolesIdDesc();
+            Integer companyId = ApplicationUtils.getCurrentCompanyId();
+            List<Role> roles = rolesRepo.findAllByIsDeletedIsFalseAndIsShowIsTrueAndCompanyId(companyId);
 
             responseDTO.setResponseMessege("Success");
             responseDTO.setResponseCode(HttpStatus.OK.value());
@@ -52,11 +55,19 @@ public class RolesImpl implements RolesService {
             log.info("Fetching role with ID: {}", id);
 
             Optional<Role> role = rolesRepo.findById(id);
+            // Verify company scope
+            Integer companyId = ApplicationUtils.getCurrentCompanyId();
 
             if (role.isPresent() && !role.get().getIsDeleted()) {
+                Role foundRole = role.get();
+                if (foundRole.getCompanyId() != null && !foundRole.getCompanyId().equals(companyId)) {
+                    response.setResponseMessege("Role not found");
+                    response.setResponseCode(404);
+                    return response;
+                }
                 response.setResponseMessege("Role found");
                 response.setResponseCode(200);
-                response.setData(role.get());
+                response.setData(foundRole);
             } else {
                 response.setResponseMessege("Role not found");
                 response.setResponseCode(404);
@@ -75,20 +86,25 @@ public class RolesImpl implements RolesService {
         GenericDataDTO response = new GenericDataDTO();
         try {
             log.info("Updating role with ID: {}", pojo.getRoleId());
+            Integer companyId = ApplicationUtils.getCurrentCompanyId();
 
             Optional<Role> optionalRole = rolesRepo.findById(pojo.getRoleId());
 
             if (optionalRole.isPresent()) {
                 Role role = optionalRole.get();
+                
+                if (role.getCompanyId() != null && !role.getCompanyId().equals(companyId)) {
+                    response.setResponseMessege("Cannot update a role belonging to another company");
+                    response.setResponseCode(403);
+                    return response;
+                }
 
                 if(!role.getCode().equals(pojo.getCode())) {
-                    Optional<Role> roleOptional = rolesRepo.findByCodeAndIsDeletedIsFalse(pojo.getCode());
-                    if (roleOptional.isPresent()) {
-                        if(!Objects.equals(roleOptional.get().getRolesId(), pojo.getRoleId())){
-                            response.setResponseCode(HttpStatus.CONFLICT.value());
-                            response.setResponseMessege("please use different Role code,this code is already present");
-                            return response;
-                        }
+                    boolean roleExistsByCode = rolesRepo.existsByCodeAndCompanyId(pojo.getCode(), companyId);
+                    if (roleExistsByCode) {
+                        response.setResponseCode(HttpStatus.CONFLICT.value());
+                        response.setResponseMessege("please use different Role code,this code is already present");
+                        return response;
                     }
                 }
 
@@ -97,6 +113,11 @@ public class RolesImpl implements RolesService {
                 role.setCode(pojo.getCode());
                 role.setScope(pojo.getScope());
                 role.setUpdatedAt(LocalDateTime.now());
+
+                if (pojo.getPermissionIds() != null) {
+                    List<Permission> permissions = permissionRepo.findAllById(pojo.getPermissionIds());
+                    role.setPermissions(new HashSet<>(permissions));
+                }
 
                 rolesRepo.save(role);
 
@@ -123,11 +144,19 @@ public class RolesImpl implements RolesService {
         GenericDataDTO response = new GenericDataDTO();
         try {
             log.info("Deleting role with ID: {}", id);
+            Integer companyId = ApplicationUtils.getCurrentCompanyId();
 
             Optional<Role> optionalRole = rolesRepo.findById(id);
 
             if (optionalRole.isPresent()) {
                 Role role = optionalRole.get();
+                
+                if (role.getCompanyId() != null && !role.getCompanyId().equals(companyId)) {
+                    response.setResponseMessege("Cannot delete a role belonging to another company");
+                    response.setResponseCode(403);
+                    return response;
+                }
+                
                 role.setIsDeleted(true);
                 role.setIsActive(false);
                 role.setUpdatedAt(LocalDateTime.now());
@@ -155,7 +184,8 @@ public class RolesImpl implements RolesService {
     public GenericDataDTO createRole(RolesDTO pojo) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            boolean roleExistsByCode = rolesRepo.existsByCode(pojo.getCode());
+            Integer companyId = ApplicationUtils.getCurrentCompanyId();
+            boolean roleExistsByCode = rolesRepo.existsByCodeAndCompanyId(pojo.getCode(), companyId);
             if (roleExistsByCode) {
                 response.setResponseMessege("Role already exists, cannot create duplicate!");
                 response.setResponseCode(HttpStatus.CONFLICT.value());
@@ -170,6 +200,7 @@ public class RolesImpl implements RolesService {
             role.setDiscription(pojo.getDescription());
             role.setCode(pojo.getCode());
             role.setScope(pojo.getScope());
+            role.setCompanyId(companyId);
             role.setIsActive(true);
             role.setIsDeleted(false);
 
@@ -205,6 +236,7 @@ public class RolesImpl implements RolesService {
             role.setRoleName("Company Admin");
             role.setDiscription("Has full access to manage company operations");
             role.setScope("COMPANY");
+            role.setCompanyId(null); // System default role
             role.setIsActive(true);
             role.setIsDeleted(false);
             role.setCreatedAt(LocalDateTime.now());

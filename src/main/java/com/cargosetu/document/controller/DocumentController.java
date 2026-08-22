@@ -68,4 +68,42 @@ public class DocumentController {
         return ResponseEntity.badRequest().body(response);
     }
 
+    /**
+     * Get a fresh presigned URL for a previously uploaded document.
+     * Call this each time the document needs to be displayed/downloaded.
+     */
+    @GetMapping(value = "/presigned-url/{docUploadId}")
+    public ResponseEntity<?> getPresignedUrl(@PathVariable Long docUploadId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            String url = documentUploadService.getPresignedUrl(docUploadId);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Presigned URL generated");
+            response.setData(url);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.setResponseCode(CommonStatusCode.FAIL);
+            response.setResponseMessege("Could not generate URL: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Delete a document record and its S3 file.
+     */
+    @DeleteMapping(value = "/{docUploadId}")
+    public ResponseEntity<?> deleteDocument(@PathVariable Long docUploadId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            documentUploadService.deleteDocument(docUploadId);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Document deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.setResponseCode(CommonStatusCode.FAIL);
+            response.setResponseMessege("Delete failed: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
 }

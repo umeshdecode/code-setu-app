@@ -5,121 +5,169 @@ import com.cargosetu.document.repository.DocumentUploadRepository;
 import com.cargosetu.dto.DocumentUploadDTO;
 import com.cargosetu.dto.ValidationResponse;
 import com.cargosetu.mapper.DocumentUploadMapper;
+import com.cargosetu.service.S3StorageService;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
-import com.cargosetu.utils.utillity.FileUtility;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * Service for uploading and validating documents.
+ * Files are stored in AWS S3 using the "DOCUMENTS" config key.
+ * The S3 object key and a viewable URL are persisted in tblm_document_upload.
+ */
+@Slf4j
 @Service
 public class DocumentUploadService {
 
+    public static final int MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
-    public static final int MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    public static final String BASE_FILE_URL = "C:\\Users\\Dell\\Desktop\\Personal\\uploads";
-    private final DocumentUploadMapper documentUploadMapper;
-    private final DocumentUploadRepository documentUploadRepository;
-    private static final Set<String> allowedTypes = Set.of(
+    /** S3 config key used for all document uploads */
+    public static final String S3_CONFIG_KEY = "DOCUMENTS";
+
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "application/pdf",
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "image/jpeg",
+            "image/png",
+            "image/webp"
     );
-    public DocumentUploadService(DocumentUploadMapper documentUploadMapper,DocumentUploadRepository documentUploadRepository) {
+
+    private final DocumentUploadMapper documentUploadMapper;
+    private final DocumentUploadRepository documentUploadRepository;
+    private final S3StorageService s3StorageService;
+
+    public DocumentUploadService(DocumentUploadMapper documentUploadMapper,
+                                 DocumentUploadRepository documentUploadRepository,
+                                 S3StorageService s3StorageService) {
         this.documentUploadMapper = documentUploadMapper;
         this.documentUploadRepository = documentUploadRepository;
+        this.s3StorageService = s3StorageService;
     }
 
+    // ── Upload ────────────────────────────────────────────────────────────────
 
     public GenericDataDTO uploadDocument(MultipartFile file, DocumentUploadDTO dto) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            String originalName = "";
-            if(file.getOriginalFilename() != null || !file.getOriginalFilename().isBlank()){
-                originalName = Paths.get(file.getOriginalFilename()).getFileName().toString();
-            }
-            long size = file.getSize();
+            String originalName = extractOriginalFilename(file);
 
-            String extension = "";
-            if (originalName.contains(".")) {
-                extension = originalName.substring(originalName.lastIndexOf(".") + 1);
-            }else {
+            String extension = extractExtension(originalName);
+            if (extension == null) {
                 response.setResponseCode(CommonStatusCode.FAIL);
-                response.setResponseMessege("invalid file extension type");
+                response.setResponseMessege("Invalid file extension");
                 return response;
             }
-            List<String> filePaths = FileUtility.saveMultipartFile(new MultipartFile[]{file}, BASE_FILE_URL);
 
+            // Upload to S3
+            com.cargosetu.dto.S3UploadResult uploadResult = s3StorageService.uploadFile(file, S3_CONFIG_KEY);
+
+            // Populate DTO
             dto.setFileName(originalName);
-            dto.setFilePath(filePaths.get(0));
-            dto.setFileSize(size);
+            dto.setFilePath("");          // legacy field — intentionally blank for S3 uploads
+            dto.setS3Key(uploadResult.getS3Key());
+            dto.setS3ConfigKey(S3_CONFIG_KEY);
+            dto.setFileUrl(uploadResult.getFileUrl());
+            dto.setFileSize(uploadResult.getFileSize());
             dto.setFileType(extension);
 
             DocumentUpload entity = documentUploadMapper.toEntity(dto);
+            documentUploadRepository.save(entity);
 
-            DocumentUpload save = documentUploadRepository.save(entity);
-
-            response.setResponseMessege("data saved successfully");
             response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Document uploaded successfully");
+            response.setData(uploadResult.getFileUrl());
+            log.info("Document uploaded to S3: key={}", uploadResult.getS3Key());
 
         } catch (Exception e) {
-            throw new RuntimeException("File upload failed", e);
+            log.error("Document upload failed", e);
+            throw new RuntimeException("File upload to S3 failed: " + e.getMessage(), e);
         }
         return response;
     }
 
+    // ── Generate fresh presigned URL ─────────────────────────────────────────
+
+    /**
+     * Generate a fresh presigned URL for an already-uploaded document.
+     * Call this on every GET request for private documents (presigned URLs expire).
+     */
+    public String getPresignedUrl(Long docUploadId) {
+        DocumentUpload doc = documentUploadRepository.findById(docUploadId)
+                .orElseThrow(() -> new RuntimeException("Document not found: " + docUploadId));
+        if (doc.getS3Key() == null || doc.getS3Key().isBlank()) {
+            // Legacy local-path file — return stored path as-is
+            return doc.getFilePath();
+        }
+        String configKey = doc.getS3ConfigKey() != null ? doc.getS3ConfigKey() : S3_CONFIG_KEY;
+        return s3StorageService.generatePresignedUrl(doc.getS3Key(), configKey);
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────────
+
+    /**
+     * Delete a document record and its S3 file.
+     */
+    public void deleteDocument(Long docUploadId) {
+        DocumentUpload doc = documentUploadRepository.findById(docUploadId)
+                .orElseThrow(() -> new RuntimeException("Document not found: " + docUploadId));
+        if (doc.getS3Key() != null && !doc.getS3Key().isBlank()) {
+            String configKey = doc.getS3ConfigKey() != null ? doc.getS3ConfigKey() : S3_CONFIG_KEY;
+            s3StorageService.deleteFile(doc.getS3Key(), configKey);
+        }
+        documentUploadRepository.deleteById(docUploadId);
+        log.info("Deleted document record and S3 file: id={}", docUploadId);
+    }
+
+    // ── Validation ────────────────────────────────────────────────────────────
+
     public ValidationResponse validateFile(MultipartFile file) {
-        ValidationResponse validationResponse = new ValidationResponse(false,"fail");
+        ValidationResponse result = new ValidationResponse(false, "fail");
 
-        if(Objects.isNull(file)){
-            validationResponse.setValid(false);
-            validationResponse.setMessage("file is required!");
-            return validationResponse;
+        if (Objects.isNull(file)) {
+            return new ValidationResponse(false, "File is required");
         }
-
         if (file.isEmpty()) {
-            validationResponse.setValid(false);
-            validationResponse.setMessage("please upload a valid file!");
-            return validationResponse;
+            return new ValidationResponse(false, "Please upload a valid (non-empty) file");
+        }
+        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
+            return new ValidationResponse(false, "File exceeds maximum allowed size of 5 MB");
+        }
+        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
+            return new ValidationResponse(false, "Only PDF, DOC, DOCX, JPG, PNG and WEBP formats are accepted");
         }
 
-        if (file.getSize() > 5 * 1024 * 1024) { // 5MB
-            validationResponse.setValid(false);
-            validationResponse.setMessage("File too large, acceptable max size is "+ MAX_FILE_SIZE);
-            return validationResponse;
-        }
-
-        if (!allowedTypes.contains(file.getContentType())) {
-            validationResponse.setValid(false);
-            validationResponse.setMessage("Only PDF, DOC, and DOCX formats are acceptable");
-            return validationResponse;
-        }
-        validationResponse.setValid(true);
-        validationResponse.setMessage("success");
-        return validationResponse;
+        result.setValid(true);
+        result.setMessage("success");
+        return result;
     }
 
     public ValidationResponse validateDocumentUpload(DocumentUploadDTO requestDto) {
-        ValidationResponse response = new ValidationResponse(true,"success");
-
-        if (Objects.isNull(requestDto)){
-            response.setMessage("Invalid request");
-            response.setValid(false);
-            return response;
+        if (Objects.isNull(requestDto)) {
+            return new ValidationResponse(false, "Invalid request body");
         }
-
-        if(requestDto.getDocumentId() == null || requestDto.getDocumentId() <= 0 ){
-            response.setMessage("Invalid document type");
-            response.setValid(false);
-            return response;
+        if (requestDto.getDocumentId() == null || requestDto.getDocumentId() <= 0) {
+            return new ValidationResponse(false, "Invalid document type");
         }
+        return new ValidationResponse(true, "success");
+    }
 
-        return response;
+    // ── private helpers ───────────────────────────────────────────────────────
+
+    private String extractOriginalFilename(MultipartFile file) {
+        String name = file.getOriginalFilename();
+        if (name == null || name.isBlank()) return "file";
+        return Paths.get(name).getFileName().toString();
+    }
+
+    private String extractExtension(String filename) {
+        if (filename == null || !filename.contains(".")) return null;
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
     }
 }

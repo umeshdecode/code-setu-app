@@ -90,15 +90,28 @@ public class StaffService {
                 Role role = rolesService.createCompanyAdminDefaultRole();
                 staff.setRoles(Set.of(role));
             }
+            if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
+                throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,"Password is required");
+            }
         }else {
             List<Role> roleAndPermissions = staffDTO.getRoleIds() != null
                     ? rolesRepo.findAllById(staffDTO.getRoleIds())
                     : Collections.emptyList();
+            
+            LoggedInUser currentUser = ApplicationUtils.getCurrentUser();
+            Integer staffCompanyId = staffDTO.getCompanyId() != null ? staffDTO.getCompanyId() : (currentUser != null ? currentUser.getCompanyId() : null);
+            for (Role r : roleAndPermissions) {
+                if (r.getCompanyId() != null && !r.getCompanyId().equals(staffCompanyId)) {
+                    throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Cannot assign roles belonging to another company");
+                }
+            }
+
             staff.setRoles(new HashSet<>(roleAndPermissions));
+            if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
+                staffDTO.setPassword(ApplicationUtils.generateRandomPassword(10));
+            }
         }
-         if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
-            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,"Password is required");
-        }
+
         String encode = new BCryptPasswordEncoder().encode(staffDTO.getPassword());
         staff.setPassword(encode);
 
@@ -197,9 +210,9 @@ public class StaffService {
         if(staffDTO.getMobileNumber() == null || staffDTO.getMobileNumber().isBlank()){
             throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter valid mobile number");
         }
-        if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
-            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"Password is required");
-        }
+//        if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
+//            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"Password is required");
+//        }
 //        if(staffDTO.getUserName() == null || staffDTO.getUserName().isBlank()){
 //            throw new CustomValidationException(HttpStatus.EXPECTATION_FAILED.value(),"please enter your preferred Username");
 //        }
@@ -286,6 +299,15 @@ public class StaffService {
         }
         if (staffDTO.getRoleIds() != null && !staffDTO.getRoleIds().isEmpty()) {
             List<Role> roleAndPermissions = rolesRepo.findAllById(staffDTO.getRoleIds());
+
+            LoggedInUser currentUser = ApplicationUtils.getCurrentUser();
+            Integer staffCompanyId = staffDTO.getCompanyId() != null ? staffDTO.getCompanyId() : (currentUser != null ? currentUser.getCompanyId() : null);
+            for (Role r : roleAndPermissions) {
+                if (r.getCompanyId() != null && !r.getCompanyId().equals(staffCompanyId)) {
+                    throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Cannot assign roles belonging to another company");
+                }
+            }
+
             dbStaff.setRoles(new HashSet<>(roleAndPermissions));
         }
 

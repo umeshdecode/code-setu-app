@@ -2,14 +2,19 @@ package com.cargosetu.dto;
 
 import com.cargosetu.model.Company;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CompanyDTO {
 
     private Integer companyId;
@@ -79,7 +84,8 @@ public class CompanyDTO {
     private String logoBase64;
     private String sealBase64;
     private String website;
-    private List<CompanyAssetDTO> assets;
+    @Builder.Default
+    private List<CompanyAssetDTO> assets = new ArrayList<>();
 
     private String bankName ="";
     private String accountHolder = "";

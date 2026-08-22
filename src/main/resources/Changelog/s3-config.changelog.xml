@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===================================================== -->
+    <!-- 1. Create tbl_s3_bucket_config                        -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBL_S3_BUCKET_CONFIG_01" author="Antigravity">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tbl_s3_bucket_config"/></not>
+        </preConditions>
+        <createTable tableName="tbl_s3_bucket_config">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="config_key" type="VARCHAR(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="label" type="VARCHAR(100)"/>
+            <column name="bucket_name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="region" type="VARCHAR(50)"><constraints nullable="false"/></column>
+            <column name="folder_prefix" type="VARCHAR(100)"/>
+            <column name="base_url" type="VARCHAR(500)"/>
+            <column name="is_public" type="BIT" defaultValueBoolean="false"/>
+            <column name="presigned_expiry_minutes" type="INT" defaultValueNumeric="60"/>
+            <column name="sort_order" type="INT" defaultValueNumeric="0"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/>
+            <column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/>
+            <column name="created_by_name" type="VARCHAR(255)"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/>
+            <column name="updated_by_name" type="VARCHAR(255)"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Add S3 columns to tblm_document_upload             -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_TBLM_DOCUMENT_UPLOAD_ADD_S3_01" author="Antigravity">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_document_upload"/>
+            <not><columnExists tableName="tblm_document_upload" columnName="s3_key"/></not>
+        </preConditions>
+        <addColumn tableName="tblm_document_upload">
+            <column name="s3_key" type="VARCHAR(500)"/>
+            <column name="s3_config_key" type="VARCHAR(50)"/>
+            <column name="file_url" type="VARCHAR(1000)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. Make file_path nullable in tblm_document_upload    -->
+    <!-- (legacy field — new uploads use s3_key instead)       -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_TBLM_DOCUMENT_UPLOAD_FILE_PATH_NULLABLE_01" author="Antigravity">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_document_upload"/>
+        </preConditions>
+        <modifyDataType tableName="tblm_document_upload" columnName="file_path" newDataType="VARCHAR(500)"/>
+        <dropNotNullConstraint tableName="tblm_document_upload" columnName="file_path" columnDataType="VARCHAR(500)"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 4. Seed default S3 bucket configurations              -->
+    <!-- ===================================================== -->
+    <changeSet id="SEED_S3_BUCKET_CONFIGS_01" author="Antigravity">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tbl_s3_bucket_config"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM tbl_s3_bucket_config</sqlCheck>
+        </preConditions>
+
+        <!-- DOCUMENTS: KYC docs (Aadhaar, PAN, DL) — private by default -->
+        <insert tableName="tbl_s3_bucket_config">
+            <column name="config_key" value="DOCUMENTS"/>
+            <column name="label" value="KYC &amp; Staff Documents"/>
+            <column name="bucket_name" value="cargosetu-uploads"/>
+            <column name="region" value="ap-south-1"/>
+            <column name="folder_prefix" value="documents/"/>
+            <column name="base_url" value=""/>
+            <column name="is_public" valueBoolean="false"/>
+            <column name="presigned_expiry_minutes" valueNumeric="60"/>
+            <column name="sort_order" valueNumeric="1"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- COMPANY_ASSETS: logos, seals, stamps — can be made public -->
+        <insert tableName="tbl_s3_bucket_config">
+            <column name="config_key" value="COMPANY_ASSETS"/>
+            <column name="label" value="Company Assets (Logo, Seal, Stamp)"/>
+            <column name="bucket_name" value="cargosetu-uploads"/>
+            <column name="region" value="ap-south-1"/>
+            <column name="folder_prefix" value="assets/company/"/>
+            <column name="base_url" value=""/>
+            <column name="is_public" valueBoolean="false"/>
+            <column name="presigned_expiry_minutes" valueNumeric="1440"/>
+            <column name="sort_order" valueNumeric="2"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- PROFILE_IMAGES: staff profile photos -->
+        <insert tableName="tbl_s3_bucket_config">
+            <column name="config_key" value="PROFILE_IMAGES"/>
+            <column name="label" value="Staff Profile Photos"/>
+            <column name="bucket_name" value="cargosetu-uploads"/>
+            <column name="region" value="ap-south-1"/>
+            <column name="folder_prefix" value="profiles/"/>
+            <column name="base_url" value=""/>
+            <column name="is_public" valueBoolean="false"/>
+            <column name="presigned_expiry_minutes" valueNumeric="120"/>
+            <column name="sort_order" valueNumeric="3"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- TRIP_DOCUMENTS: trip photos, delivery proof -->
+        <insert tableName="tbl_s3_bucket_config">
+            <column name="config_key" value="TRIP_DOCUMENTS"/>
+            <column name="label" value="Trip Documents &amp; Photos"/>
+            <column name="bucket_name" value="cargosetu-uploads"/>
+            <column name="region" value="ap-south-1"/>
+            <column name="folder_prefix" value="trips/"/>
+            <column name="base_url" value=""/>
+            <column name="is_public" valueBoolean="false"/>
+            <column name="presigned_expiry_minutes" valueNumeric="60"/>
+            <column name="sort_order" valueNumeric="4"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
