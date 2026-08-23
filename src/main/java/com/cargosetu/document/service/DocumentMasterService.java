@@ -22,7 +22,7 @@ public class DocumentMasterService {
         DocumentMaster entity = documentMasterMapper.toEntity(documentMasterDTO);
         entity = documentMasterRepository.save(entity);
 
-        if (entity.getDocumentId() != null && entity.getDocumentId() > 0) isSaved = true;
+        if (entity.getId() != null && entity.getId() > 0) isSaved = true;
 
         return isSaved;
     }

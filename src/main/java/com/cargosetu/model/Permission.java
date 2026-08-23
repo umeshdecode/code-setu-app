@@ -19,7 +19,7 @@ public class Permission extends AbstractModel {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(columnDefinition = "VARCHAR(500)")
+    @Column(length = 500)
     private String description;
 
     @Column(nullable = false, length = 50)

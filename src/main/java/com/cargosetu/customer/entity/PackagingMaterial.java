@@ -10,7 +10,8 @@ public class PackagingMaterial {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long materialId;
+    @Column(name = "id")
+    private Long id;
 
     private String materialName;
 

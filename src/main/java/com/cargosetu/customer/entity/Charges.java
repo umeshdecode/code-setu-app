@@ -17,7 +17,7 @@ public class Charges {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "charge_id")
-    private Integer chargeId;
+    private Long chargeId;
 
     @Column(name = "transport_charge")
     private Double transportCharge;

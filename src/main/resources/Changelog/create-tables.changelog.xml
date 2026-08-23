@@ -138,21 +138,22 @@
     </changeSet>
 
     <!-- 9. tblm_customers -->
-    <changeSet id="CREATE_TBLM_CUSTOMERS_01" author="Umesh Sharma">
+    <changeSet id="CREATE_TBLM_CUSTOMERS_01" author="Umesh Sharma" runOnChange="true">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <not><tableExists tableName="tblm_customers"/></not>
         </preConditions>
         <createTable tableName="tblm_customers">
             <column name="customer_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
             <column name="company_id" type="INT"/>
-            <column name="customer_code" type="VARCHAR(50)"/>
-            <column name="name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="firstname" type="VARCHAR(100)"/>
+            <column name="lastname" type="VARCHAR(100)"/>
+            <column name="mobile_no" type="VARCHAR(20)"/>
+            <column name="alternate_mobile_no" type="VARCHAR(20)"/>
             <column name="email" type="VARCHAR(150)"/>
-            <column name="mobile_number" type="VARCHAR(20)"/>
-            <column name="address" type="TEXT"/>
-            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
-            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
-            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+            <column name="work_email" type="VARCHAR(150)"/>
+            <column name="uuid" type="VARCHAR(50)"/>
+            <column name="is_delete" type="BIT" defaultValueBoolean="false"/>
+            <column name="createdbyid" type="BIGINT"/>
         </createTable>
     </changeSet>
 
@@ -308,6 +309,10 @@
             <column name="document_name" type="VARCHAR(150)"/>
             <column name="document_url" type="VARCHAR(500)"/>
             <column name="entity_type" type="VARCHAR(50)"/>
+            <column name="file_path" type="VARCHAR(500)"/>
+            <column name="s3_key" type="VARCHAR(500)"/>
+            <column name="s3_config_key" type="VARCHAR(50)"/>
+            <column name="file_url" type="VARCHAR(1000)"/>
             <column name="entity_id" type="BIGINT"/>
         </createTable>
     </changeSet>

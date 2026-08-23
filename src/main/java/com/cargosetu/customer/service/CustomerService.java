@@ -1,7 +1,6 @@
 package com.cargosetu.customer.service;
 
 import com.cargosetu.config.dto.LoggedInUser;
-import com.cargosetu.customer.dtos.ChargesDTO;
 import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
 import com.cargosetu.customer.dtos.ShiftingDTO;
@@ -12,16 +11,15 @@ import com.cargosetu.dto.ValidationResponse;
 import com.cargosetu.mapper.CustomerMapper;
 import com.cargosetu.mapper.ShiftingMapper;
 import com.cargosetu.repo.ShiftingRepository;
+import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
-import jakarta.persistence.GeneratedValue;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -63,21 +61,40 @@ public class CustomerService {
     }
 
     @Transactional
-    public GenericDataDTO createCustomer(CustomerDTO customerDTO) {
+    public GenericDataDTO createCustomer(LoggedInUser user, CustomerDTO customerDTO) {
         GenericDataDTO genericDataDTO = new GenericDataDTO();
-        Customer customer = new Customer();
-        customer = customerMapper.toEntity(customerDTO);
+        log.info("Creating customer with firstName={}, lastName={}, email={}, companyId={}",
+                customerDTO.getFirstName(), customerDTO.getLastName(),
+                customerDTO.getEmail(), customerDTO.getCompanyId());
+
+        Customer customer = customerMapper.toEntity(customerDTO);
         String generatedUUID = UUIDGenerator.generate();
         customer.setUuid(generatedUUID);
         customer.setIsDelete(false);
-        linkCustomerToShifting(customer.getShiftings(),customer);
+        customer.setCompanyId(user.getCompanyId() != null ? user.getCompanyId() : ApplicationUtils.getCurrentCompanyId());
+
+        // Link shiftings to customer and ensure charges cascade properly
+        if (customer.getShiftings() != null) {
+            log.debug("Customer has {} shifting(s) to create", customer.getShiftings().size());
+            for (Shifting shifting : customer.getShiftings()) {
+                shifting.setCompanyId(customer.getCompanyId());
+                shifting.setCustomer(customer);
+                if (shifting.getCharge() != null) {
+                    log.debug("Shifting has charges with {} extra charge(s)",
+                            shifting.getCharge().getExtraCharges() != null
+                                    ? shifting.getCharge().getExtraCharges().size() : 0);
+                }
+            }
+        }
+
         customer = customerRepository.save(customer);
+        log.info("Customer saved with customerId={}, uuid={}", customer.getCustomerId(), customer.getUuid());
 
         if(Objects.nonNull(customer.getCustomerId())) {
 
             genericDataDTO.setResponseMessege("customer created successfully!");
             genericDataDTO.setResponseCode(CommonStatusCode.CREATED);
-            genericDataDTO.setData(customer);
+            genericDataDTO.setData(customerMapper.toDto(customer));
 
             // Publish generic events for email and SMS notification
             Map<String, Object> variables = Map.of(
@@ -87,6 +104,7 @@ public class CustomerService {
                 "mobileNo", customer.getMobileNo() != null ? customer.getMobileNo() : ""
             );
             if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                log.debug("Publishing EMAIL notification for customer creation, email={}", customer.getEmail());
                 eventPublisher.publishEvent(new GenericNotificationEvent(
                     "CUSTOMER_CREATED",
                     List.of(customer.getEmail()),
@@ -95,6 +113,7 @@ public class CustomerService {
                 ));
             }
             if (customer.getMobileNo() != null && !customer.getMobileNo().isBlank()) {
+                log.debug("Publishing SMS notification for customer creation, mobileNo={}", customer.getMobileNo());
                 eventPublisher.publishEvent(new GenericNotificationEvent(
                     "CUSTOMER_CREATED",
                     List.of(customer.getMobileNo()),
@@ -103,17 +122,11 @@ public class CustomerService {
                 ));
             }
         }else  {
+            log.warn("Customer save returned null customerId");
             genericDataDTO.setResponseMessege("customer not created!");
             genericDataDTO.setResponseCode(CommonStatusCode.FAIL);
         }
         return genericDataDTO;
-    }
-
-    private void linkCustomerToShifting(List<Shifting> shiftings, Customer customer) {
-        for(Shifting shifting : shiftings) {
-            shifting.setCompanyId(customer.getCompanyId());
-            shifting.setCustomer(customer);
-        }
     }
 
 
@@ -130,12 +143,18 @@ public class CustomerService {
         return validationResponse;
     }
 
+    @Transactional
     public GenericDataDTO updateCustomer(CustomerDTO customerDTO) {
         GenericDataDTO updateResponse = new GenericDataDTO();
+        log.info("Updating customer with customerId={}", customerDTO.getCustomerId());
+
         try {
             Optional<Customer> dbCust = customerRepository.findByCustomerIdAndIsDelete(customerDTO.getCustomerId(),false);
             if(dbCust.isPresent()) {
                 Customer customer = dbCust.get();
+                log.debug("Found existing customer with customerId={}, uuid={}",
+                        customer.getCustomerId(), customer.getUuid());
+
                 if (customerDTO.getFirstName() != null) customer.setFirstName(customerDTO.getFirstName());
                 if (customerDTO.getLastName() != null) customer.setLastName(customerDTO.getLastName());
                 if (customerDTO.getEmail() != null) customer.setEmail(customerDTO.getEmail());
@@ -145,14 +164,24 @@ public class CustomerService {
 
                 List<ShiftingDTO> shiftings = customerDTO.getShiftings();
                 if (shiftings != null && !shiftings.isEmpty()) {
-                    List<Shifting> list = shiftings.stream()
-                            .map(shifting -> shiftingMapper.toEntity(shifting))
-                            .toList();
+                    log.debug("Updating {} shifting(s) for customer", shiftings.size());
+                    List<Shifting> list = new ArrayList<>(shiftings.stream()
+                            .map(shiftingMapper::toEntity)
+                            .toList());
+
+                    // Link each shifting back to the customer
+                    for (Shifting shifting : list) {
+                        shifting.setCustomer(customer);
+                        shifting.setCompanyId(customer.getCompanyId());
+                    }
+
                     shiftingRepository.saveAll(list);
                     customer.setShiftings(list);
                 }
 
                 customer = customerRepository.save(customer);
+                log.info("Customer updated successfully with customerId={}", customer.getCustomerId());
+
                 updateResponse.setData(customerMapper.toDto(customer));
                 updateResponse.setResponseCode(CommonStatusCode.SUCCESS);
                 updateResponse.setResponseMessege("customer updated successfully!");
@@ -164,6 +193,7 @@ public class CustomerService {
                     "mobileNo", customer.getMobileNo() != null ? customer.getMobileNo() : ""
                 );
                 if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                    log.debug("Publishing EMAIL notification for customer update, email={}", customer.getEmail());
                     eventPublisher.publishEvent(new GenericNotificationEvent(
                         "CUSTOMER_UPDATED",
                         List.of(customer.getEmail()),
@@ -172,11 +202,12 @@ public class CustomerService {
                     ));
                 }
             }else {
+                log.warn("Customer not found for update, customerId={}", customerDTO.getCustomerId());
                 updateResponse.setResponseCode(CommonStatusCode.NOT_FOUND);
                 updateResponse.setResponseMessege("Customer not found");
             }
         } catch (Exception e) {
-            log.error("error while updating customer: {}", e.getMessage(), e);
+            log.error("Error while updating customer customerId={}: {}", customerDTO.getCustomerId(), e.getMessage(), e);
             updateResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             updateResponse.setResponseMessege("An error occurred while updating customer");
             updateResponse.setErrors(new Object[]{e.getMessage()});
@@ -191,13 +222,16 @@ public class CustomerService {
             deleteResponse.setResponseMessege("something went wrong");
             return deleteResponse;
         }
+        log.info("Deleting customer with uuid={}", deleteDto.getUuid());
         Optional<Customer> customer = customerRepository.findByUuidAndIsDelete(deleteDto.getUuid(),false);
         if(customer.isPresent()){
             customer.get().setIsDelete(true);
             customerRepository.save(customer.get());
+            log.info("Customer soft-deleted, uuid={}", deleteDto.getUuid());
             deleteResponse.setResponseCode(CommonStatusCode.SUCCESS);
             deleteResponse.setResponseMessege(CommonStatusCode.MSG_DELETED);
         }else {
+            log.warn("Customer not found for delete, uuid={}", deleteDto.getUuid());
             deleteResponse.setResponseCode(CommonStatusCode.FAIL);
             deleteResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
         }
@@ -206,6 +240,7 @@ public class CustomerService {
 
     public GenericDataDTO getCustomer(String uuid) {
         GenericDataDTO customerResponse = new GenericDataDTO();
+        log.info("Fetching customer by uuid={}", uuid);
         Optional<Customer> customer = customerRepository.findByUuidAndIsDelete(uuid,false);
         if(customer.isPresent()) {
             CustomerDTO customerDTO = customerMapper.toDto(customer.get());
@@ -213,6 +248,7 @@ public class CustomerService {
             customerResponse.setResponseCode(CommonStatusCode.SUCCESS);
             customerResponse.setResponseMessege("Customer found successfully!");
         }else {
+            log.warn("Customer not found, uuid={}", uuid);
             customerResponse.setResponseCode(CommonStatusCode.SUCCESS);
             customerResponse.setResponseMessege("Customer not found!");
         }
@@ -223,7 +259,8 @@ public class CustomerService {
         GenericDataDTO response = new GenericDataDTO();
         Page<Customer> customers = null;
         try {
-            log.info("Fetching all customers from database");
+            log.info("Fetching all customers, page={}, size={}, staffId={}, companyId={}",
+                    pageNumber, pageSize, user.getStaffId(), user.getCompanyId());
             Pageable pageable = PageRequest.of(pageNumber, pageSize);
 
             if(user.getStaffId() == 1){

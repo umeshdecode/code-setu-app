@@ -10,6 +10,7 @@ public class ShiftItemDamage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long damageId;
 
     private String damageType;

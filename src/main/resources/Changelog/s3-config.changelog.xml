@@ -9,7 +9,7 @@
     <!-- ===================================================== -->
     <!-- 1. Create tbl_s3_bucket_config                        -->
     <!-- ===================================================== -->
-    <changeSet id="CREATE_TBL_S3_BUCKET_CONFIG_01" author="Antigravity">
+    <changeSet id="CREATE_TBL_S3_BUCKET_CONFIG_01" author="Umesh Sharma">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <not><tableExists tableName="tbl_s3_bucket_config"/></not>
         </preConditions>
@@ -36,36 +36,9 @@
     </changeSet>
 
     <!-- ===================================================== -->
-    <!-- 2. Add S3 columns to tblm_document_upload             -->
+    <!-- 3. Seed default S3 bucket configurations              -->
     <!-- ===================================================== -->
-    <changeSet id="ALTER_TBLM_DOCUMENT_UPLOAD_ADD_S3_01" author="Antigravity">
-        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
-            <tableExists tableName="tblm_document_upload"/>
-            <not><columnExists tableName="tblm_document_upload" columnName="s3_key"/></not>
-        </preConditions>
-        <addColumn tableName="tblm_document_upload">
-            <column name="s3_key" type="VARCHAR(500)"/>
-            <column name="s3_config_key" type="VARCHAR(50)"/>
-            <column name="file_url" type="VARCHAR(1000)"/>
-        </addColumn>
-    </changeSet>
-
-    <!-- ===================================================== -->
-    <!-- 3. Make file_path nullable in tblm_document_upload    -->
-    <!-- (legacy field — new uploads use s3_key instead)       -->
-    <!-- ===================================================== -->
-    <changeSet id="ALTER_TBLM_DOCUMENT_UPLOAD_FILE_PATH_NULLABLE_01" author="Antigravity">
-        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
-            <tableExists tableName="tblm_document_upload"/>
-        </preConditions>
-        <modifyDataType tableName="tblm_document_upload" columnName="file_path" newDataType="VARCHAR(500)"/>
-        <dropNotNullConstraint tableName="tblm_document_upload" columnName="file_path" columnDataType="VARCHAR(500)"/>
-    </changeSet>
-
-    <!-- ===================================================== -->
-    <!-- 4. Seed default S3 bucket configurations              -->
-    <!-- ===================================================== -->
-    <changeSet id="SEED_S3_BUCKET_CONFIGS_01" author="Antigravity">
+    <changeSet id="SEED_S3_BUCKET_CONFIGS_01" author="Umesh Sharma">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <tableExists tableName="tbl_s3_bucket_config"/>
             <sqlCheck expectedResult="0">SELECT COUNT(*) FROM tbl_s3_bucket_config</sqlCheck>
@@ -76,7 +49,7 @@
             <column name="config_key" value="DOCUMENTS"/>
             <column name="label" value="KYC &amp; Staff Documents"/>
             <column name="bucket_name" value="cargosetu-uploads"/>
-            <column name="region" value="ap-south-1"/>
+            <column name="region" value="eu-north-1"/>
             <column name="folder_prefix" value="documents/"/>
             <column name="base_url" value=""/>
             <column name="is_public" valueBoolean="false"/>
@@ -92,7 +65,7 @@
             <column name="config_key" value="COMPANY_ASSETS"/>
             <column name="label" value="Company Assets (Logo, Seal, Stamp)"/>
             <column name="bucket_name" value="cargosetu-uploads"/>
-            <column name="region" value="ap-south-1"/>
+            <column name="region" value="eu-north-1"/>
             <column name="folder_prefix" value="assets/company/"/>
             <column name="base_url" value=""/>
             <column name="is_public" valueBoolean="false"/>
@@ -108,7 +81,7 @@
             <column name="config_key" value="PROFILE_IMAGES"/>
             <column name="label" value="Staff Profile Photos"/>
             <column name="bucket_name" value="cargosetu-uploads"/>
-            <column name="region" value="ap-south-1"/>
+            <column name="region" value="eu-north-1"/>
             <column name="folder_prefix" value="profiles/"/>
             <column name="base_url" value=""/>
             <column name="is_public" valueBoolean="false"/>
@@ -124,7 +97,7 @@
             <column name="config_key" value="TRIP_DOCUMENTS"/>
             <column name="label" value="Trip Documents &amp; Photos"/>
             <column name="bucket_name" value="cargosetu-uploads"/>
-            <column name="region" value="ap-south-1"/>
+            <column name="region" value="eu-north-1"/>
             <column name="folder_prefix" value="trips/"/>
             <column name="base_url" value=""/>
             <column name="is_public" valueBoolean="false"/>

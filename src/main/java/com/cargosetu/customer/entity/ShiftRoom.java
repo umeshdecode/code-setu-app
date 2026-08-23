@@ -8,6 +8,7 @@ public class ShiftRoom {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long roomId;
 
     private String roomName;

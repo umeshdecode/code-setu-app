@@ -2,6 +2,7 @@ package com.cargosetu.customer.dtos;
 
 import com.cargosetu.customer.entity.ExtraCharges;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -10,7 +11,7 @@ import java.util.List;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ChargesDTO {
-    private Integer chargeId;
+    private Long chargeId;
 
     private Double transportCharge;
 
@@ -38,6 +39,6 @@ public class ChargesDTO {
 
     private Double gstCharge;
 
-    @JsonIgnoreProperties("extracharges")
+    @JsonProperty("extracharges")
     private List<ExtraChargesDTO> extraChargesList = new ArrayList<>();
 }

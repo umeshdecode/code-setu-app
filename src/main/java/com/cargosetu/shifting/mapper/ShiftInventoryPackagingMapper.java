@@ -14,14 +14,14 @@ public interface ShiftInventoryPackagingMapper extends BaseUpdateMapper<ShiftInv
 
     @Override
     @Mapping(source = "inventoryItem.id", target = "inventoryItemId")
-    @Mapping(source = "packagingMaterial.materialId", target = "packagingMaterialId")
+    @Mapping(source = "packagingMaterial.id", target = "packagingMaterialId")
     @Mapping(source = "packagingMaterial.materialName", target = "materialName")
     @Mapping(source = "packagingMaterial.unit", target = "unit")
     ShiftInventoryPackagingDTO toDto(ShiftInventoryPackaging entity);
 
     @Override
     @Mapping(source = "inventoryItemId", target = "inventoryItem.id")
-    @Mapping(source = "packagingMaterialId", target = "packagingMaterial.materialId")
+    @Mapping(source = "packagingMaterialId", target = "packagingMaterial.id")
     ShiftInventoryPackaging toEntity(ShiftInventoryPackagingDTO dto);
 
     @Override

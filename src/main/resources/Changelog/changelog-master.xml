@@ -439,7 +439,7 @@
 
         <insert tableName="tblmcompany">
             <column name="company_id" valueNumeric="1"/>
-            <column name="company_name" value="Cargo_Setu"/>
+            <column name="company_name" value="Cargo Setu Pvt. Ltd."/>
             <column name="company_email" value="shubhaampatel2609@gmail.com"/>
             <column name="company_uuid" value="JAVAUZK0395HM8387"/>
             <column name="address"

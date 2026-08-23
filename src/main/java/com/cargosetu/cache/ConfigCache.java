@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ConfigCache implements ApplicationRunner {
     private final ClientServiceRepo clientServiceRepo;
-    public final ConcurrentHashMap<String,String> systemConfigs = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String,String> systemConfigs = new ConcurrentHashMap<>();
     public ConfigCache(ClientServiceRepo clientServiceRepo) {
         this.clientServiceRepo = clientServiceRepo;
     }
@@ -26,10 +26,10 @@ public class ConfigCache implements ApplicationRunner {
         );
     }
 
-    public String getConfig(String key){
+    public static String getConfig(String key){
         return systemConfigs.get(key);
     }
-    public String getConfig(String key, String defaultValue) {
+    public static String getConfig(String key, String defaultValue) {
         return systemConfigs.getOrDefault(key, defaultValue);
     }
 }

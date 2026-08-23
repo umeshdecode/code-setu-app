@@ -17,7 +17,7 @@ public class DocumentUpload {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "doc_upload_id")
+    @Column(name = "id")
     private Long staffDocumentId;
 
     @ManyToOne(fetch = FetchType.LAZY)
