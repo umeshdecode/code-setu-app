@@ -1,6 +1,7 @@
 package com.cargosetu.dto;
 
 import com.cargosetu.model.Company;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -91,6 +92,9 @@ public class CompanyDTO {
     private String accountHolder = "";
     private String accountNo = "";
     private String ifscCode = "";
+
+    @JsonProperty("isActive")
+    private boolean isActive;
 
     public static CompanyDTO from(Company c,
                                   String logoBase64, String sealBase64) {

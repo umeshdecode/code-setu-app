@@ -177,7 +177,7 @@ public class CompanyServImpl implements CompanyService {
 
             response.setResponseMessege("Company fetched successfully");
             response.setResponseCode(200);
-            response.setData(company);
+            response.setData(mapToCompanyDTOWithAssets(company));
 
         } catch (Exception e) {
             log.error("Error fetching company {}", id, e);
@@ -325,6 +325,15 @@ public class CompanyServImpl implements CompanyService {
                 // Check if asset already exists for this company and asset type
                 CompanyAsset existingAsset = companyAssetRepository.findByCompanyIdAndAssetType(companyId, dto.getAssetType());
                 if (existingAsset != null) {
+                    String oldFilePath = existingAsset.getFilePath();
+                    if (oldFilePath != null && !oldFilePath.isBlank()) {
+                        try {
+                            s3StorageService.deleteFile(oldFilePath, "COMPANY_ASSETS");
+                            log.info("Deleted old company asset from S3: {}", oldFilePath);
+                        } catch (Exception ex) {
+                            log.warn("Failed to delete old company asset from S3: {}", oldFilePath, ex);
+                        }
+                    }
                     existingAsset.setFilePath(s3Key);
                     companyAssetRepository.save(existingAsset);
                     log.info("Updated company asset {} for companyId={}", dto.getAssetType(), companyId);
@@ -408,7 +417,7 @@ public class CompanyServImpl implements CompanyService {
 
             response.setResponseMessege("Company fetched successfully");
             response.setResponseCode(200);
-            response.setData(company);
+            response.setData(mapToCompanyDTOWithAssets(company));
 
         } catch (Exception e) {
             response.setResponseMessege("Failed to fetch company");
@@ -435,7 +444,7 @@ public class CompanyServImpl implements CompanyService {
                         );
                     });
 
-            response.setData(company);
+            response.setData(mapToCompanyDTOWithAssets(company));
             response.setResponseCode(HttpStatus.OK.value());
             response.setResponseMessege("Company details fetched successfully.");
 
@@ -461,6 +470,65 @@ public class CompanyServImpl implements CompanyService {
         }
 
         return response;
+    }
+
+    private CompanyDTO mapToCompanyDTOWithAssets(Company company) {
+        String name = company.getCompanyName() != null ? company.getCompanyName().trim() : "";
+        int spaceIdx = name.indexOf(' ');
+        String first = spaceIdx > 0 ? name.substring(0, spaceIdx) : name;
+        String rest  = spaceIdx > 0 ? name.substring(spaceIdx)    : "";
+
+        CompanyDTO dto = CompanyDTO.builder()
+                .companyId(company.getCompanyId())
+                .companyName(name)
+                .companyNameFirst(first)
+                .companyNameRest(rest)
+                .companyEmail(company.getCompanyEmail())
+                .whatsappNumber(company.getWhatsappNumber())
+                .contactNo1(company.getContactNo1())
+                .contactNo2(company.getContactNo2())
+                .landlineNo(company.getLandlineNo())
+                .tollFreeNumber(company.getTollFreeNumber())
+                .panNumber(company.getPanNumber())
+                .gstNumber(company.getGstNumber())
+                .address(company.getAddress())
+                .country(company.getCountry())
+                .state(company.getState())
+                .city(company.getCity())
+                .branch(company.getBranch())
+                .mainBranch(company.getMainBranch())
+                .companyUUID(company.getCompanyUUID())
+                .website(company.getWebsite())
+                .isActive(company.getIsActive())
+                .build();
+                dto.setActive(company.getIsActive());
+        List<CompanyAsset> assets = companyAssetRepository.findByCompanyId(company.getCompanyId());
+        if (assets != null && !assets.isEmpty()) {
+            List<CompanyAssetDTO> assetDTOs = new ArrayList<>();
+            for (CompanyAsset asset : assets) {
+                CompanyAssetDTO aDto = new CompanyAssetDTO();
+                aDto.setId(asset.getId());
+                aDto.setCompanyId(asset.getCompanyId());
+                aDto.setAssetType(asset.getAssetType());
+                aDto.setFilePath(asset.getFilePath());
+                
+                String filePath = asset.getFilePath();
+                if (filePath != null && !filePath.isBlank()) {
+                    try {
+                        Path localPath = Path.of(filePath);
+                        if (!Files.exists(localPath)) {
+                            String url = s3StorageService.getViewableUrl(filePath, "COMPANY_ASSETS");
+                            aDto.setFileUrl(url);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Could not generate URL for asset: {}", e.getMessage());
+                    }
+                }
+                assetDTOs.add(aDto);
+            }
+            dto.setAssets(assetDTOs);
+        }
+        return dto;
     }
 
     /** Infer MIME type from file extension. */
