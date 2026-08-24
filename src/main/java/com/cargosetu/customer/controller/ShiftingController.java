@@ -96,6 +96,25 @@ public class ShiftingController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<?> getShiftingsByCustomer(
+            @PathVariable Long customerId,
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "5") int pageSize) {
+        log.info("API: Get Shiftings for Customer ID: {} - page: {}, size: {}", customerId, pageNumber, pageSize);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shiftingService.getShiftingsByCustomerId(customerId, pageNumber, pageSize);
+        } catch (Exception e) {
+            log.error("Error fetching shiftings for customer {}: {}", customerId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/shifting-types")
     @PreAuthorize(
             "hasAuthority(T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW)"

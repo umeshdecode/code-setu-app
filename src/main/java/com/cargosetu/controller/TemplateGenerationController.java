@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -51,11 +52,56 @@ public class TemplateGenerationController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/by-type")
+    public ResponseEntity<?> getTemplatesByType(
+            @RequestParam String type,
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "5") int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Page<com.cargosetu.model.Template> templates = templateService.getTemplatesByType(type, pageNumber, pageSize);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Templates fetched successfully");
+            response.setData(templates);
+        } catch (Exception e) {
+            log.error("Error fetching templates by type: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/default")
+    public ResponseEntity<?> setDefaultTemplate(@PathVariable Long id) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.setDefaultTemplate(id);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Default template set successfully");
+        } catch (Exception e) {
+            log.error("Error setting default template: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/{id}/preview-html", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<?> getTemplateHtml(@PathVariable Long id) {
+        try {
+            String html = templateService.getTemplateHtml(id);
+            return ResponseEntity.ok(html);
+        } catch (Exception e) {
+            log.error("Error fetching template HTML for preview: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
 
         @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
     @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-        byte[] pdf = templateService.generateQuotationPdf(shiftingId);
+    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId,
+                                          @RequestParam(required = false) Long templateId) throws Exception {
+        byte[] pdf = templateService.generateQuotationPdf(shiftingId, templateId);
         try {
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -63,6 +109,7 @@ public class TemplateGenerationController {
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {
+            e.printStackTrace();
             GenericDataDTO errorResponse = new GenericDataDTO();
             errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);

@@ -33,6 +33,7 @@ public class ShiftingDTO {
 
     private Long customerId;
     private Integer companyId;
+    private Double tokenMoney;
 
     @JsonProperty("charges")
     private ChargesDTO chargesDTO;

@@ -6,6 +6,7 @@ import com.cargosetu.customer.entity.ExtraCharges;
 import com.cargosetu.customer.entity.Shifting;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.dto.QuotationDTO;
+import com.cargosetu.dto.S3UploadResult;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
 import com.cargosetu.model.Template;
@@ -15,6 +16,9 @@ import com.cargosetu.utils.utillity.PdfGenerator;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,8 +29,7 @@ import org.thymeleaf.templateresolver.StringTemplateResolver;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -43,21 +46,64 @@ public class TemplateService {
     private final CompanyAssetRepository assetRepository;
     private final TemplateRepository templateRepository;
     private final CompanyService companyService;
+    private final S3StorageService s3StorageService;
+
+    /** S3 config key — maps to bucket "cargosetu-uploads", folder prefix "documents/" */
+    private static final String S3_CONFIG_KEY = "DOCUMENTS";
+
     @Autowired
     private ClientServiceRepo clientServiceRepo;
     @Autowired
     private PdfGenerator pdfGenerator;
 
     public void createTemplate(MultipartFile file, Template template) {
-        List<String> filePath = FileUtility.saveMultipartFile(new MultipartFile[]{file}, clientServiceRepo.findByName("Template").orElseThrow().getName());
-
-        if (filePath != null && filePath.size() > 0) {
-            template.setFilePath(filePath.get(0));
+        try {
+            S3UploadResult result = s3StorageService.uploadFile(file, S3_CONFIG_KEY, "templates/");
+            template.setFilePath(result.getS3Key());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload template file to S3", e);
         }
         templateRepository.save(template);
     }
 
-    public byte[] generateQuotationPdf(Long shiftingId) throws Exception {
+    public Page<Template> getTemplatesByType(String type, int pageNumber, int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        return templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(type, pageable);
+    }
+
+    public void setDefaultTemplate(Long templateId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new RuntimeException("Template not found: " + templateId));
+        // Unset all favorites of this type
+        Page<Template> allOfType = templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(
+                template.getType(), PageRequest.of(0, 1000));
+        allOfType.getContent().forEach(t -> {
+            if (t.isFavoriteTemplate()) {
+                t.setFavoriteTemplate(false);
+                templateRepository.save(t);
+            }
+        });
+        // Set the chosen one
+        template.setFavoriteTemplate(true);
+        templateRepository.save(template);
+    }
+
+    public String getTemplateHtml(Long templateId) {
+        Template tmpl = templateRepository.findById(templateId)
+                .orElseThrow(() -> new RuntimeException("Template not found: " + templateId));
+        try {
+            if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
+                byte[] fileBytes = s3StorageService.downloadFile(tmpl.getFilePath(), S3_CONFIG_KEY);
+                return new String(fileBytes, java.nio.charset.StandardCharsets.UTF_8);
+            } else {
+                return tmpl.getHtmlContent();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read template file from S3: " + tmpl.getFilePath(), e);
+        }
+    }
+
+    public byte[] generateQuotationPdf(Long shiftingId, Long templateId) throws Exception {
         Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
                 .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
 
@@ -80,19 +126,28 @@ public class TemplateService {
                 .quoteDate(LocalDate.now())
                 .subTotal(subTotal)
                 .grandTotal(grandTotal)
-                .tokenMoney(null)
+                .tokenMoney(shifting.getTokenMoney())
                 .build();
 
-        Template tmpl = templateRepository.findByType("QUOTATION").orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB"));
+        Template tmpl;
+        if (templateId != null) {
+            tmpl = templateRepository.findById(templateId)
+                    .orElseThrow(() -> new RuntimeException("Template not found: " + templateId));
+        } else {
+            tmpl = templateRepository.findByTypeAndIsFavoriteTemplateTrue("QUOTATION")
+                    .orElseGet(() -> templateRepository.findByType("QUOTATION")
+                            .orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB")));
+        }
         String htmlContent;
         try {
             if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
-                htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
+                byte[] fileBytes = s3StorageService.downloadFile(tmpl.getFilePath(), S3_CONFIG_KEY);
+                htmlContent = new String(fileBytes, java.nio.charset.StandardCharsets.UTF_8);
             } else {
                 htmlContent = tmpl.getHtmlContent();
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
+            throw new RuntimeException("Failed to read template file from S3: " + tmpl.getFilePath(), e);
         }
         String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotationDTO);
 
@@ -274,12 +329,13 @@ public class TemplateService {
             String htmlContent;
             try {
                 if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
-                    htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
+                    byte[] fileBytes = s3StorageService.downloadFile(tmpl.getFilePath(), S3_CONFIG_KEY);
+                    htmlContent = new String(fileBytes, java.nio.charset.StandardCharsets.UTF_8);
                 } else {
                     htmlContent = tmpl.getHtmlContent();
                 }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
+                throw new RuntimeException("Failed to read template file from S3: " + tmpl.getFilePath(), e);
             }
             Map<String, Object> variableMap = new HashMap<>();
             variableMap.put("invoiceNo", "INV-" + shiftingId + "-2026");

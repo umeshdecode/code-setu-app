@@ -24,4 +24,6 @@ public interface ShiftingRepository extends JpaRepository<Shifting, Long> {
     @Query("SELECT s FROM Shifting s JOIN FETCH s.customer JOIN FETCH s.charge WHERE s.shiftingId = :shiftingId")
     Optional<Shifting> findShiftingWithCustomerAndCharges(
             @Param("shiftingId") Long shiftingId);
+
+    Page<Shifting> findByCustomer_CustomerIdOrderByShiftingIdDesc(Long customerId, Pageable pageable);
 }

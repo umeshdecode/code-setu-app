@@ -138,6 +138,7 @@ public class ShiftingService {
             existingShifting.setShiftCompletedById(updatedShifting.getShiftCompletedById());
             // Assuming charges are handled by ChargesMapper within ShiftingMapper
             existingShifting.setCharge(updatedShifting.getCharge());
+            existingShifting.setTokenMoney(updatedShifting.getTokenMoney());
 
 
             Shifting savedShifting = shiftingRepository.save(existingShifting);
@@ -177,6 +178,31 @@ public class ShiftingService {
 
         } catch (Exception e) {
             log.error("Error fetching all shiftings: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while fetching shiftings.");
+        }
+        return response;
+    }
+
+    public GenericDataDTO getShiftingsByCustomerId(Long customerId, int pageNumber, int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shifting> shiftings = shiftingRepository.findByCustomer_CustomerIdOrderByShiftingIdDesc(customerId, pageable);
+
+            if (shiftings.isEmpty()) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("No shiftings found for customer: " + customerId);
+                return response;
+            }
+
+            Page<ShiftingDTO> shiftingDTOs = shiftings.map(shiftingMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shiftings fetched successfully!");
+            response.setData(shiftingDTOs);
+
+        } catch (Exception e) {
+            log.error("Error fetching shiftings for customer {}: {}", customerId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("An unexpected error occurred while fetching shiftings.");
         }
