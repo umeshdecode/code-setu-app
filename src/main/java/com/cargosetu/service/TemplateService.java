@@ -47,6 +47,7 @@ public class TemplateService {
     private final TemplateRepository templateRepository;
     private final CompanyService companyService;
     private final S3StorageService s3StorageService;
+    private final com.cargosetu.notification.infrastructure.channel.EmailChannelSender emailChannelSender;
 
     /** S3 config key — maps to bucket "cargosetu-uploads", folder prefix "documents/" */
     private static final String S3_CONFIG_KEY = "DOCUMENTS";
@@ -153,6 +154,34 @@ public class TemplateService {
 
         byte[] bytes = pdfGenerator.generatePdf(filledHtml);
         return bytes;
+    }
+
+    public void generateAndSendQuotationPdf(Long shiftingId, Long templateId) throws Exception {
+        byte[] pdf = generateQuotationPdf(shiftingId, templateId);
+        
+        Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
+                .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
+        com.cargosetu.customer.entity.Customer customer = shifting.getCustomer();
+        if (customer == null || customer.getEmail() == null || customer.getEmail().isEmpty()) {
+            throw new RuntimeException("Customer email is missing for shifting ID: " + shiftingId);
+        }
+        
+        com.cargosetu.model.Company company = companyRepository.findById(shifting.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+                
+        String customerName = (customer.getFirstName() != null ? customer.getFirstName() : "") + 
+                              (customer.getLastName() != null ? " " + customer.getLastName() : "");
+        customerName = customerName.trim();
+        if (customerName.isEmpty()) customerName = "Customer";
+
+        String subject = "Your Quotation from " + company.getCompanyName();
+        String body = "Dear " + customerName + ",\n\n"
+                    + "Please find attached the quotation for your upcoming shifting from " 
+                    + shifting.getShiftFromCity() + " to " + shifting.getShiftToCity() + ".\n\n"
+                    + "Thank you for choosing " + company.getCompanyName() + ".";
+                    
+        String attachmentName = "Quotation-" + shiftingId + ".pdf";
+        emailChannelSender.sendEmailWithAttachment(customer.getEmail(), subject, body, pdf, attachmentName);
     }
 
     private String renderHtml(String htmlTemplate, CompanyDTO company, Shifting shifting, Customer customer, Charges charges, QuotationDTO quotation) {

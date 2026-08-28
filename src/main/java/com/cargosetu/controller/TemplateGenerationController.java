@@ -117,6 +117,24 @@ public class TemplateGenerationController {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
+
+    @PostMapping(value = "/quotation/{shiftingId}/send")
+    public ResponseEntity<?> sendQuotation(@PathVariable Long shiftingId,
+                                           @RequestParam(required = false) Long templateId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.generateAndSendQuotationPdf(shiftingId, templateId);
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Quotation generated and sent to customer successfully.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error generating or sending quotation: ", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
 //    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
 //    @GetMapping(value = "/quotation/{shiftingId}/pdf")
 //    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {

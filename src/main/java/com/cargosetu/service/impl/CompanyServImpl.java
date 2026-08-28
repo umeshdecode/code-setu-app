@@ -392,9 +392,7 @@ public class CompanyServImpl implements CompanyService {
                 bytes = s3StorageService.downloadFile(filePath, "COMPANY_ASSETS");
             }
 
-            String b64 = Base64.getEncoder().encodeToString(bytes);
-            String mime = detectMimeType(filePath);
-            return "data:" + mime + ";base64," + b64;
+            return Base64.getEncoder().encodeToString(bytes);
 
         } catch (Exception e) {
             log.error("Failed to read asset from local disk or S3 path={}: {}", filePath, e.getMessage());

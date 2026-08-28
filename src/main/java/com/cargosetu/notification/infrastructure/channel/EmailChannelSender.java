@@ -97,4 +97,23 @@ public class EmailChannelSender implements NotificationChannelSender {
         audit.setFailureReason(e.getMessage());
         auditRepository.save(audit);
     }
+
+    public void sendEmailWithAttachment(String to, String subject, String body, byte[] attachment, String attachmentName) throws Exception {
+        if (mockEnabled) {
+            log.info("[MOCK EMAIL] Dispatching email with attachment to: {}. Subject: '{}'", to, subject);
+            Thread.sleep(300);
+            return;
+        }
+        log.info("[REAL EMAIL] Dispatching email with attachment to: {} via JavaMailSender", to);
+        var message = mailSender.createMimeMessage();
+        org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, true);
+        
+        helper.setFrom(fromEmail);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(body);
+        helper.addAttachment(attachmentName, new org.springframework.core.io.ByteArrayResource(attachment));
+        
+        mailSender.send(message);
+    }
 }
