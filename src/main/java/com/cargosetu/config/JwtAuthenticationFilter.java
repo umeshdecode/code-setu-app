@@ -40,7 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/images") ||path.startsWith("/oauth2/")
                 || path.startsWith("/login/oauth2/")
                 || path.startsWith("/auth/")
-                ||path.startsWith("/public/")
+                || path.startsWith("/public/")
+                || path.endsWith("/refreshtoken")
                 || path.equals("/");
     }
 

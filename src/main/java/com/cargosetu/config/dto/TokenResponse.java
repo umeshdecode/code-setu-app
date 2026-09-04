@@ -13,6 +13,7 @@ public class TokenResponse {
     private Long expiresIn;
 
     private Long staffId;
+    private int companyId;
     private String userName;
     private String email;
     private Set<String> roles;

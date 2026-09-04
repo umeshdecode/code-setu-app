@@ -26,7 +26,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.context.ApplicationEventPublisher;
+import com.cargosetu.dto.S3UploadResult;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
 import java.util.Map;
@@ -39,6 +41,15 @@ import java.util.stream.Collectors;
 @Service
 public class StaffService {
 
+    /** Bucket config key (tbl_s3_bucket_config) used for staff profile photos. */
+    public static final String PROFILE_IMAGE_CONFIG_KEY = "PROFILE_IMAGES";
+
+    /** Image types accepted for a profile photo. */
+    private static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
+
+    /** Hard cap on the uploaded photo size (5 MB). */
+    private static final long MAX_PROFILE_IMAGE_BYTES = 5L * 1024 * 1024;
+
     private final StaffRepository staffRepository;
     private final RolesRepo rolesRepo;
     private final DepartmentRepo departmentRepo;
@@ -46,8 +57,9 @@ public class StaffService {
     private final StaffMapper staffMapper;
     private final PermissionMapper permissionMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final S3StorageService s3StorageService;
 
-    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, DepartmentRepo departmentRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher) {
+    public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, DepartmentRepo departmentRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher, S3StorageService s3StorageService) {
         this.staffRepository = staffRepository;
         this.rolesRepo = rolesRepo;
         this.departmentRepo = departmentRepo;
@@ -55,6 +67,7 @@ public class StaffService {
         this.staffMapper = staffMapper;
         this.permissionMapper = permissionMapper;
         this.eventPublisher = eventPublisher;
+        this.s3StorageService = s3StorageService;
     }
 
     private String getModuleName(){
@@ -129,7 +142,7 @@ public class StaffService {
                     : currentUser.getCompanyId());
         }
         Staff savedStaff = staffRepository.save(staff);
-        staffDTO = staffMapper.toDto(savedStaff);
+        staffDTO = withProfileImage(staffMapper.toDto(savedStaff));
 
         // Publish generic email and SMS events
         Map<String, Object> variables = Map.of(
@@ -163,9 +176,217 @@ public class StaffService {
     public StaffDTO getStaffById(Long staffId) {
         Optional<Staff> staff = staffRepository.findById(staffId);
         if(staff.isPresent()){
-            return staffMapper.toDto(staff.get());
+            return withProfileImage(staffMapper.toDto(staff.get()));
         }
         return null;
+    }
+
+    public StaffDTO getMyProfile(Long staffId) {
+        Optional<Staff> staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false);
+        if(staff.isPresent()){
+            return withProfileImage(staffMapper.toDto(staff.get()));
+        }
+        return null;
+    }
+
+    // ── Profile image ─────────────────────────────────────────────────────────
+
+    /**
+     * Moves the persisted S3 object key into {@code profileImageKey} and replaces
+     * {@code profileImageUrl} with a viewable (public or presigned) URL so clients can
+     * render the photo directly. Safe to call with a null/blank key.
+     */
+    private StaffDTO withProfileImage(StaffDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        String storedKey = dto.getProfileImageUrl();
+        dto.setProfileImageKey(storedKey);
+        if (storedKey == null || storedKey.isBlank()) {
+            dto.setProfileImageUrl(null);
+            return dto;
+        }
+        // Already an absolute URL (legacy rows) — hand it back untouched.
+        if (storedKey.startsWith("http://") || storedKey.startsWith("https://")) {
+            return dto;
+        }
+        try {
+            dto.setProfileImageUrl(s3StorageService.getViewableUrl(storedKey, PROFILE_IMAGE_CONFIG_KEY));
+        } catch (Exception e) {
+            log.warn("Could not build viewable URL for profile image key {}: {}", storedKey, e.getMessage());
+            dto.setProfileImageUrl(null);
+        }
+        return dto;
+    }
+
+    /**
+     * Uploads (or replaces) a staff member's profile photo in S3 and persists the new
+     * object key. The previous object, if any, is deleted on a best-effort basis.
+     *
+     * @return the updated staff profile with a viewable image URL, or {@code null} if no such staff
+     */
+    @Transactional
+    public StaffDTO saveProfileImage(Long staffId, MultipartFile file) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        validateProfileImage(file);
+
+        Staff staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false).orElse(null);
+        if (staff == null) {
+            return null;
+        }
+
+        String oldKey = staff.getProfileImageUrl();
+        try {
+            S3UploadResult uploaded = s3StorageService.uploadFile(
+                    file, PROFILE_IMAGE_CONFIG_KEY, "staff/" + staffId + "/");
+            staff.setProfileImageUrl(uploaded.getS3Key());
+        } catch (Exception e) {
+            log.error("Profile image upload failed for staffId={}", staffId, e);
+            throw new CustomValidationException(CommonStatusCode.INTERNAL_SERVER_ERROR,
+                    "Profile image upload failed: " + e.getMessage());
+        }
+
+        stampAudit(staff);
+        Staff saved = staffRepository.save(staff);
+        deleteFromS3Quietly(oldKey);
+        log.info("Profile image updated for staffId={} key={}", staffId, saved.getProfileImageUrl());
+
+        return withProfileImage(staffMapper.toDto(saved));
+    }
+
+    /**
+     * Removes a staff member's profile photo from S3 and clears the stored key.
+     *
+     * @return the updated staff profile, or {@code null} if no such staff
+     */
+    @Transactional
+    public StaffDTO removeProfileImage(Long staffId) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        Staff staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false).orElse(null);
+        if (staff == null) {
+            return null;
+        }
+        String oldKey = staff.getProfileImageUrl();
+        staff.setProfileImageUrl(null);
+        stampAudit(staff);
+        Staff saved = staffRepository.save(staff);
+        deleteFromS3Quietly(oldKey);
+        log.info("Profile image removed for staffId={}", staffId);
+        return withProfileImage(staffMapper.toDto(saved));
+    }
+
+    private void validateProfileImage(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Profile image file is required");
+        }
+        if (file.getSize() > MAX_PROFILE_IMAGE_BYTES) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,
+                    "Profile image must be 5 MB or smaller");
+        }
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || fileName.isBlank()) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Profile image file name is invalid");
+        }
+        int dotIndex = fileName.lastIndexOf('.');
+        String extension = dotIndex > 0 ? fileName.substring(dotIndex + 1).toLowerCase() : "";
+        if (!ALLOWED_IMAGE_EXTENSIONS.contains(extension)) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,
+                    "Only jpg, jpeg, png and webp images are allowed");
+        }
+    }
+
+    /** Best-effort S3 cleanup — a failed delete must not roll back the profile update. */
+    private void deleteFromS3Quietly(String s3Key) {
+        if (s3Key == null || s3Key.isBlank()
+                || s3Key.startsWith("http://") || s3Key.startsWith("https://")) {
+            return;
+        }
+        try {
+            s3StorageService.deleteFile(s3Key, PROFILE_IMAGE_CONFIG_KEY);
+            log.info("Deleted old profile image from S3: {}", s3Key);
+        } catch (Exception e) {
+            log.warn("Failed to delete old profile image {}: {}", s3Key, e.getMessage());
+        }
+    }
+
+    private void stampAudit(Staff staff) {
+        LoggedInUser currentUser = ApplicationUtils.getCurrentUser();
+        staff.setUpdatedAt(ApplicationUtils.getCurrentDateTime());
+        staff.setUpdatedByName(getCurrentUserName(currentUser));
+        if (currentUser != null) {
+            staff.setUpdatedById(currentUser.getStaffId());
+        }
+    }
+
+    /**
+     * Self-service profile update. Only fields a staff member is allowed to change about
+     * themselves are applied — roles, permissions, company, salary, staff type, active flag
+     * and password are deliberately untouched here.
+     *
+     * @return the updated profile, or {@code null} if no such staff
+     */
+    @Transactional
+    public StaffDTO updateMyProfile(Long staffId, StaffDTO staffDTO) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        if (staffDTO == null) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid request");
+        }
+        Staff staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false).orElse(null);
+        if (staff == null) {
+            return null;
+        }
+
+        if (staffDTO.getFirstName() != null && staffDTO.getFirstName().isBlank()) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "First name cannot be blank");
+        }
+        if (staffDTO.getLastName() != null && staffDTO.getLastName().isBlank()) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Last name cannot be blank");
+        }
+        if (staffDTO.getEmail() != null && !staffDTO.getEmail().isBlank()
+                && !staffDTO.getEmail().equalsIgnoreCase(staff.getEmail())) {
+            Staff duplicate = staffRepository.findByEmail(staffDTO.getEmail()).orElse(null);
+            if (duplicate != null && !duplicate.getStaffId().equals(staffId)) {
+                throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Email already in use");
+            }
+            staff.setEmail(staffDTO.getEmail());
+        }
+
+        applyIfPresent(staffDTO.getFirstName(), staff::setFirstName);
+        applyIfPresent(staffDTO.getLastName(), staff::setLastName);
+        applyIfPresent(staffDTO.getMobileCode(), staff::setMobileCode);
+        applyIfPresent(staffDTO.getMobileNumber(), staff::setMobileNumber);
+        applyIfPresent(staffDTO.getAlternateMobile(), staff::setAlternateMobile);
+        applyIfPresent(staffDTO.getAddress(), staff::setAddress);
+        applyIfPresent(staffDTO.getCity(), staff::setCity);
+        applyIfPresent(staffDTO.getState(), staff::setState);
+        applyIfPresent(staffDTO.getPincode(), staff::setPincode);
+        applyIfPresent(staffDTO.getLicenseNumber(), staff::setLicenseNumber);
+        if (staffDTO.getLicenseExpiryDate() != null) {
+            staff.setLicenseExpiryDate(staffDTO.getLicenseExpiryDate());
+        }
+        if (staffDTO.getProfileImageKey() != null) {
+            staff.setProfileImageUrl(staffDTO.getProfileImageKey().isBlank() ? null : staffDTO.getProfileImageKey().trim());
+        } else if (staffDTO.getProfileImageUrl() != null) {
+            staff.setProfileImageUrl(staffDTO.getProfileImageUrl().isBlank() ? null : staffDTO.getProfileImageUrl().trim());
+        }
+
+        stampAudit(staff);
+        Staff saved = staffRepository.save(staff);
+        log.info("Self profile updated for staffId={}", staffId);
+        return withProfileImage(staffMapper.toDto(saved));
+    }
+
+    /** Applies a value only when the client actually sent one (non-null, non-blank). */
+    private void applyIfPresent(String value, java.util.function.Consumer<String> setter) {
+        if (value != null && !value.isBlank()) {
+            setter.accept(value.trim());
+        }
     }
 
     private StaffDTO convertStaffToDTO(Staff staff) {
@@ -270,7 +491,18 @@ public class StaffService {
         dbStaff.setMobileNumber(staffDTO.getMobileNumber());
         dbStaff.setEmail(staffDTO.getEmail());
         dbStaff.setStaffType(staffDTO.getStaffType());
-        dbStaff.setProfileImageUrl(staffDTO.getProfileImageUrl());
+        // The profile photo is owned by the dedicated upload/remove endpoints. A read hands
+        // clients a presigned URL in profileImageUrl, so only an explicit profileImageKey
+        // may change it here — otherwise the stored S3 key is preserved.
+        if (staffDTO.getProfileImageKey() != null) {
+            dbStaff.setProfileImageUrl(staffDTO.getProfileImageKey().isBlank()
+                    ? null
+                    : staffDTO.getProfileImageKey());
+        } else if (staffDTO.getProfileImageUrl() != null) {
+            dbStaff.setProfileImageUrl(staffDTO.getProfileImageUrl().isBlank()
+                    ? null
+                    : staffDTO.getProfileImageUrl().trim());
+        }
         dbStaff.setAlternateMobile(staffDTO.getAlternateMobile());
         dbStaff.setAddress(staffDTO.getAddress());
         dbStaff.setCity(staffDTO.getCity());
@@ -316,7 +548,7 @@ public class StaffService {
         dbStaff.setUpdatedById(ApplicationUtils.getCurrentUser().getStaffId());
         Staff savedStaff = staffRepository.save(dbStaff);
 
-        StaffDTO savedDTO = staffMapper.toDto(savedStaff);
+        StaffDTO savedDTO = withProfileImage(staffMapper.toDto(savedStaff));
         savedDTO.setRoleIds(staffDTO.getRoleIds());
         return savedDTO;
     }
@@ -325,12 +557,13 @@ public class StaffService {
     public Page<StaffDTO> getAllStaff(LoggedInUser user,Pageable pageable) throws Exception {
 
         if(user.getStaffId() == 1){
-            return staffRepository.findAll(pageable).map(staffMapper::toDto);
+            return staffRepository.findAll(pageable).map(staff -> withProfileImage(staffMapper.toDto(staff)));
         }
         if(Objects.isNull(user.getCompanyId())){
             throw new Exception("Company not found,create Company first!");
         }
-        return staffRepository.findAllByCompanyIdOrderByStaffIdDesc(user.getCompanyId(), pageable).map(staffMapper::toDto);
+        return staffRepository.findAllByCompanyIdOrderByStaffIdDesc(user.getCompanyId(), pageable)
+                .map(staff -> withProfileImage(staffMapper.toDto(staff)));
     }
 
 

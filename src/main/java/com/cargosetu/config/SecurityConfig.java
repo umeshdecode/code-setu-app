@@ -75,7 +75,9 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/demo-notifications/**",
                                 "/public/plan/public/**",
-                                "/public/**"
+                                "/public/**",
+                                "/api/v2/cargosetu/refreshtoken",
+                                "/refreshtoken"
                         ).permitAll()
                         .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket
                         .requestMatchers("/topic/**").permitAll() // optional
