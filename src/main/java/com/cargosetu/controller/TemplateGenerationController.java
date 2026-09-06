@@ -97,7 +97,11 @@ public class TemplateGenerationController {
         }
     }
 
-        @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
+    @PreAuthorize("hasAnyAuthority(" +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE, " +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_READ, " +
+            "T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW, " +
+            "T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
     @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId,
                                           @RequestParam(required = false) Long templateId) throws Exception {

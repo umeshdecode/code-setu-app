@@ -9,14 +9,17 @@ import com.cargosetu.dto.QuotationDTO;
 import com.cargosetu.dto.S3UploadResult;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.model.CompanyFavouriteTemplate;
 import com.cargosetu.model.Template;
 import com.cargosetu.repo.*;
+import com.cargosetu.utils.ApplicationUtils;
 import com.cargosetu.utils.utillity.FileUtility;
 import com.cargosetu.utils.utillity.PdfGenerator;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +34,13 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 
 
@@ -48,6 +54,7 @@ public class TemplateService {
     private final CompanyService companyService;
     private final S3StorageService s3StorageService;
     private final com.cargosetu.notification.infrastructure.channel.EmailChannelSender emailChannelSender;
+    private final CompanyFavouriteTemplateRepository companyFavouriteTemplateRepository;
 
     /** S3 config key — maps to bucket "cargosetu-uploads", folder prefix "documents/" */
     private static final String S3_CONFIG_KEY = "DOCUMENTS";
@@ -69,24 +76,59 @@ public class TemplateService {
 
     public Page<Template> getTemplatesByType(String type, int pageNumber, int pageSize) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        return templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(type, pageable);
+        Page<Template> page = templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(type, pageable);
+
+        Integer companyIdInt = ApplicationUtils.getCurrentCompanyId();
+        if (companyIdInt != null) {
+            Long companyId = companyIdInt.longValue();
+            Optional<CompanyFavouriteTemplate> favOpt =
+                    companyFavouriteTemplateRepository.findByCompanyIdAndTemplateType(companyId, type);
+            if (favOpt.isPresent()) {
+                Long favTemplateId = favOpt.get().getTemplateId();
+                List<Template> list = new ArrayList<>(page.getContent());
+                for (Template t : list) {
+                    t.setFavoriteTemplate(Objects.equals(t.getId(), favTemplateId));
+                }
+                list.sort((a, b) -> Boolean.compare(b.isFavoriteTemplate(), a.isFavoriteTemplate()));
+                return new PageImpl<>(list, pageable, page.getTotalElements());
+            }
+        }
+        return page;
     }
 
     public void setDefaultTemplate(Long templateId) {
         Template template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new RuntimeException("Template not found: " + templateId));
-        // Unset all favorites of this type
-        Page<Template> allOfType = templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(
-                template.getType(), PageRequest.of(0, 1000));
-        allOfType.getContent().forEach(t -> {
-            if (t.isFavoriteTemplate()) {
-                t.setFavoriteTemplate(false);
-                templateRepository.save(t);
-            }
-        });
-        // Set the chosen one
-        template.setFavoriteTemplate(true);
-        templateRepository.save(template);
+
+        Integer companyIdInt = ApplicationUtils.getCurrentCompanyId();
+        if (companyIdInt != null) {
+            Long companyId = companyIdInt.longValue();
+            Optional<CompanyFavouriteTemplate> existingFav =
+                    companyFavouriteTemplateRepository.findByCompanyIdAndTemplateType(companyId, template.getType());
+
+            CompanyFavouriteTemplate fav = existingFav.orElseGet(() -> CompanyFavouriteTemplate.builder()
+                    .companyId(companyId)
+                    .templateType(template.getType())
+                    .createdBy(ApplicationUtils.getCurrentUser() != null ? ApplicationUtils.getCurrentUser().getStaffId() : null)
+                    .build());
+
+            fav.setTemplateId(templateId);
+            fav.setUpdatedAt(LocalDateTime.now());
+            companyFavouriteTemplateRepository.save(fav);
+        } else {
+            // Unset all favorites of this type
+            Page<Template> allOfType = templateRepository.findByTypeOrderByIsFavoriteTemplateDesc(
+                    template.getType(), PageRequest.of(0, 1000));
+            allOfType.getContent().forEach(t -> {
+                if (t.isFavoriteTemplate()) {
+                    t.setFavoriteTemplate(false);
+                    templateRepository.save(t);
+                }
+            });
+            // Set the chosen one
+            template.setFavoriteTemplate(true);
+            templateRepository.save(template);
+        }
     }
 
     public String getTemplateHtml(Long templateId) {
@@ -135,9 +177,21 @@ public class TemplateService {
             tmpl = templateRepository.findById(templateId)
                     .orElseThrow(() -> new RuntimeException("Template not found: " + templateId));
         } else {
-            tmpl = templateRepository.findByTypeAndIsFavoriteTemplateTrue("QUOTATION")
-                    .orElseGet(() -> templateRepository.findByType("QUOTATION")
-                            .orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB")));
+            Long compId = customer.getCompanyId() != null ? customer.getCompanyId().longValue() : null;
+            Template found = null;
+            if (compId != null) {
+                Optional<CompanyFavouriteTemplate> fav = companyFavouriteTemplateRepository.findByCompanyIdAndTemplateType(compId, "QUOTATION");
+                if (fav.isPresent()) {
+                    found = templateRepository.findById(fav.get().getTemplateId()).orElse(null);
+                }
+            }
+            if (found != null) {
+                tmpl = found;
+            } else {
+                tmpl = templateRepository.findByTypeAndIsFavoriteTemplateTrue("QUOTATION")
+                        .orElseGet(() -> templateRepository.findByType("QUOTATION")
+                                .orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB")));
+            }
         }
         String htmlContent;
         try {

@@ -18,5 +18,6 @@ public interface ShiftingMapper extends BaseUpdateMapper<ShiftingDTO, Shifting> 
     @Override
     @Mapping(target = "customerId", source = "customer.customerId")
     @Mapping(target = "chargesDTO", source = "charge")
+    @Mapping(target = "chargesDTODuplicate", ignore = true)
     ShiftingDTO toDto(Shifting entity);
 }

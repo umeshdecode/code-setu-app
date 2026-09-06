@@ -5,6 +5,7 @@ import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
 import com.cargosetu.customer.dtos.ShiftingDTO;
 import com.cargosetu.customer.entity.Customer;
+import com.cargosetu.customer.entity.ExtraCharges;
 import com.cargosetu.customer.entity.Shifting;
 import com.cargosetu.customer.repository.CustomerRepository;
 import com.cargosetu.dto.ValidationResponse;
@@ -76,10 +77,34 @@ public class CustomerService {
         // Link shiftings to customer and ensure charges cascade properly
         if (customer.getShiftings() != null) {
             log.debug("Customer has {} shifting(s) to create", customer.getShiftings().size());
-            for (Shifting shifting : customer.getShiftings()) {
+            for (int i = 0; i < customer.getShiftings().size(); i++) {
+                Shifting shifting = customer.getShiftings().get(i);
                 shifting.setCompanyId(customer.getCompanyId());
                 shifting.setCustomer(customer);
+                boolean isCompleted = shifting.isShiftCompleted();
+                if (customerDTO.getShiftings() != null && i < customerDTO.getShiftings().size()) {
+                    isCompleted = isCompleted || customerDTO.getShiftings().get(i).isShiftCompleted();
+                }
+                if (customerDTO.isShiftCompleted() && customer.getShiftings().size() == 1) {
+                    isCompleted = true;
+                }
+                shifting.setShiftCompleted(isCompleted);
+
                 if (shifting.getCharge() != null) {
+                    if (shifting.getCharge().getExtraCharges() != null) {
+                        List<ExtraCharges> uniqueExtras = new ArrayList<>();
+                        for (ExtraCharges ec : shifting.getCharge().getExtraCharges()) {
+                            boolean isDup = uniqueExtras.stream().anyMatch(u ->
+                                (ec.getExtraChargesId() != null && ec.getExtraChargesId().equals(u.getExtraChargesId())) ||
+                                (Objects.equals(u.getChargeName(), ec.getChargeName()) &&
+                                 Objects.equals(u.getChargeValue(), ec.getChargeValue()))
+                            );
+                            if (!isDup) {
+                                uniqueExtras.add(ec);
+                            }
+                        }
+                        shifting.getCharge().setExtraCharges(uniqueExtras);
+                    }
                     log.debug("Shifting has charges with {} extra charge(s)",
                             shifting.getCharge().getExtraCharges() != null
                                     ? shifting.getCharge().getExtraCharges().size() : 0);
@@ -169,14 +194,41 @@ public class CustomerService {
                             .map(shiftingMapper::toEntity)
                             .toList());
 
-                    // Link each shifting back to the customer
-                    for (Shifting shifting : list) {
+                    // Link each shifting back to the customer and ensure completion status is set accurately
+                    for (int i = 0; i < list.size(); i++) {
+                        Shifting shifting = list.get(i);
                         shifting.setCustomer(customer);
                         shifting.setCompanyId(customer.getCompanyId());
+                        boolean shiftCompleted = shiftings.get(i).isShiftCompleted()
+                                || (customerDTO.isShiftCompleted() && list.size() == 1);
+                        shifting.setShiftCompleted(shiftCompleted);
+
+                        // Deduplicate extra charges on update
+                        if (shifting.getCharge() != null && shifting.getCharge().getExtraCharges() != null) {
+                            List<ExtraCharges> uniqueExtras = new ArrayList<>();
+                            for (ExtraCharges ec : shifting.getCharge().getExtraCharges()) {
+                                boolean isDup = uniqueExtras.stream().anyMatch(u ->
+                                    (ec.getExtraChargesId() != null && ec.getExtraChargesId().equals(u.getExtraChargesId())) ||
+                                    (Objects.equals(u.getChargeName(), ec.getChargeName()) &&
+                                     Objects.equals(u.getChargeValue(), ec.getChargeValue()))
+                                );
+                                if (!isDup) {
+                                    uniqueExtras.add(ec);
+                                }
+                            }
+                            shifting.getCharge().setExtraCharges(uniqueExtras);
+                        }
                     }
 
-                    shiftingRepository.saveAll(list);
-                    customer.setShiftings(list);
+                    List<Shifting> savedShiftings = shiftingRepository.saveAll(list);
+                    customer.setShiftings(savedShiftings);
+                } else if (customerDTO.isShiftCompleted()) {
+                    if (customer.getShiftings() != null && !customer.getShiftings().isEmpty()) {
+                        for (Shifting s : customer.getShiftings()) {
+                            s.setShiftCompleted(true);
+                        }
+                        shiftingRepository.saveAll(customer.getShiftings());
+                    }
                 }
 
                 customer = customerRepository.save(customer);

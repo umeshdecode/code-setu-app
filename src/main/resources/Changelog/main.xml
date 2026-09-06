@@ -12,5 +12,6 @@
     <include file="classpath:Changelog/permissions-rbac.changelog.xml"/>
     <include file="classpath:Changelog/company-roles.changelog.xml"/>
     <include file="classpath:Changelog/shifting-token-money.changelog.xml"/>
+    <include file="classpath:Changelog/company-favourite-templates.changelog.xml"/>
 
 </databaseChangeLog>
