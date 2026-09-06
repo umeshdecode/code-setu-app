@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===================================================== -->
+    <!-- Create tblm_company_favourite_templates               -->
+    <!-- ===================================================== -->
+    <changeSet id="CFT_2026_001" author="CargoSetu">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="tblm_company_favourite_templates"/>
+            </not>
+        </preConditions>
+
+        <createTable tableName="tblm_company_favourite_templates">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="company_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="template_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="created_by" type="BIGINT"/>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="tblm_company_favourite_templates"
+                columnNames="company_id, template_type"
+                constraintName="UK_company_template_type"/>
+
+        <createIndex
+                tableName="tblm_company_favourite_templates"
+                indexName="IDX_cft_company_type">
+            <column name="company_id"/>
+            <column name="template_type"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
