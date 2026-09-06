@@ -86,14 +86,22 @@ public class TemplateGenerationController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping(value = "/{id}/preview-html", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/{id}/preview-html", produces = {MediaType.TEXT_HTML_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<?> getTemplateHtml(@PathVariable Long id) {
         try {
             String html = templateService.getTemplateHtml(id);
-            return ResponseEntity.ok(html);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
         } catch (Exception e) {
             log.error("Error fetching template HTML for preview: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 
@@ -102,23 +110,25 @@ public class TemplateGenerationController {
             "T(com.cargosetu.utils.PermissionConstants).COMPANY_READ, " +
             "T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW, " +
             "T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
-    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId,
-                                          @RequestParam(required = false) Long templateId) throws Exception {
-        byte[] pdf = templateService.generateQuotationPdf(shiftingId, templateId);
+                                          @RequestParam(required = false) Long templateId) {
         try {
+            byte[] pdf = templateService.generateQuotationPdf(shiftingId, templateId);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error generating quotation PDF: {}", e.getMessage(), e);
             GenericDataDTO errorResponse = new GenericDataDTO();
             errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
             errorResponse.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 
@@ -139,36 +149,25 @@ public class TemplateGenerationController {
             return ResponseEntity.internalServerError().body(response);
         }
     }
-//    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
-//    @GetMapping(value = "/quotation/{shiftingId}/pdf")
-//    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-//        String pdf = templateService.generateQuotationPdf(shiftingId);
-//        try {
-//            return ResponseEntity.ok().body(pdf);
-//        } catch (Exception e) {
-//            GenericDataDTO errorResponse = new GenericDataDTO();
-//            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-//            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
-//            errorResponse.setErrors(new Object[]{e.getMessage()});
-//            return ResponseEntity.internalServerError().body(errorResponse);
-//        }
-//    }
 
-    @GetMapping(value = "/{shiftingId}/invoice", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<?> getInvoiceHtml(@PathVariable Long shiftingId) throws Exception {
-        byte[] pdf = templateService.generateInvoiceHtml(shiftingId);
+    @GetMapping(value = "/{shiftingId}/invoice", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> getInvoiceHtml(@PathVariable Long shiftingId) {
         try {
+            byte[] pdf = templateService.generateInvoiceHtml(shiftingId);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
                             "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {
+            log.error("Error generating invoice PDF: {}", e.getMessage(), e);
             GenericDataDTO errorResponse = new GenericDataDTO();
             errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
             errorResponse.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 }
