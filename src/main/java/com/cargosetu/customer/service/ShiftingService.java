@@ -208,4 +208,33 @@ public class ShiftingService {
         }
         return response;
     }
+
+    public GenericDataDTO searchShiftings(LoggedInUser user, String query, int pageNumber, int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shifting> shiftings;
+            if (Objects.equals(user.getStaffId(), 1)) {
+                shiftings = shiftingRepository.searchShiftings(query, pageable);
+            } else {
+                if (user.getCompanyId() == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Please Create your Company");
+                    return response;
+                }
+                shiftings = shiftingRepository.searchShiftingsByCompanyId(user.getCompanyId(), query, pageable);
+            }
+
+            Page<ShiftingDTO> shiftingDTOs = shiftings.map(shiftingMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shiftings fetched successfully!");
+            response.setData(shiftingDTOs);
+
+        } catch (Exception e) {
+            log.error("Error searching shiftings with query '{}': {}", query, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while searching shiftings.");
+        }
+        return response;
+    }
 }

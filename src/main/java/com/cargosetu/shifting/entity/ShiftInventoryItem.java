@@ -28,7 +28,7 @@ public class ShiftInventoryItem {
 
     private String category;
 
-    @Column(unique = true) // Package number should be unique
+    @Column(name = "package_number")
     private String packageNumber;
 
     private String remarks;

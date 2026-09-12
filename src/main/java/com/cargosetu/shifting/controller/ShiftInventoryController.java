@@ -71,6 +71,54 @@ public class ShiftInventoryController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_INVENTORY_READ)")
+    @GetMapping("/shift/{shiftId}")
+    public ResponseEntity<?> getShiftInventoryByShiftId(@PathVariable Long shiftId) {
+        log.info("API: Get Shift Inventory Items for Shift ID: {}", shiftId);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shiftInventoryService.getShiftInventoryByShiftId(shiftId);
+        } catch (Exception e) {
+            log.error("Error getting shift inventory items for shift ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_INVENTORY_CREATE)")
+    @PostMapping("/bulk/{shiftId}")
+    public ResponseEntity<?> createBulkShiftInventoryItems(@PathVariable Long shiftId, @RequestBody java.util.List<ShiftInventoryItemDTO> itemDTOs) {
+        log.info("API: Create Bulk Shift Inventory Items for Shift ID: {}", shiftId);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shiftInventoryService.createBulkShiftInventoryItems(shiftId, itemDTOs);
+        } catch (Exception e) {
+            log.error("Error creating bulk shift inventory items for shift ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_INVENTORY_UPDATE)")
+    @DeleteMapping("/{itemId}")
+    public ResponseEntity<?> deleteShiftInventoryItem(@PathVariable Long itemId) {
+        log.info("API: Delete Shift Inventory Item with ID: {}", itemId);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shiftInventoryService.deleteShiftInventoryItem(itemId);
+        } catch (Exception e) {
+            log.error("Error deleting shift inventory item with ID {}: {}", itemId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIFT_INVENTORY_STATUS_UPDATE)")
     @PatchMapping("/{itemId}/status")
     public ResponseEntity<?> updateShiftInventoryItemStatus(

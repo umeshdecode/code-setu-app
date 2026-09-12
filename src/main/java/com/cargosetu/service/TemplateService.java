@@ -55,6 +55,7 @@ public class TemplateService {
     private final S3StorageService s3StorageService;
     private final com.cargosetu.notification.infrastructure.channel.EmailChannelSender emailChannelSender;
     private final CompanyFavouriteTemplateRepository companyFavouriteTemplateRepository;
+    private final com.cargosetu.shifting.repository.ShiftInventoryItemRepository shiftInventoryItemRepository;
 
     /** S3 config key — maps to bucket "cargosetu-uploads", folder prefix "documents/" */
     private static final String S3_CONFIG_KEY = "DOCUMENTS";
@@ -434,6 +435,105 @@ public class TemplateService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public byte[] generatePackingListPdf(Long shiftingId, Long templateId) throws Exception {
+        Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
+                .orElseThrow(() -> new RuntimeException("Shifting not found"));
+
+        Customer customer = shifting.getCustomer();
+        Company company = companyRepository.findById(shifting.getCompanyId() != null ? shifting.getCompanyId() : customer.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Company not found for customer"));
+
+        String logoB64 = companyService.getAssetAsBase64(company.getCompanyId(), "LOGO");
+        String sealB64 = companyService.getAssetAsBase64(company.getCompanyId(), "SEAL");
+
+        CompanyDTO companyDTO = CompanyDTO.from(company, logoB64, sealB64);
+        List<com.cargosetu.shifting.entity.ShiftInventoryItem> items = shiftInventoryItemRepository.findByShifting_ShiftingIdOrderByIdAsc(shiftingId);
+
+        Template tmpl = null;
+        if (templateId != null) {
+            tmpl = templateRepository.findById(templateId).orElse(null);
+        } else {
+            Long compId = company.getCompanyId() != null ? company.getCompanyId().longValue() : null;
+            if (compId != null) {
+                Optional<CompanyFavouriteTemplate> fav = companyFavouriteTemplateRepository.findByCompanyIdAndTemplateType(compId, "PACKING_LIST");
+                if (fav.isPresent()) {
+                    tmpl = templateRepository.findById(fav.get().getTemplateId()).orElse(null);
+                }
+            }
+            if (tmpl == null) {
+                tmpl = templateRepository.findByTypeAndIsFavoriteTemplateTrue("PACKING_LIST")
+                        .orElseGet(() -> templateRepository.findByType("PACKING_LIST").orElse(null));
+            }
+        }
+
+        String htmlContent;
+        if (tmpl != null) {
+            try {
+                if (tmpl.getFilePath() != null && !tmpl.getFilePath().isEmpty()) {
+                    byte[] fileBytes = s3StorageService.downloadFile(tmpl.getFilePath(), S3_CONFIG_KEY);
+                    htmlContent = new String(fileBytes, java.nio.charset.StandardCharsets.UTF_8);
+                } else {
+                    htmlContent = tmpl.getHtmlContent();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to read template file from S3: " + tmpl.getFilePath(), e);
+            }
+        } else {
+            htmlContent = getDefaultPackingListTemplateHtml();
+        }
+
+        Context ctx = new Context();
+        ctx.setVariable("company", companyDTO);
+        ctx.setVariable("customer", getCustomerMap(customer));
+        ctx.setVariable("shifting", getShiftingMap(shifting));
+        ctx.setVariable("items", items);
+        ctx.setVariable("totalItems", items.size());
+
+        String filledHtml = buildStringEngine().process(htmlContent, ctx);
+        return pdfGenerator.generatePdf(filledHtml);
+    }
+
+    public void generateAndSendPackingListPdf(Long shiftingId, Long templateId) throws Exception {
+        byte[] pdf = generatePackingListPdf(shiftingId, templateId);
+
+        Shifting shifting = shiftingRepository.findShiftingWithCustomerAndCharges(shiftingId)
+                .orElseThrow(() -> new RuntimeException("Shifting not found: " + shiftingId));
+        Customer customer = shifting.getCustomer();
+        if (customer == null || (customer.getWorkEmail() == null && customer.getEmail() == null)) {
+            throw new RuntimeException("Customer email is missing for shifting ID: " + shiftingId);
+        }
+
+        String recipientEmail = customer.getWorkEmail() != null && !customer.getWorkEmail().isEmpty()
+                ? customer.getWorkEmail() : customer.getEmail();
+
+        Company company = companyRepository.findById(shifting.getCompanyId() != null ? shifting.getCompanyId() : customer.getCompanyId())
+                .orElseThrow(() -> new RuntimeException("Company not found"));
+
+        String customerName = (customer.getFirstName() != null ? customer.getFirstName() : "") +
+                              (customer.getLastName() != null ? " " + customer.getLastName() : "");
+        customerName = customerName.trim();
+        if (customerName.isEmpty()) customerName = "Customer";
+
+        String subject = "Packaging List from " + company.getCompanyName();
+        String body = "Dear " + customerName + ",\n\n"
+                    + "Please find attached the packaging list for your upcoming relocation move from "
+                    + shifting.getShiftFromCity() + " to " + shifting.getShiftToCity() + ".\n\n"
+                    + "Thank you for choosing " + company.getCompanyName() + ".";
+
+        String attachmentName = "PackingList-" + shiftingId + ".pdf";
+        emailChannelSender.sendEmailWithAttachment(recipientEmail, subject, body, pdf, attachmentName);
+    }
+
+    private String getDefaultPackingListTemplateHtml() {
+        try {
+            java.nio.file.Path defaultPath = java.nio.file.Paths.get("C:/Users/Dell/Desktop/Personal/Cargosetu/packing-list-templatev1.html");
+            if (java.nio.file.Files.exists(defaultPath)) {
+                return new String(java.nio.file.Files.readAllBytes(defaultPath), java.nio.charset.StandardCharsets.UTF_8);
+            }
+        } catch (Exception ignored) {}
+        return "<html><body><h1>Packaging Inventory List</h1></body></html>";
     }
 
 }
