@@ -51,6 +51,13 @@ public class ShiftInventoryService {
             ShiftInventoryItem item = shiftInventoryItemMapper.toEntity(itemDTO);
             item.setShifting(shiftingOptional.get()); // Link the item to the shifting
 
+            if (item.getRoomName() == null || item.getRoomName().trim().isEmpty()) {
+                item.setRoomName("General");
+            }
+            if (item.getConditionStatus() == null || item.getConditionStatus().trim().isEmpty()) {
+                item.setConditionStatus("Good");
+            }
+
             // Set parent references for nested entities
             if (item.getShiftInventoryPhotos() != null) {
                 item.getShiftInventoryPhotos().forEach(photo -> photo.setInventoryItem(item));
@@ -76,6 +83,91 @@ public class ShiftInventoryService {
             log.error("Error creating shift inventory item: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("An unexpected error occurred while creating the inventory item.");
+        }
+        return response;
+    }
+
+    public GenericDataDTO getShiftInventoryByShiftId(Long shiftId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            java.util.List<ShiftInventoryItem> items = shiftInventoryItemRepository.findByShifting_ShiftingIdOrderByIdAsc(shiftId);
+            java.util.List<ShiftInventoryItemDTO> dtos = items.stream()
+                    .map(shiftInventoryItemMapper::toDto)
+                    .collect(java.util.stream.Collectors.toList());
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shift inventory items retrieved successfully!");
+            response.setData(dtos);
+        } catch (Exception e) {
+            log.error("Error retrieving inventory items for shift ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while retrieving inventory items.");
+        }
+        return response;
+    }
+
+    @Transactional
+    public GenericDataDTO deleteShiftInventoryItem(Long itemId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (!shiftInventoryItemRepository.existsById(itemId)) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Shift inventory item not found with ID: " + itemId);
+                return response;
+            }
+            shiftInventoryItemRepository.deleteById(itemId);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shift inventory item deleted successfully!");
+        } catch (Exception e) {
+            log.error("Error deleting shift inventory item with ID {}: {}", itemId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while deleting inventory item.");
+        }
+        return response;
+    }
+
+    @Transactional
+    public GenericDataDTO createBulkShiftInventoryItems(Long shiftId, java.util.List<ShiftInventoryItemDTO> itemDTOs) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Optional<Shifting> shiftingOptional = shiftingRepository.findById(shiftId);
+            if (shiftingOptional.isEmpty()) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Shifting not found with ID: " + shiftId);
+                return response;
+            }
+            Shifting shifting = shiftingOptional.get();
+
+            java.util.List<ShiftInventoryItem> itemsToSave = new java.util.ArrayList<>();
+            for (ShiftInventoryItemDTO dto : itemDTOs) {
+                dto.setShiftId(shiftId);
+                ShiftInventoryItem item = shiftInventoryItemMapper.toEntity(dto);
+                item.setShifting(shifting);
+                if (item.getRoomName() == null || item.getRoomName().trim().isEmpty()) {
+                    item.setRoomName("General");
+                }
+                if (item.getConditionStatus() == null || item.getConditionStatus().trim().isEmpty()) {
+                    item.setConditionStatus("Good");
+                }
+                if (item.getPacked() == null) item.setPacked(false);
+                if (item.getLoaded() == null) item.setLoaded(false);
+                if (item.getUnloaded() == null) item.setUnloaded(false);
+
+                itemsToSave.add(item);
+            }
+
+            java.util.List<ShiftInventoryItem> savedItems = shiftInventoryItemRepository.saveAll(itemsToSave);
+            java.util.List<ShiftInventoryItemDTO> savedDtos = savedItems.stream()
+                    .map(shiftInventoryItemMapper::toDto)
+                    .collect(java.util.stream.Collectors.toList());
+
+            response.setResponseCode(CommonStatusCode.CREATED);
+            response.setResponseMessege("Bulk shift inventory items created successfully!");
+            response.setData(savedDtos);
+        } catch (Exception e) {
+            log.error("Error creating bulk shift inventory items for shift ID {}: {}", shiftId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while creating bulk inventory items.");
         }
         return response;
     }

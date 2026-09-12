@@ -51,4 +51,8 @@ public class ShiftingDTO {
     public ChargesDTO getChargesDTODuplicate() {
         return chargesDTO;
     }
+
+    private String customerName;
+    private String customerMobileNo;
+    private String customerEmail;
 }

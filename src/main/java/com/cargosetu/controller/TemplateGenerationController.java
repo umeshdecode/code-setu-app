@@ -150,6 +150,51 @@ public class TemplateGenerationController {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority(" +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE, " +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_READ, " +
+            "T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW, " +
+            "T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
+    @GetMapping(value = "/packing-list/{shiftingId}/pdf", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> packingListPdf(@PathVariable Long shiftingId,
+                                            @RequestParam(required = false) Long templateId) {
+        try {
+            byte[] pdf = templateService.generatePackingListPdf(shiftingId, templateId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"packing-list-" + shiftingId + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Error generating packing list PDF: {}", e.getMessage(), e);
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/packing-list/{shiftingId}/send")
+    public ResponseEntity<?> sendPackingList(@PathVariable Long shiftingId,
+                                             @RequestParam(required = false) Long templateId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.generateAndSendPackingListPdf(shiftingId, templateId);
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Packaging inventory list generated and sent to customer successfully.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error generating or sending packing list: ", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     @GetMapping(value = "/{shiftingId}/invoice", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
     public ResponseEntity<?> getInvoiceHtml(@PathVariable Long shiftingId) {
         try {
