@@ -94,6 +94,9 @@ public class Staff extends AbstractModel {
 
     private Integer salary;
 
+    @Column(name = "theme_settings", columnDefinition = "TEXT")
+    private String themeSettings;
+
     public Staff(){
     }
 

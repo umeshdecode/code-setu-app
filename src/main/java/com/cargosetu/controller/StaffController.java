@@ -3,6 +3,7 @@ package com.cargosetu.controller;
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
+import com.cargosetu.dto.UserPreferencesDTO;
 import com.cargosetu.service.StaffService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonConstants;
@@ -152,6 +153,54 @@ public class StaffController {
             dto.setData(updated);
             dto.setResponseCode(CommonStatusCode.SUCCESS);
             dto.setResponseMessege("Profile" + CommonStatusCode.MSG_UPDATED);
+        } else {
+            dto.setResponseCode(CommonStatusCode.NOT_FOUND);
+            dto.setResponseMessege("Staff not found or deleted");
+        }
+        return dto;
+    }
+
+    /**
+     * The logged-in user's own UI preferences. Kept separate from /myprofile so the theme can be
+     * read and written on its own, and so it survives across the user's browsers and devices.
+     */
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/myprofile/preferences")
+    public GenericDataDTO getMyPreferences(@AuthenticationPrincipal LoggedInUser user){
+        GenericDataDTO dto = new GenericDataDTO();
+        if (user == null || user.getStaffId() == null) {
+            dto.setResponseCode(HttpStatus.UNAUTHORIZED.value());
+            dto.setResponseMessege(CommonStatusCode.MSG_UNAUTHORIZED);
+            return dto;
+        }
+        UserPreferencesDTO preferences = staffService.getMyPreferences(user.getStaffId());
+        if (Objects.nonNull(preferences)) {
+            dto.setData(preferences);
+            dto.setResponseCode(CommonStatusCode.SUCCESS);
+            dto.setResponseMessege("Preferences fetched successfully");
+        } else {
+            dto.setResponseCode(CommonStatusCode.NOT_FOUND);
+            dto.setResponseMessege("Staff not found or deleted");
+        }
+        return dto;
+    }
+
+    /** PUT rather than PATCH: PATCH is absent from the CORS allowed-methods list in SecurityConfig. */
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/myprofile/preferences")
+    public GenericDataDTO updateMyPreferences(@AuthenticationPrincipal LoggedInUser user,
+                                              @Valid @RequestBody UserPreferencesDTO preferencesDTO){
+        GenericDataDTO dto = new GenericDataDTO();
+        if (user == null || user.getStaffId() == null) {
+            dto.setResponseCode(HttpStatus.UNAUTHORIZED.value());
+            dto.setResponseMessege(CommonStatusCode.MSG_UNAUTHORIZED);
+            return dto;
+        }
+        UserPreferencesDTO updated = staffService.updateMyPreferences(user.getStaffId(), preferencesDTO);
+        if (Objects.nonNull(updated)) {
+            dto.setData(updated);
+            dto.setResponseCode(CommonStatusCode.SUCCESS);
+            dto.setResponseMessege("Preferences" + CommonStatusCode.MSG_UPDATED);
         } else {
             dto.setResponseCode(CommonStatusCode.NOT_FOUND);
             dto.setResponseMessege("Staff not found or deleted");

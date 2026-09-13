@@ -3,6 +3,7 @@ package com.cargosetu.service;
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.RolesDTO;
 import com.cargosetu.dto.StaffDTO;
+import com.cargosetu.dto.UserPreferencesDTO;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.mapper.PermissionMapper;
 import com.cargosetu.mapper.StaffMapper;
@@ -49,6 +50,12 @@ public class StaffService {
 
     /** Hard cap on the uploaded photo size (5 MB). */
     private static final long MAX_PROFILE_IMAGE_BYTES = 5L * 1024 * 1024;
+
+    /** Matches the UI default so a user who never opened the theme panel still gets a valid mode. */
+    private static final String DEFAULT_THEME_MODE = "system";
+
+    private static final com.fasterxml.jackson.databind.ObjectMapper preferencesObjectMapper =
+            new com.fasterxml.jackson.databind.ObjectMapper();
 
     private final StaffRepository staffRepository;
     private final RolesRepo rolesRepo;
@@ -380,6 +387,86 @@ public class StaffService {
         Staff saved = staffRepository.save(staff);
         log.info("Self profile updated for staffId={}", staffId);
         return withProfileImage(staffMapper.toDto(saved));
+    }
+
+    /**
+     * Reads the logged-in user's stored UI preferences.
+     *
+     * @return the stored preferences, defaults when nothing has been saved yet,
+     *         or {@code null} if no such staff
+     */
+    public UserPreferencesDTO getMyPreferences(Long staffId) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        Staff staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false).orElse(null);
+        if (staff == null) {
+            return null;
+        }
+        return readPreferences(staff);
+    }
+
+    /**
+     * Partial update of the logged-in user's UI preferences. Fields the client omits keep
+     * their stored value, so a client that only knows about {@code mode} cannot wipe the font.
+     *
+     * @return the updated preferences, or {@code null} if no such staff
+     */
+    @Transactional
+    public UserPreferencesDTO updateMyPreferences(Long staffId, UserPreferencesDTO preferencesDTO) {
+        if (staffId == null || staffId <= 0) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid staff id");
+        }
+        if (preferencesDTO == null) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Invalid request");
+        }
+        Staff staff = staffRepository.findByStaffIdAndIsDeleted(staffId, false).orElse(null);
+        if (staff == null) {
+            return null;
+        }
+
+        UserPreferencesDTO merged = readPreferences(staff);
+        applyIfPresent(preferencesDTO.getMode(), merged::setMode);
+        applyIfPresent(preferencesDTO.getFontFamily(), merged::setFontFamily);
+
+        try {
+            staff.setThemeSettings(preferencesObjectMapper.writeValueAsString(merged));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR, "Unable to save preferences");
+        }
+
+        stampAudit(staff);
+        staffRepository.save(staff);
+        log.info("Preferences updated for staffId={}", staffId);
+        return merged;
+    }
+
+    /**
+     * Preferences are stored as free-form JSON, so a blob written by an older or newer client
+     * must never break login — an unreadable value degrades to defaults rather than throwing.
+     */
+    private UserPreferencesDTO readPreferences(Staff staff) {
+        String stored = staff.getThemeSettings();
+        if (stored == null || stored.isBlank()) {
+            return defaultPreferences();
+        }
+        try {
+            UserPreferencesDTO preferences = preferencesObjectMapper.readValue(stored, UserPreferencesDTO.class);
+            if (preferences.getMode() == null || preferences.getMode().isBlank()) {
+                preferences.setMode(DEFAULT_THEME_MODE);
+            }
+            return preferences;
+        } catch (Exception e) {
+            log.warn("Unreadable theme_settings for staffId={}, falling back to defaults: {}",
+                    staff.getStaffId(), e.getMessage());
+            return defaultPreferences();
+        }
+    }
+
+    private UserPreferencesDTO defaultPreferences() {
+        UserPreferencesDTO preferences = new UserPreferencesDTO();
+        preferences.setMode(DEFAULT_THEME_MODE);
+        return preferences;
     }
 
     /** Applies a value only when the client actually sent one (non-null, non-blank). */

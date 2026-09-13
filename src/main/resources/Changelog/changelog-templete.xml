@@ -95,4 +95,14 @@ CargoSetu Team"/>
         </insert>
 
     </changeSet>
+    <changeSet id="ADD_THEME_SETTINGS_TO_STAFF_SKP0104" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="tblm_staff" columnName="theme_settings"/></not>
+        </preConditions>
+        <addColumn tableName="tblm_staff">
+            <column name="theme_settings" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>
