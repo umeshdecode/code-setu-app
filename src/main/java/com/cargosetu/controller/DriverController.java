@@ -4,6 +4,7 @@ import com.cargosetu.dto.DriverDto;
 import com.cargosetu.model.Driver;
 import com.cargosetu.service.DriverService;
 import com.cargosetu.utils.BaseURL;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class DriverController {
     private DriverService driverService;
 
     @PostMapping
-    public ResponseEntity<Driver> create(@RequestBody DriverDto driver) {
+    public ResponseEntity<Driver> create(@Valid @RequestBody DriverDto driver) {
         return ResponseEntity.ok(driverService.createDriver(driver));
     }
 
@@ -33,7 +34,7 @@ public class DriverController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Driver> update(@PathVariable Long id, @RequestBody DriverDto driver) {
+    public ResponseEntity<Driver> update(@PathVariable Long id, @Valid @RequestBody DriverDto driver) {
         return ResponseEntity.ok(driverService.updateDriver(id, driver));
     }
 

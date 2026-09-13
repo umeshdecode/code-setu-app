@@ -8,6 +8,7 @@ import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonConstants;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -53,7 +54,7 @@ public class StaffController {
             "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_CREATE)"
     )
     @PostMapping
-    public GenericDataDTO createStaff(@RequestBody StaffDTO staffDTO){
+    public GenericDataDTO createStaff(@Valid @RequestBody StaffDTO staffDTO){
         GenericDataDTO dto = new GenericDataDTO();
         boolean validated = staffService.validateCreateStaffRequest(staffDTO);
         if(validated){
@@ -80,7 +81,7 @@ public class StaffController {
             "hasAuthority(T(com.cargosetu.utils.PermissionConstants).STAFF_UPDATE_DELETE)"
     )
     @PutMapping("/{staffId}")
-    public GenericDataDTO updateStaff(@PathVariable("staffId") Long staffId, @RequestBody StaffDTO staffDTO){
+    public GenericDataDTO updateStaff(@PathVariable("staffId") Long staffId, @Valid @RequestBody StaffDTO staffDTO){
         GenericDataDTO dto = new GenericDataDTO();
         StaffDTO updated = staffService.updateStaff(staffId, staffDTO);
         if(Objects.nonNull(updated)){
@@ -139,7 +140,7 @@ public class StaffController {
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/myprofile")
     public GenericDataDTO updateMyProfile(@AuthenticationPrincipal LoggedInUser user,
-                                         @RequestBody StaffDTO staffDTO){
+                                         @Valid @RequestBody StaffDTO staffDTO){
         GenericDataDTO dto = new GenericDataDTO();
         if (user == null || user.getStaffId() == null) {
             dto.setResponseCode(HttpStatus.UNAUTHORIZED.value());

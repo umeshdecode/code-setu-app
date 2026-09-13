@@ -4,6 +4,7 @@ import com.cargosetu.dto.VehicleDto;
 import com.cargosetu.model.Vehicle;
 import com.cargosetu.service.VehicleService;
 import com.cargosetu.utils.BaseURL;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class VehicleController {
     private VehicleService vehicleService;
 
     @PostMapping
-    public ResponseEntity<Vehicle> create(@RequestBody VehicleDto vehicle) {
+    public ResponseEntity<Vehicle> create(@Valid @RequestBody VehicleDto vehicle) {
         return ResponseEntity.ok(vehicleService.createVehicle(vehicle));
     }
 
@@ -33,7 +34,7 @@ public class VehicleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Vehicle> update(@PathVariable Long id, @RequestBody VehicleDto vehicle) {
+    public ResponseEntity<Vehicle> update(@PathVariable Long id, @Valid @RequestBody VehicleDto vehicle) {
         return ResponseEntity.ok(vehicleService.updateVehicle(id, vehicle));
     }
 

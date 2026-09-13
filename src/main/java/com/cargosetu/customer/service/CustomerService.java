@@ -1,8 +1,10 @@
 package com.cargosetu.customer.service;
 
 import com.cargosetu.config.dto.LoggedInUser;
+import com.cargosetu.customer.dtos.ChargesDTO;
 import com.cargosetu.customer.dtos.CustomerDTO;
 import com.cargosetu.customer.dtos.CustomerUpdateDto;
+import com.cargosetu.customer.dtos.ExtraChargesDTO;
 import com.cargosetu.customer.dtos.ShiftingDTO;
 import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.customer.entity.ExtraCharges;
@@ -58,7 +60,62 @@ public class CustomerService {
         if(Objects.isNull(customerDTO)) return  new ValidationResponse(false, "Invalid Request!!");
         if(customerDTO.getFirstName() == null) return new ValidationResponse(false, "customer name is required!!");
 
+        String chargesError = validateShiftingCharges(customerDTO.getShiftings());
+        if (chargesError != null) return new ValidationResponse(false, chargesError);
+
         return validationResponse;
+    }
+
+    /**
+     * CustomerDTO (and its nested ShiftingDTO/ChargesDTO/ExtraChargesDTO) carry no Bean
+     * Validation annotations and are never passed through {@code @Valid} — this service's
+     * manual checks are the only gate on their content. Without this, a negative charge or
+     * rate would be persisted as-is.
+     */
+    private String validateShiftingCharges(List<ShiftingDTO> shiftings) {
+        if (shiftings == null) return null;
+
+        for (int i = 0; i < shiftings.size(); i++) {
+            ChargesDTO charges = shiftings.get(i).getChargesDTO();
+            if (charges == null) continue;
+
+            String label = "Shifting " + (i + 1) + ": ";
+
+            if (isNegative(charges.getTransportCharge()))    return label + "Transport charge cannot be negative";
+            if (isNegative(charges.getPackingCharge()))      return label + "Packing charge cannot be negative";
+            if (isNegative(charges.getLoadingCharge()))      return label + "Loading charge cannot be negative";
+            if (isNegative(charges.getUnloadingCharge()))    return label + "Unloading charge cannot be negative";
+            if (isNegative(charges.getUnpackingCharge()))    return label + "Unpacking charge cannot be negative";
+            if (isNegative(charges.getCarTransportCharge())) return label + "Car transport charge cannot be negative";
+            if (isNegative(charges.getRiskInsureCharge()))   return label + "Risk/insurance charge cannot be negative";
+            if (isNegative(charges.getStorageCharge()))      return label + "Storage charge cannot be negative";
+            if (isNegative(charges.getStatisticalCharge()))  return label + "Statistical charge cannot be negative";
+            if (isNegative(charges.getServiceCharge()))      return label + "Service charge cannot be negative";
+            if (isNegative(charges.getGstCharge()))           return label + "GST charge cannot be negative";
+            if (isNegative(charges.getServiceRate()) || isOutsidePercentRange(charges.getServiceRate()))
+                return label + "Service rate must be between 0 and 100";
+            if (isNegative(charges.getGstRate()) || isOutsidePercentRange(charges.getGstRate()))
+                return label + "GST rate must be between 0 and 100";
+
+            if (charges.getExtraChargesList() != null) {
+                for (ExtraChargesDTO extra : charges.getExtraChargesList()) {
+                    if (extra == null) continue;
+                    if (isNegative(extra.getChargeValue()) || isNegative(extra.getChargeRate())) {
+                        return label + "Extra charge \"" + (extra.getChargeName() != null ? extra.getChargeName() : "")
+                                + "\" cannot be negative";
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isNegative(Number value) {
+        return value != null && value.doubleValue() < 0;
+    }
+
+    private boolean isOutsidePercentRange(Number value) {
+        return value != null && value.doubleValue() > 100;
     }
 
     @Transactional
@@ -165,6 +222,10 @@ public class CustomerService {
                 return new ValidationResponse(false, "Invalid customer");
             }
         }
+
+        String chargesError = validateShiftingCharges(customerDTO.getShiftings());
+        if (chargesError != null) return new ValidationResponse(false, chargesError);
+
         return validationResponse;
     }
 

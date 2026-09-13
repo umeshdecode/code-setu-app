@@ -1,5 +1,7 @@
 package com.cargosetu.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -22,6 +24,8 @@ public class DriverDto {
     private LocalDate licenseExpiryDate;
 
 
+    @NotNull(message = "Experience years is required")
+    @PositiveOrZero(message = "Experience years cannot be negative")
     private Integer experienceYears;
 
 

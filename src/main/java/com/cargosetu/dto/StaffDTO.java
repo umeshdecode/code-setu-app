@@ -2,6 +2,8 @@ package com.cargosetu.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -35,6 +37,8 @@ public class StaffDTO {
     private String address;
     private String city;
     private String state;
+
+    @Pattern(regexp = "^$|^[0-9]{6}$", message = "Pincode must be 6 digits")
     private String pincode;
     private String licenseNumber;
     private LocalDate licenseExpiryDate;
@@ -44,6 +48,8 @@ public class StaffDTO {
     private String previousPassword;
     private DepartmentDTO department;
     private Integer companyId;
+
+    @PositiveOrZero(message = "Salary cannot be negative")
     private Integer salary;
     private Set<Long> roleIds = new HashSet<>();
 }
