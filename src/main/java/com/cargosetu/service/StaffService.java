@@ -113,6 +113,9 @@ public class StaffService {
             if(staffDTO.getPassword() == null || staffDTO.getPassword().isBlank()){
                 throw new CustomValidationException(CommonStatusCode.VALIDATION_ERROR,"Password is required");
             }
+            // Self-signup always creates the company admin, so staffType must reflect that
+            // designation rather than whatever placeholder the signup form happened to send.
+            staff.setStaffType(CommonConstants.RolesConstants.COMPANY_ADMIN);
         }else {
             List<Role> roleAndPermissions = staffDTO.getRoleIds() != null
                     ? rolesRepo.findAllById(staffDTO.getRoleIds())
