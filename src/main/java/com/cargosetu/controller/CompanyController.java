@@ -4,6 +4,7 @@ import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.dto.DocumentUploadDTO;
+import com.cargosetu.dto.SelectPlanRequestDTO;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
@@ -48,6 +49,13 @@ public class CompanyController {
 
         log.info("API: Update Company {}", company.getCompanyId());
         return companyService.updateCompany(company.getCompanyId(), company);
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
+    @PutMapping("/{id}/plan")
+    public GenericDataDTO selectPlan(@PathVariable Integer id, @Valid @RequestBody SelectPlanRequestDTO body) {
+        log.info("API: Select Plan {} for Company {}", body.getPlanId(), id);
+        return companyService.selectPlan(id, body.getPlanId());
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")

@@ -13,6 +13,8 @@ public interface CompanyService {
 
     GenericDataDTO updateCompany(Integer id, CompanyDTO company);
 
+    GenericDataDTO selectPlan(Integer companyId, Integer planId);
+
     GenericDataDTO getCompanyById(String uuid);
 
     GenericDataDTO getAllCompanies(LoggedInUser user);

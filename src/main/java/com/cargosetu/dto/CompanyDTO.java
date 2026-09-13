@@ -96,6 +96,9 @@ public class CompanyDTO {
     @JsonProperty("isActive")
     private boolean isActive;
 
+    // Set only through the dedicated select-plan endpoint; read-only elsewhere.
+    private Integer selectedPlanId;
+
     public static CompanyDTO from(Company c,
                                   String logoBase64, String sealBase64) {
         String name = c.getCompanyName() != null ? c.getCompanyName().trim() : "";
@@ -120,6 +123,7 @@ public class CompanyDTO {
                 .logoBase64(logoBase64)
                 .sealBase64(sealBase64)
                 .website(c.getWebsite())
+                .selectedPlanId(c.getSelectedPlanId())
                 .build();
     }
 }

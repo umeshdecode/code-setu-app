@@ -10,6 +10,7 @@ import com.cargosetu.model.Staff;
 import com.cargosetu.repo.ClientServiceRepo;
 import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
+import com.cargosetu.repo.PlanRepository;
 import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
@@ -46,6 +47,8 @@ public class CompanyServImpl implements CompanyService {
     private StaffRepository staffRepository;
     @Autowired
     private S3StorageService s3StorageService;
+    @Autowired
+    private PlanRepository planRepository;
 
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto, Long staffId) {
@@ -157,6 +160,40 @@ public class CompanyServImpl implements CompanyService {
         } catch (Exception e) {
             log.error("Error updating company {}", id, e);
             response.setResponseMessege("Failed to update company");
+            response.setResponseCode(500);
+        }
+        return response;
+    }
+
+    @Override
+    public GenericDataDTO selectPlan(Integer companyId, Integer planId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            log.info("Selecting plan {} for company {}", planId, companyId);
+
+            Company company = companyRepository.findById(companyId).orElse(null);
+            if (company == null) {
+                response.setResponseMessege("Company not found");
+                response.setResponseCode(404);
+                return response;
+            }
+
+            boolean planExists = planRepository.findByPlanId(planId).isPresent();
+            if (!planExists) {
+                response.setResponseMessege("Plan not found");
+                response.setResponseCode(404);
+                return response;
+            }
+
+            company.setSelectedPlanId(planId);
+            company.setUpdatedAt(LocalDateTime.now());
+            companyRepository.save(company);
+
+            response.setResponseMessege("Plan selected successfully");
+            response.setResponseCode(200);
+        } catch (Exception e) {
+            log.error("Error selecting plan {} for company {}", planId, companyId, e);
+            response.setResponseMessege("Failed to select plan");
             response.setResponseCode(500);
         }
         return response;

@@ -82,6 +82,11 @@ public class Company extends AbstractModel {
 
     private String website;
 
+    // Set only through the dedicated select-plan endpoint (CompanyService.selectPlan),
+    // never through the create/update DTO constructor below.
+    @Column(name = "selected_plan_id")
+    private Integer selectedPlanId;
+
     public Company() {
     }
     public Company(CompanyDTO companyDto) {
