@@ -18,4 +18,8 @@ public class UserPreferencesDTO {
 
     @Size(max = 200, message = "Font family must be at most 200 characters")
     private String fontFamily;
+
+    /** Accent colour picked from the fixed "Web light blue" palette on the frontend. */
+    @Pattern(regexp = "^$|^#[0-9a-fA-F]{6}$", message = "Primary colour must be a 6-digit hex value")
+    private String primaryColor;
 }

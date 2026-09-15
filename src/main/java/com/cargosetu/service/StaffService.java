@@ -431,6 +431,7 @@ public class StaffService {
         UserPreferencesDTO merged = readPreferences(staff);
         applyIfPresent(preferencesDTO.getMode(), merged::setMode);
         applyIfPresent(preferencesDTO.getFontFamily(), merged::setFontFamily);
+        applyIfPresent(preferencesDTO.getPrimaryColor(), merged::setPrimaryColor);
 
         try {
             staff.setThemeSettings(preferencesObjectMapper.writeValueAsString(merged));
