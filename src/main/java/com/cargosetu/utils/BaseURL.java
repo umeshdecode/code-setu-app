@@ -17,6 +17,8 @@ public interface BaseURL {
     final String BRANCHES ="/branches";
     final String PUBLIC_PLAN= "public";
     final String INQUERY = "/api/inquiries";
+    final String SHIPMENT = "/shipment";
+    final String LOAD_MATCHING = "/load-matching";
 
 
 }

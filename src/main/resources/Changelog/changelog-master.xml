@@ -513,4 +513,366 @@
             <column name="created_by_name" value="super admin"/>
         </insert>
     </changeSet>
+    <!-- ===================================================== -->
+    <!-- 1. tblm_trip_shipment                                  -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_TRIP_SHIPMENT_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_trip_shipment"/></not>
+        </preConditions>
+        <createTable tableName="tblm_trip_shipment">
+            <column name="trip_shipment_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="shipment_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="load_match_id" type="BIGINT"/>
+            <column name="allocated_weight_kg" type="DOUBLE"/>
+            <column name="allocated_volume_cbm" type="DOUBLE"/>
+            <column name="sequence_order" type="INT"/>
+            <column name="manifest_status" type="VARCHAR(50)"/>
+            <column name="company_id" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tblm_trip_shipment" baseColumnNames="trip_id"
+                                 referencedTableName="tbl_trip" referencedColumnNames="trip_id"
+                                 constraintName="fk_trip_shipment_trip"/>
+        <addForeignKeyConstraint baseTableName="tblm_trip_shipment" baseColumnNames="shipment_id"
+                                 referencedTableName="tblm_shipment" referencedColumnNames="shipment_id"
+                                 constraintName="fk_trip_shipment_shipment"/>
+        <addForeignKeyConstraint baseTableName="tblm_trip_shipment" baseColumnNames="load_match_id"
+                                 referencedTableName="tblm_load_match" referencedColumnNames="load_match_id"
+                                 constraintName="fk_trip_shipment_load_match"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Index for manifest lookups by trip                 -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_TRIP_SHIPMENT_INDEXES_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_trip_shipment"/>
+            <not><indexExists tableName="tblm_trip_shipment" indexName="idx_trip_shipment_trip"/></not>
+        </preConditions>
+        <createIndex tableName="tblm_trip_shipment" indexName="idx_trip_shipment_trip">
+            <column name="trip_id"/>
+            <column name="sequence_order"/>
+        </createIndex>
+        <createIndex tableName="tblm_trip_shipment" indexName="idx_trip_shipment_shipment">
+            <column name="shipment_id"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. tbl_trip - optimistic-locking version column        -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_TBL_TRIP_ADD_VERSION_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tbl_trip"/>
+            <not><columnExists tableName="tbl_trip" columnName="version"/></not>
+        </preConditions>
+        <addColumn tableName="tbl_trip">
+            <column name="version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 4. tblm_load_match - rejection reason column           -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_TBLM_LOAD_MATCH_ADD_REJECTION_REASON_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_load_match"/>
+            <not><columnExists tableName="tblm_load_match" columnName="rejection_reason"/></not>
+        </preConditions>
+        <addColumn tableName="tblm_load_match">
+            <column name="rejection_reason" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 5. Seed request/accept/reject + manifest permissions   -->
+    <!-- ===================================================== -->
+    <changeSet id="LOADMATCH_MANIFEST_PERMISSIONS_SEED_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'LOADMATCH_REQUEST'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_permissions">
+            <column name="code" value="LOADMATCH_REQUEST"/><column name="name" value="Load Match Request"/><column name="description" value="Permission to request a suggested load match"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="LOADMATCH_ACCEPT"/><column name="name" value="Load Match Accept"/><column name="description" value="Permission to accept a requested load match"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="LOADMATCH_REJECT"/><column name="name" value="Load Match Reject"/><column name="description" value="Permission to reject a load match"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MANIFEST_READ"/><column name="name" value="Trip Manifest Read"/><column name="description" value="Permission to view a trip's shipment manifest"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MANIFEST_UPDATE"/><column name="name" value="Trip Manifest Update"/><column name="description" value="Permission to update a trip manifest entry's status or sequence"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Map new permissions to SuperAdmin role -->
+        <sql>
+            INSERT INTO tblm_role_permissions (role_id, permission_id)
+            SELECT r.role_id, p.permission_id
+            FROM tblm_roles r
+                     CROSS JOIN tblm_permissions p
+            WHERE r.code = 'SUPERADMIN'
+              AND p.code IN ('LOADMATCH_REQUEST', 'LOADMATCH_ACCEPT', 'LOADMATCH_REJECT', 'MANIFEST_READ', 'MANIFEST_UPDATE')
+              AND NOT EXISTS (
+                    SELECT 1 FROM tblm_role_permissions rp
+                    WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+                );
+        </sql>
+    </changeSet>
+    <!-- ===================================================== -->
+    <!-- 1. tblm_load_match                                     -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_LOAD_MATCH_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_load_match"/></not>
+        </preConditions>
+        <createTable tableName="tblm_load_match">
+            <column name="load_match_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shipment_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="overall_score" type="DOUBLE"/>
+            <column name="route_score" type="DOUBLE"/>
+            <column name="capacity_score" type="DOUBLE"/>
+            <column name="weight_score" type="DOUBLE"/>
+            <column name="timing_score" type="DOUBLE"/>
+            <column name="vehicle_score" type="DOUBLE"/>
+            <column name="handling_score" type="DOUBLE"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="expires_at" type="DATETIME"/>
+            <column name="company_id" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tblm_load_match" baseColumnNames="shipment_id"
+                                 referencedTableName="tblm_shipment" referencedColumnNames="shipment_id"
+                                 constraintName="fk_load_match_shipment"/>
+        <addForeignKeyConstraint baseTableName="tblm_load_match" baseColumnNames="trip_id"
+                                 referencedTableName="tbl_trip" referencedColumnNames="trip_id"
+                                 constraintName="fk_load_match_trip"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Indexes for LoadMatch lookups                       -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_LOAD_MATCH_INDEXES_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_load_match"/>
+            <not><indexExists tableName="tblm_load_match" indexName="idx_load_match_shipment_status"/></not>
+        </preConditions>
+        <createIndex tableName="tblm_load_match" indexName="idx_load_match_shipment_status">
+            <column name="shipment_id"/>
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="tblm_load_match" indexName="idx_load_match_trip_status">
+            <column name="trip_id"/>
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. Seed Load Matching Permission                       -->
+    <!-- ===================================================== -->
+    <changeSet id="LOADMATCH_MATCHING_PERMISSIONS_SEED_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'LOADMATCH_VIEW'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_permissions">
+            <column name="code" value="LOADMATCH_VIEW"/><column name="name" value="Load Match View"/><column name="description" value="Permission to view smart load matching suggestions"/><column name="module" value="Load Matching Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Map new permission to SuperAdmin role -->
+        <sql>
+            INSERT INTO tblm_role_permissions (role_id, permission_id)
+            SELECT r.role_id, p.permission_id
+            FROM tblm_roles r
+                     CROSS JOIN tblm_permissions p
+            WHERE r.code = 'SUPERADMIN'
+              AND p.code IN ('LOADMATCH_VIEW')
+              AND NOT EXISTS (
+                    SELECT 1 FROM tblm_role_permissions rp
+                    WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+                );
+        </sql>
+    </changeSet>
+    <!-- ===================================================== -->
+    <!-- 1. tblm_shipment                                       -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_SHIPMENT_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_shipment"/></not>
+        </preConditions>
+        <createTable tableName="tblm_shipment">
+            <column name="shipment_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="customer_id" type="BIGINT"/>
+            <column name="source_city" type="VARCHAR(150)"/>
+            <column name="destination_city" type="VARCHAR(150)"/>
+            <column name="pickup_address" type="VARCHAR(500)"/>
+            <column name="drop_address" type="VARCHAR(500)"/>
+            <column name="cargo_type" type="VARCHAR(100)"/>
+            <column name="total_weight_kg" type="DOUBLE"/>
+            <column name="total_volume_cbm" type="DOUBLE"/>
+            <column name="length_cm" type="DOUBLE"/>
+            <column name="width_cm" type="DOUBLE"/>
+            <column name="height_cm" type="DOUBLE"/>
+            <column name="required_pickup_date" type="DATE"/>
+            <column name="required_delivery_date" type="DATE"/>
+            <column name="special_handling" type="VARCHAR(500)"/>
+            <column name="vehicle_type_required" type="VARCHAR(100)"/>
+            <column name="status" type="VARCHAR(50)"/>
+            <column name="company_id" type="INT"/>
+            <column name="cust_id" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tblm_shipment" baseColumnNames="customer_id"
+                                 referencedTableName="tblm_customers" referencedColumnNames="customer_id"
+                                 constraintName="fk_shipment_customer"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. tblm_shipment_item                                  -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_SHIPMENT_ITEM_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_shipment_item"/></not>
+        </preConditions>
+        <createTable tableName="tblm_shipment_item">
+            <column name="shipment_item_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="shipment_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="item_name" type="VARCHAR(200)"/>
+            <column name="weight_kg" type="DOUBLE"/>
+            <column name="volume_cbm" type="DOUBLE"/>
+            <column name="length_cm" type="DOUBLE"/>
+            <column name="width_cm" type="DOUBLE"/>
+            <column name="height_cm" type="DOUBLE"/>
+            <column name="quantity" type="INT"/>
+            <column name="fragile" type="BIT" defaultValueBoolean="false"/>
+            <column name="stackable" type="BIT" defaultValueBoolean="true"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tblm_shipment_item" baseColumnNames="shipment_id"
+                                 referencedTableName="tblm_shipment" referencedColumnNames="shipment_id"
+                                 constraintName="fk_shipment_item_shipment"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. tblm_trip_stop                                      -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TBLM_TRIP_STOP_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_trip_stop"/></not>
+        </preConditions>
+        <createTable tableName="tblm_trip_stop">
+            <column name="trip_stop_id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="stop_city" type="VARCHAR(150)"/>
+            <column name="sequence_order" type="INT"/>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"/><column name="is_deleted" type="BIT" defaultValueBoolean="false"/>
+            <column name="created_by" type="BIGINT"/><column name="created_by_name" type="VARCHAR(255)"/><column name="created_at" type="DATETIME"/>
+            <column name="updated_by_id" type="BIGINT"/><column name="updated_by_name" type="VARCHAR(255)"/><column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="tblm_trip_stop" baseColumnNames="trip_id"
+                                 referencedTableName="tbl_trip" referencedColumnNames="trip_id"
+                                 constraintName="fk_trip_stop_trip"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 4. tbl_trip - capacity tracking columns                -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_TBL_TRIP_ADD_CAPACITY_COLUMNS_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tbl_trip"/>
+            <not><columnExists tableName="tbl_trip" columnName="remaining_weight_kg"/></not>
+        </preConditions>
+        <addColumn tableName="tbl_trip">
+            <column name="remaining_weight_kg" type="DOUBLE"/>
+            <column name="remaining_volume_cbm" type="DOUBLE"/>
+            <column name="total_weight_kg" type="DOUBLE"/>
+            <column name="total_volume_cbm" type="DOUBLE"/>
+            <column name="vehicle_capacity_kg" type="DOUBLE"/>
+            <column name="vehicle_capacity_cbm" type="DOUBLE"/>
+            <column name="vehicle_type_category" type="VARCHAR(100)"/>
+            <column name="equipment_tags" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 5. vehicles - capacity/equipment columns               -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_VEHICLES_ADD_CAPACITY_COLUMNS_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="capacity_cbm"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
+            <column name="capacity_cbm" type="DOUBLE"/>
+            <column name="length_cm" type="DOUBLE"/>
+            <column name="width_cm" type="DOUBLE"/>
+            <column name="height_cm" type="DOUBLE"/>
+            <column name="body_type" type="VARCHAR(100)"/>
+            <column name="equipment_tags" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 6. Seed Shipment / Trip-Capacity Permissions           -->
+    <!-- ===================================================== -->
+    <changeSet id="LOADMATCH_PERMISSIONS_SEED_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'SHIPMENT_CREATE'
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblm_permissions">
+            <column name="code" value="SHIPMENT_CREATE"/><column name="name" value="Shipment Create"/><column name="description" value="Permission to create shipment requests"/><column name="module" value="Shipment Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="SHIPMENT_READ"/><column name="name" value="Shipment Read"/><column name="description" value="Permission to view shipment requests"/><column name="module" value="Shipment Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="SHIPMENT_UPDATE"/><column name="name" value="Shipment Update"/><column name="description" value="Permission to update shipment requests"/><column name="module" value="Shipment Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="SHIPMENT_DELETE"/><column name="name" value="Shipment Delete"/><column name="description" value="Permission to delete shipment requests"/><column name="module" value="Shipment Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="TRIP_CAPACITY_UPDATE"/><column name="name" value="Trip Capacity Update"/><column name="description" value="Permission to update trip capacity and stops"/><column name="module" value="Trip Module"/><column name="is_active" valueBoolean="true"/><column name="is_deleted" valueBoolean="false"/><column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+
+        <!-- Map new permissions to SuperAdmin role -->
+        <sql>
+            INSERT INTO tblm_role_permissions (role_id, permission_id)
+            SELECT r.role_id, p.permission_id
+            FROM tblm_roles r
+                     CROSS JOIN tblm_permissions p
+            WHERE r.code = 'SUPERADMIN'
+              AND p.code IN ('SHIPMENT_CREATE', 'SHIPMENT_READ', 'SHIPMENT_UPDATE', 'SHIPMENT_DELETE', 'TRIP_CAPACITY_UPDATE')
+              AND NOT EXISTS (
+                    SELECT 1 FROM tblm_role_permissions rp
+                    WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+                );
+        </sql>
+    </changeSet>
 </databaseChangeLog>

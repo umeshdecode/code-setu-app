@@ -74,6 +74,19 @@ public class Vehicle {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    // Smart Load Matching - additional capacity/equipment fields
+    private Double capacityCbm;
+
+    private Double lengthCm;
+
+    private Double widthCm;
+
+    private Double heightCm;
+
+    private String bodyType;
+
+    private String equipmentTags;
+
     public Vehicle(VehicleDto dto) {
         if (dto == null) {
             return;

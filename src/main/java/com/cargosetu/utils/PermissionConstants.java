@@ -78,6 +78,25 @@ public class PermissionConstants {
     public static final String TRIP_EXPENSE_UPDATE = PERM_PREFIX + "TRIP_EXPENSE_UPDATE";
     public static final String TRIP_EXPENSE_DELETE = PERM_PREFIX + "TRIP_EXPENSE_DELETE";
 
+    // shipment permissions
+    public static final String SHIPMENT_CREATE = PERM_PREFIX + "SHIPMENT_CREATE";
+    public static final String SHIPMENT_READ = PERM_PREFIX + "SHIPMENT_READ";
+    public static final String SHIPMENT_UPDATE = PERM_PREFIX + "SHIPMENT_UPDATE";
+    public static final String SHIPMENT_DELETE = PERM_PREFIX + "SHIPMENT_DELETE";
+
+    // trip capacity permissions
+    public static final String TRIP_CAPACITY_UPDATE = PERM_PREFIX + "TRIP_CAPACITY_UPDATE";
+
+    // load matching permissions
+    public static final String LOADMATCH_VIEW = PERM_PREFIX + "LOADMATCH_VIEW";
+    public static final String LOADMATCH_REQUEST = PERM_PREFIX + "LOADMATCH_REQUEST";
+    public static final String LOADMATCH_ACCEPT = PERM_PREFIX + "LOADMATCH_ACCEPT";
+    public static final String LOADMATCH_REJECT = PERM_PREFIX + "LOADMATCH_REJECT";
+
+    // trip manifest (TripShipment) permissions
+    public static final String MANIFEST_READ = PERM_PREFIX + "MANIFEST_READ";
+    public static final String MANIFEST_UPDATE = PERM_PREFIX + "MANIFEST_UPDATE";
+
     // department permissions
     public static final String DEPARTMENT_CREATE = PERM_PREFIX + "DEPARTMENT_CREATE";
     public static final String DEPARTMENT_READ   = PERM_PREFIX + "DEPARTMENT_READ";
