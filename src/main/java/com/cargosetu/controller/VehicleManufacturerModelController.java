@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping(BaseURL.BASE_URL + BaseURL.VEHICLE + BaseURL.MANUFACTURER_MODELS)
+@RequestMapping(BaseURL.VEHICLE + BaseURL.MANUFACTURER_MODELS)
 public class VehicleManufacturerModelController {
 
     @Autowired
