@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -67,4 +68,36 @@ public class Shifting {
 
     @Column(name = "token_money")
     private Double tokenMoney;
+
+    // Planned-route endpoints (see trip-route.changelog.xml). Nullable for legacy
+    // rows; only set once staff confirm a point - never auto-derived from a city name.
+    @Column(name = "from_latitude")
+    private Double fromLatitude;
+
+    @Column(name = "from_longitude")
+    private Double fromLongitude;
+
+    @Column(name = "from_location_source")
+    private String fromLocationSource;
+
+    @Column(name = "from_location_confirmed_at")
+    private LocalDateTime fromLocationConfirmedAt;
+
+    @Column(name = "from_location_confirmed_by")
+    private String fromLocationConfirmedBy;
+
+    @Column(name = "to_latitude")
+    private Double toLatitude;
+
+    @Column(name = "to_longitude")
+    private Double toLongitude;
+
+    @Column(name = "to_location_source")
+    private String toLocationSource;
+
+    @Column(name = "to_location_confirmed_at")
+    private LocalDateTime toLocationConfirmedAt;
+
+    @Column(name = "to_location_confirmed_by")
+    private String toLocationConfirmedBy;
 }

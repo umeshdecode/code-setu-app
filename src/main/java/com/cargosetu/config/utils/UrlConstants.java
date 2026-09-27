@@ -32,5 +32,8 @@ public class UrlConstants {
         public static final String TRIP_STATUS_HISTORY = "/trip-status-history";
         public static final String TRIP_EXPENSE = "/trip-expense";
         public static final String TRIP_DOCUMENT = "/trip-document";
+        public static final String TRIP_ROUTE = "/{tripId}/route";
+        public static final String TRIP_ROUTE_GEOCODE = "/{tripId}/route/geocode";
+        public static final String TRIP_ROUTE_LOCATION = "/{tripId}/route/location";
     }
 }

@@ -4,7 +4,7 @@
     <!-- Log Pattern Variable  -->
     <!-- ===================== -->
     <property name="LOG_PATTERN"
-              value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","thread":"%thread","level":"%-5level","className":"%logger","lineNo":"%line","message":"%msg"}%n'/>
+              value='{"timestamp":"%d{yyyy-MM-dd HH:mm:ss}","thread":"%thread","requestId":"%X{requestId}","level":"%-5level","className":"%logger","lineNo":"%line","message":"%msg"}%n'/>
 
 
     <!-- ===================== -->

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -89,6 +90,38 @@ public class ShiftingService {
     }
 
     @Transactional
+    private void applyRouteLocationUpdate(Shifting existing, Shifting incoming) {
+        if (incoming.getFromLatitude() != null && incoming.getFromLongitude() != null) {
+            existing.setFromLatitude(incoming.getFromLatitude());
+            existing.setFromLongitude(incoming.getFromLongitude());
+            existing.setFromLocationSource(incoming.getFromLocationSource());
+            existing.setFromLocationConfirmedAt(LocalDateTime.now());
+            existing.setFromLocationConfirmedBy(incoming.getFromLocationConfirmedBy());
+        } else if (!Objects.equals(existing.getFromAddress(), incoming.getFromAddress())
+                || !Objects.equals(existing.getShiftFromCity(), incoming.getShiftFromCity())) {
+            existing.setFromLatitude(null);
+            existing.setFromLongitude(null);
+            existing.setFromLocationSource(null);
+            existing.setFromLocationConfirmedAt(null);
+            existing.setFromLocationConfirmedBy(null);
+        }
+
+        if (incoming.getToLatitude() != null && incoming.getToLongitude() != null) {
+            existing.setToLatitude(incoming.getToLatitude());
+            existing.setToLongitude(incoming.getToLongitude());
+            existing.setToLocationSource(incoming.getToLocationSource());
+            existing.setToLocationConfirmedAt(LocalDateTime.now());
+            existing.setToLocationConfirmedBy(incoming.getToLocationConfirmedBy());
+        } else if (!Objects.equals(existing.getToAddress(), incoming.getToAddress())
+                || !Objects.equals(existing.getShiftToCity(), incoming.getShiftToCity())) {
+            existing.setToLatitude(null);
+            existing.setToLongitude(null);
+            existing.setToLocationSource(null);
+            existing.setToLocationConfirmedAt(null);
+            existing.setToLocationConfirmedBy(null);
+        }
+    }
+
     public GenericDataDTO updateShifting(ShiftingDTO shiftingDTO) {
         GenericDataDTO response = new GenericDataDTO();
         try {
@@ -124,6 +157,10 @@ public class ShiftingService {
             // A better approach would be to implement updateFromDto in BaseUpdateMapper and use it.
             Shifting updatedShifting = shiftingMapper.toEntity(shiftingDTO);
             updatedShifting.setShiftingId(existingShifting.getShiftingId()); // Ensure ID is preserved for update
+
+            // A confirmed route coordinate belongs to the address it was confirmed for:
+            // drop it when the address/city changes, unless the caller sends a new one.
+            applyRouteLocationUpdate(existingShifting, updatedShifting);
 
             // Copy properties from updatedShifting to existingShifting
             existingShifting.setShiftCompleted(updatedShifting.isShiftCompleted());

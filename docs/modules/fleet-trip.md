@@ -680,8 +680,10 @@ boundary (`VehicleDto` has no annotations, controller has no `@Valid`).
    `@Transactional` method — the `Trip` row still commits while the API reports a 500 (§3.1).
 6. `TripService.updateTrip`'s status-history logging never actually fires on a real status change (dead
    comparison logic), and can NPE (with the same silent-partial-commit issue) in an edge case (§3.2).
-7. `VehicleLocationRepo.findLatestLocationToday` filters on `t.id` instead of `t.vehicle_id` — effectively
-   broken for any fleet with more than one location row (§3.4).
+7. ~~`VehicleLocationRepo.findLatestLocationToday` filters on `t.id` instead of `t.vehicle_id` — effectively
+   broken for any fleet with more than one location row (§3.4).~~ **Fixed 2026-09-27** — now filters on
+   `t.vehicle_id`. (The frontend `VehicleLocationService` also called the wrong GET path; fixed to
+   `/vehicle/location/{id}/location`.)
 8. `DriverVehicleAssignmentServiceImpl.assignDriver` only deactivates the driver's prior assignments, not
    the vehicle's — a vehicle can end up double-assigned (§3.7).
 9. `assignDriver`/`unassign` write free-text `"Assigned"`/`"Available"` into `Driver.status`/
@@ -689,8 +691,9 @@ boundary (`VehicleDto` has no annotations, controller has no `@Valid`).
 10. `TripDocumentService.create()` reads the wrong field (`getName()` instead of `getValue()`) from the
     `Clientservice` config row, so uploads don't go to the intended configured directory; `update()`/
     `delete()` use yet a third, different hardcoded path (§9).
-11. `Trip.plannedEenTime` (typo for `plannedEndTime`) has no DTO/mapper path — permanently unreachable
-    (§4, §11).
+11. ~~`Trip.plannedEenTime` (typo for `plannedEndTime`) has no DTO/mapper path — permanently unreachable
+    (§4, §11).~~ **Fixed 2026-09-27** — exposed as `TripDTO.plannedEndTime` (mapped both ways, applied by
+    `updateTrip`). The entity/column name is unchanged.
 12. `TripExpense` approval fields (`approvedBy`, `approvedAt`) are never populated by any code path; the
     DTO doesn't even include `approvedAt` (§11).
 13. `TripTracking` and `DriverAdvance` entities exist with no repository/service/controller anywhere —
@@ -698,3 +701,62 @@ boundary (`VehicleDto` has no annotations, controller has no `@Valid`).
 14. `DriverVehicleAssignmentController` hardcodes the unassign reason to the literal string
     `"discreption"` regardless of caller input, and the corresponding service parameter is never read
     (§2.8, §3.7).
+
+---
+
+## 13. Planned Route (Google Maps) — added 2026-09-27
+
+Implements `CargoSetu_Google_Maps_Trip_Route_Implementation_Plan.docx` (MVP + stops). A **planned general
+driving route**. It is not live tracking and not truck-compliant routing.
+
+### Where the data lives
+- Trip origin/destination come from the linked **Shifting** (`shiftFromCity`/`fromAddress`,
+  `shiftToCity`/`toAddress`). Trip itself has no address fields.
+- Confirmed coordinates are stored on `tblm_shifting` (`from_latitude`, `from_longitude`,
+  `from_location_source`, `from_location_confirmed_at`, `from_location_confirmed_by`, and the same `to_*`
+  columns) and on `tblm_trip_stop` (`latitude`, `longitude`, `location_source`). Liquibase:
+  `Changelog/trip-route.changelog.xml`. All columns are nullable and there is **no backfill**.
+- `ShiftingService.updateShifting` clears a confirmed coordinate when its address or city changes, unless
+  new coordinates are sent in the same update.
+- Nothing returned by Google is persisted. `RouteCache` reuses an identical coordinate sequence in memory
+  (`app.maps.route-cache-ttl-seconds`, default 900; set it to 0 to disable). Changing any point changes
+  the cache key.
+
+### Endpoints (`maps/controller/TripRouteController`, base `/api/v2/cargosetu/trip`)
+| Method | Endpoint | Permission | Description |
+|---|---|---|---|
+| GET | `/{tripId}/route?refresh=false` | `TRIP_READ` | Returns a normalized `TripRouteDTO` (source/destination/stops, `distanceMeters`, `durationSeconds`, `encodedPolyline`, `routeStatus`) |
+| POST | `/{tripId}/route/geocode` body `{query}` | `TRIP_UPDATE` | Returns up to 5 Geocoding candidates, each flagged `approximate` for city-level results. **Saves nothing** |
+| PUT | `/{tripId}/route/location` body `{endpoint: SOURCE\|DESTINATION\|STOP, tripStopId?, latitude, longitude, locationSource}` | `TRIP_UPDATE` | Staff confirmation of one point. Addresses are never overwritten |
+
+`responseCode` / `routeStatus` values (the HTTP status is always 200, per the envelope convention):
+- `200 READY`
+- `422 MISSING_LOCATION` (includes `missingEndpoints`)
+- `422 NO_ROUTE`
+- `503 RATE_LIMITED`, `503 PROVIDER_UNAVAILABLE`, `503 NOT_CONFIGURED` (these include a `referenceId`, which is the `X-Request-Id` / log MDC `requestId`)
+- `404`: the trip is missing or belongs to another company. The two cases look identical so the endpoint doesn't reveal which trips exist.
+
+### Provider calls
+- **`GoogleRoutesClient`** calls `computeRoutes` with DRIVE, `TRAFFIC_UNAWARE`, no alternatives, `METRIC` units and `regionCode=IN`.
+  - Field mask: `routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline`, plus leg fields when stops are present.
+  - Only stops with a confirmed coordinate are used, up to 25. The rest are reported as `stopsSkipped`.
+- **`GoogleGeocodingClient`** is used for suggestions only.
+- **Timeouts and retries:** connect 3 s and read 8 s (`app.maps.*`). There is one retry, and only for timeouts and 5xx errors. 4xx errors are never retried.
+- **Server key:** `app.maps.server-api-key=${GOOGLE_MAPS_SERVER_API_KEY:}`. It is separate from the browser key. If it is missing, the endpoint returns `NOT_CONFIGURED`. The key is never logged or returned.
+
+### Company boundary
+`service/TripAccessPolicy` is now enforced in `TripService` (get, list, update and delete) and in the route
+service. A trip's owner is `Trip.companyId`, falling back to `Shifting.companyId`. Staff id 1 (super admin)
+sees everything. Trips with no owner at all stay visible, as they were before. `createTrip` now sets
+`companyId`. `TripCapacityController` (capacity, stops) and `TripShipmentController` are **not yet**
+scoped.
+
+### Frontend (`code-setu-app-ui`)
+- **`services/google-maps-loader.service.ts`** is the single loader for the Maps JS script, using the browser key from `env.js`. It reports rejected keys through `authFailed$`. `DriverLocationComponent` now uses it.
+- **`component/trip-route/trip-route-section.component`** is the "Trip Route & Location" section in the Trip details panel.
+  - It shows the loading, missing-location, no-route, error+retry and map-failure states.
+  - Staff confirm a location by searching and picking a candidate, or by placing a pin on the map. Nothing is saved until they confirm.
+  - It also lists the stops.
+- **`component/trip-route/trip-route-map.component`** renders the map: A/B/stop markers, the decoded polyline, and fit-to-bounds.
+- The Trip list has a new "View Route" action.
+

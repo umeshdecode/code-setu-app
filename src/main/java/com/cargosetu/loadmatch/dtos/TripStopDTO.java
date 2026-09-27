@@ -8,4 +8,7 @@ public class TripStopDTO {
     private Long tripId;
     private String stopCity;
     private Integer sequenceOrder;
+    private Double latitude;
+    private Double longitude;
+    private String locationSource;
 }

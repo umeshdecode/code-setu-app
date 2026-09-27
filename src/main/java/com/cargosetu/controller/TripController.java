@@ -43,11 +43,11 @@ public class TripController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_READ)")
     @GetMapping("/{tripId}")
-    public ResponseEntity<?> getTrip(@PathVariable Long tripId) {
+    public ResponseEntity<?> getTrip(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long tripId) {
         log.info("API: Get Trip with ID: {}", tripId);
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = tripService.getTrip(tripId);
+            response = tripService.getTrip(user, tripId);
         } catch (Exception e) {
             log.error("Error getting trip with ID {}: {}", tripId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -59,11 +59,11 @@ public class TripController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_READ)")
     @GetMapping
-    public ResponseEntity<?> getAllTrips() {
+    public ResponseEntity<?> getAllTrips(@AuthenticationPrincipal LoggedInUser user) {
         log.info("API: Get All Trips");
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = tripService.getAllTrips();
+            response = tripService.getAllTrips(user);
         } catch (Exception e) {
             log.error("Error fetching all trips: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -91,11 +91,11 @@ public class TripController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_DELETE)")
     @DeleteMapping("/{tripId}")
-    public ResponseEntity<?> deleteTrip(@PathVariable Long tripId) {
+    public ResponseEntity<?> deleteTrip(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long tripId) {
         log.info("API: Delete Trip with ID: {}", tripId);
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = tripService.deleteTrip(tripId);
+            response = tripService.deleteTrip(user, tripId);
         } catch (Exception e) {
             log.error("Error deleting trip with ID {}: {}", tripId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);

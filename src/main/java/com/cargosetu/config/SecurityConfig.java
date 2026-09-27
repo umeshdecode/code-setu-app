@@ -95,7 +95,8 @@ public class SecurityConfig {
 
         configuration.setAllowedOrigins(List.of("http://127.0.0.1:31201","http://localhost:4200","https://code-setu-app.onrender.com","https://code-setu-app-ui.umeshsharma-code.workers.dev","https://code-setu-app-ui.onrender.com"));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE"));
-        configuration.setAllowedHeaders(List.of("Authorization","Content-Type"));
+        configuration.setAllowedHeaders(List.of("Authorization","Content-Type","X-Request-Id"));
+        configuration.setExposedHeaders(List.of("X-Request-Id"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 

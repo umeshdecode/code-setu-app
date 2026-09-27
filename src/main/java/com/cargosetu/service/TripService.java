@@ -32,6 +32,7 @@ public class TripService {
     private final ApplicationEventPublisher eventPublisher;
     private final DriverVehicleAssignmentService driverVehicleAssignmentService;
     private final DriverVehicleAssignmentRepository driverVehicleAssignmentRepository;
+    private final TripAccessPolicy tripAccessPolicy;
     public TripService(TripRepository tripRepository,
                        TripMapper tripMapper,
                        ShiftingRepository shiftingRepository,
@@ -40,7 +41,8 @@ public class TripService {
                        TripStatusHistoryRepository tripStatusHistoryRepository,
                        ApplicationEventPublisher eventPublisher,
                        DriverVehicleAssignmentService driverVehicleAssignmentService,
-                       DriverVehicleAssignmentRepository driverVehicleAssignmentRepository) {
+                       DriverVehicleAssignmentRepository driverVehicleAssignmentRepository,
+                       TripAccessPolicy tripAccessPolicy) {
         this.tripRepository = tripRepository;
         this.tripMapper = tripMapper;
         this.shiftingRepository = shiftingRepository;
@@ -50,6 +52,7 @@ public class TripService {
         this.eventPublisher = eventPublisher;
         this.driverVehicleAssignmentService = driverVehicleAssignmentService;
         this.driverVehicleAssignmentRepository = driverVehicleAssignmentRepository;
+        this.tripAccessPolicy = tripAccessPolicy;
     }
 
     @Transactional
@@ -77,6 +80,13 @@ public class TripService {
             if (tripDTO.getDriverId() != null && tripDTO.getVehicleId() != null) {
                 driverVehicleAssignmentService.assignDriver(tripDTO.getDriverId(), tripDTO.getVehicleId());
             }
+
+            // Company ownership: the creator's company, else the linked shifting's company.
+            Integer companyId = user != null ? user.getCompanyId() : null;
+            if (companyId == null && trip.getShifting() != null) {
+                companyId = trip.getShifting().getCompanyId();
+            }
+            trip.setCompanyId(companyId);
 
             trip.setCreatedAt(LocalDateTime.now());
             trip.setUpdatedAt(LocalDateTime.now());
@@ -111,10 +121,11 @@ public class TripService {
         return response;
     }
 
-    public GenericDataDTO getTrip(Long tripId) {
+    public GenericDataDTO getTrip(LoggedInUser user, Long tripId) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            Optional<Trip> tripOptional = tripRepository.findById(tripId);
+            Optional<Trip> tripOptional = tripRepository.findById(tripId)
+                    .filter(trip -> tripAccessPolicy.canAccess(user, trip));
             if (tripOptional.isPresent()) {
                 response.setResponseCode(CommonStatusCode.SUCCESS);
                 response.setResponseMessege("Trip found successfully!");
@@ -131,11 +142,12 @@ public class TripService {
         return response;
     }
 
-    public GenericDataDTO getAllTrips() {
+    public GenericDataDTO getAllTrips(LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             List<Trip> trips = tripRepository.findAll();
             List<TripDTO> tripDTOs = trips.stream()
+                    .filter(trip -> tripAccessPolicy.canAccess(user, trip))
                     .map(tripMapper::toDto)
                     .toList();
             response.setResponseCode(CommonStatusCode.SUCCESS);
@@ -153,7 +165,8 @@ public class TripService {
     public GenericDataDTO updateTrip(LoggedInUser user, Long tripId, TripDTO tripDTO) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            Optional<Trip> existingTripOptional = tripRepository.findById(tripId);
+            Optional<Trip> existingTripOptional = tripRepository.findById(tripId)
+                    .filter(trip -> tripAccessPolicy.canAccess(user, trip));
             if (existingTripOptional.isEmpty()) {
                 response.setResponseCode(CommonStatusCode.NOT_FOUND);
                 response.setResponseMessege("Trip not found with ID: " + tripId);
@@ -170,6 +183,9 @@ public class TripService {
             }
             if (tripDTO.getPlannedStartTime() != null) {
                 existingTrip.setPlannedStartTime(tripDTO.getPlannedStartTime());
+            }
+            if (tripDTO.getPlannedEndTime() != null) {
+                existingTrip.setPlannedEenTime(tripDTO.getPlannedEndTime());
             }
             if (tripDTO.getActualStartTime() != null) {
                 existingTrip.setActualStartTime(tripDTO.getActualStartTime());
@@ -286,10 +302,11 @@ public class TripService {
     }
 
     @Transactional
-    public GenericDataDTO deleteTrip(Long tripId) {
+    public GenericDataDTO deleteTrip(LoggedInUser user, Long tripId) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            Optional<Trip> tripOptional = tripRepository.findById(tripId);
+            Optional<Trip> tripOptional = tripRepository.findById(tripId)
+                    .filter(trip -> tripAccessPolicy.canAccess(user, trip));
             if (tripOptional.isPresent()) {
                 Trip trip = tripOptional.get();
                 trip.setActive(false);

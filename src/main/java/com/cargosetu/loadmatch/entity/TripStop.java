@@ -21,4 +21,12 @@ public class TripStop extends AbstractModel {
     private String stopCity;
 
     private Integer sequenceOrder;
+
+    // Optional confirmed stop coordinate; stops without one are left out of the
+    // computed planned route (and reported as skipped) rather than guessed.
+    private Double latitude;
+
+    private Double longitude;
+
+    private String locationSource;
 }

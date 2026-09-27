@@ -536,4 +536,42 @@
             <column name="is_active" type="BIT" defaultValueBoolean="true"/>
         </createTable>
     </changeSet>
+
+    <!--
+       Google Maps planned-route support.
+       Trip origin/destination live on the linked Shifting, so the confirmed
+       coordinates are stored there. All columns are nullable: legacy shiftings
+       keep working and simply show a "location not confirmed" state until staff
+       confirm a point. No backfill is performed on purpose - a city-only address
+       must never be silently turned into a precise pickup/drop coordinate.
+   -->
+    <changeSet id="ADD_ROUTE_LOCATION_TO_SHIFTING_01" author="Subham Kumar">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="tblm_shifting" columnName="from_latitude"/></not>
+        </preConditions>
+        <addColumn tableName="tblm_shifting">
+            <column name="from_latitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="from_longitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="from_location_source" type="VARCHAR(30)"><constraints nullable="true"/></column>
+            <column name="from_location_confirmed_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="from_location_confirmed_by" type="VARCHAR(150)"><constraints nullable="true"/></column>
+            <column name="to_latitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="to_longitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="to_location_source" type="VARCHAR(30)"><constraints nullable="true"/></column>
+            <column name="to_location_confirmed_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="to_location_confirmed_by" type="VARCHAR(150)"><constraints nullable="true"/></column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_ROUTE_LOCATION_TO_TRIP_STOP_01" author="Subham Kumar">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="tblm_trip_stop" columnName="latitude"/></not>
+        </preConditions>
+        <addColumn tableName="tblm_trip_stop">
+            <column name="latitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="longitude" type="DECIMAL(10,7)"><constraints nullable="true"/></column>
+            <column name="location_source" type="VARCHAR(30)"><constraints nullable="true"/></column>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -42,6 +43,17 @@ public class ShiftingDTO {
     private Long customerId;
     private Integer companyId;
     private Double tokenMoney;
+
+    private Double fromLatitude;
+    private Double fromLongitude;
+    private String fromLocationSource;
+    private LocalDateTime fromLocationConfirmedAt;
+    private String fromLocationConfirmedBy;
+    private Double toLatitude;
+    private Double toLongitude;
+    private String toLocationSource;
+    private LocalDateTime toLocationConfirmedAt;
+    private String toLocationConfirmedBy;
 
     @JsonProperty("charges")
     @JsonAlias({"chargesDTO", "chargesDto", "charge", "charges"})

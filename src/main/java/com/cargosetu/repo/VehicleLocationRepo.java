@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface VehicleLocationRepo extends JpaRepository<VehicleLocation,Long > {
     Optional<VehicleLocation> findTopByVehicleIdOrderByTimestampDesc(Long vehicleId);
     @Query(value = "SELECT * FROM tblmvahicletrack t " +
-            "WHERE t.id = :vehicleId " +
+            "WHERE t.vehicle_id = :vehicleId " +
             "AND t.timestamp > CURRENT_DATE() " +
             "ORDER BY t.timestamp DESC LIMIT 1",
             nativeQuery = true)

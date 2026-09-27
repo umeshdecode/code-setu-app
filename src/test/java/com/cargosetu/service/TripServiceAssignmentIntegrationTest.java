@@ -67,7 +67,7 @@ class TripServiceAssignmentIntegrationTest {
     void setUp() {
         tripService = new TripService(tripRepository, tripMapper, shiftingRepository, driverRepository,
                 vehicleRepository, tripStatusHistoryRepository, eventPublisher,
-                driverVehicleAssignmentService, driverVehicleAssignmentRepository);
+                driverVehicleAssignmentService, driverVehicleAssignmentRepository, new TripAccessPolicy());
 
         user = mock(LoggedInUser.class);
         lenient().when(user.getUsername()).thenReturn("tester");
