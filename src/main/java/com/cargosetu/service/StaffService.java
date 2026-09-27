@@ -28,6 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import com.cargosetu.dto.S3UploadResult;
 import com.cargosetu.notification.event.GenericNotificationEvent;
@@ -65,6 +66,9 @@ public class StaffService {
     private final PermissionMapper permissionMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final S3StorageService s3StorageService;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     public StaffService(StaffRepository staffRepository, RolesRepo rolesRepo, DepartmentRepo departmentRepo, RolesImpl rolesService, StaffMapper staffMapper, PermissionMapper permissionMapper, ApplicationEventPublisher eventPublisher, S3StorageService s3StorageService) {
         this.staffRepository = staffRepository;
@@ -155,15 +159,23 @@ public class StaffService {
         staffDTO = withProfileImage(staffMapper.toDto(savedStaff));
 
         // Publish generic email and SMS events
-        Map<String, Object> variables = Map.of(
-            "staffId", savedStaff.getStaffId(),
-            "email", savedStaff.getEmail() != null ? savedStaff.getEmail() : "",
-            "name", (savedStaff.getFirstName() != null ? savedStaff.getFirstName() : "") + " " + (savedStaff.getLastName() != null ? savedStaff.getLastName() : ""),
-            "username", savedStaff.getUserName() != null ? savedStaff.getUserName() : ""
-        );
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("staffId", savedStaff.getStaffId());
+        variables.put("email", savedStaff.getEmail() != null ? savedStaff.getEmail() : "");
+        variables.put("name", (savedStaff.getFirstName() != null ? savedStaff.getFirstName() : "") + " " + (savedStaff.getLastName() != null ? savedStaff.getLastName() : ""));
+        variables.put("username", savedStaff.getUserName() != null ? savedStaff.getUserName() : "");
+        variables.put("mobileNumber", savedStaff.getMobileNumber() != null ? savedStaff.getMobileNumber() : "");
+        variables.put("userCode", "CS-USR-" + String.format("%05d", savedStaff.getStaffId()));
+        variables.put("dashboardUrl", frontendUrl + "/dashboard");
+
         if (savedStaff.getEmail() != null && !savedStaff.getEmail().isBlank()) {
+            // isAdmin is only true for self-registration (AuthController.registerUser),
+            // which always creates the company admin - USER_REGISTERED is the richer HTML
+            // welcome email for that specific flow. Staff added internally by an existing
+            // admin (isAdmin=false) keep the existing plain-text STAFF_CREATED email.
+            String templateCode = isAdmin ? "USER_REGISTERED" : "STAFF_CREATED";
             eventPublisher.publishEvent(new GenericNotificationEvent(
-                "STAFF_CREATED",
+                templateCode,
                 List.of(savedStaff.getEmail()),
                 NotificationChannel.EMAIL,
                 variables

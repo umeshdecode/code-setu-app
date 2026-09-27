@@ -6,8 +6,12 @@ import com.cargosetu.notification.repository.NotificationTemplateRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -143,6 +147,25 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 TRIP_OPENED_EMAIL_BODY
         ));
 
+        // 16. DRIVER_ONBOARDED - Email (HTML, sent when a new Driver is created)
+        defaultTemplates.add(createHtmlTemplate(
+                "DRIVER_ONBOARDED",
+                NotificationChannel.EMAIL,
+                "Driver Onboarded: Welcome {{driverName}} to CargoSetu Fleet",
+                loadTemplateResource("email-templates/driver-onboarded.html")
+        ));
+
+        // 17. USER_REGISTERED - Email (HTML, sent on self-registration/signup -
+        // saveStaff(dto, isAdmin=true) only, i.e. the company-admin signup path
+        // triggered by AuthController.registerUser; distinct from STAFF_CREATED,
+        // which stays plain-text and covers staff added internally by an admin)
+        defaultTemplates.add(createHtmlTemplate(
+                "USER_REGISTERED",
+                NotificationChannel.EMAIL,
+                "Welcome to CargoSetu - Transport Business, Ab Digital!",
+                loadTemplateResource("email-templates/user-registered.html")
+        ));
+
         // Save templates if not already present
         for (NotificationTemplate t : defaultTemplates) {
             templateRepository.findByTemplateCodeAndChannel(t.getTemplateCode(), t.getChannel())
@@ -171,6 +194,15 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
         NotificationTemplate template = createTemplate(code, channel, subject, body);
         template.setIsHtml(true);
         return template;
+    }
+
+    private String loadTemplateResource(String classpathLocation) {
+        try {
+            ClassPathResource resource = new ClassPathResource(classpathLocation);
+            return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load notification template resource: " + classpathLocation, e);
+        }
     }
 
     // Table-based layout with inline CSS only (no <style> blocks / flexbox) so this renders

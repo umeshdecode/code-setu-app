@@ -2,20 +2,32 @@ package com.cargosetu.service.impl;
 
 import com.cargosetu.dto.DriverDto;
 import com.cargosetu.model.Driver;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.repo.DriverRepository;
 import com.cargosetu.service.DriverService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
 public class DriverServiceImpl implements DriverService {
     @Autowired
     private DriverRepository driverRepository;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
 
     @Override
     public Driver createDriver(DriverDto driverdto) {
@@ -24,12 +36,40 @@ public class DriverServiceImpl implements DriverService {
             Driver driver = new Driver(driverdto);
             driver.setCreatedAt(LocalDateTime.now());
             driver.setUpdatedAt(LocalDateTime.now());
-            return driverRepository.save(driver);
+            Driver saved = driverRepository.save(driver);
+            publishDriverOnboardedNotification(saved);
+            return saved;
 
         } catch (Exception e) {
             log.error("Error creating driver: {}", e.getMessage(), e);
             throw new RuntimeException("Driver creation failed");
         }
+    }
+
+    private void publishDriverOnboardedNotification(Driver driver) {
+        if (driver.getEmail() == null || driver.getEmail().isBlank()) {
+            log.warn("Skipping DRIVER_ONBOARDED notification for driver {} - no email on file", driver.getId());
+            return;
+        }
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("driverName", driver.getName());
+        variables.put("driverCode", "CS-DRV-" + String.format("%04d", driver.getId()));
+        variables.put("mobileNumber", driver.getPhoneNumber());
+        variables.put("licenseNumber", driver.getLicenseNumber());
+        variables.put("licenseExpiryDate", driver.getLicenseExpiryDate() != null ? driver.getLicenseExpiryDate().toString() : "");
+        variables.put("viewProfileUrl", frontendUrl + "/drivers/" + driver.getId());
+        // No vehicle relation exists on Driver at creation time (assignment is a separate
+        // step via DriverVehicleAssignmentService), so this section is always left empty.
+        variables.put("vehicleSection", "");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                "DRIVER_ONBOARDED",
+                List.of(driver.getEmail()),
+                NotificationChannel.EMAIL,
+                variables,
+                driver.getId().toString()
+        ));
     }
 
     @Override

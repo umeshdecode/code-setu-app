@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to CargoSetu</title>
+</head>
+<body style="margin:0;padding:0;background-color:#edeeea;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#edeeea;padding:24px 0;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #c5c6cd;">
+        <tr><td style="height:6px;background-color:#47607e;line-height:6px;font-size:0;">&nbsp;</td></tr>
+        <tr>
+          <td style="padding:32px 32px 24px 32px;background-color:#f3f4f0;border-bottom:1px solid #c5c6cd;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-size:22px;font-weight:800;color:#051125;font-family:Georgia,serif;">CargoSetu</td>
+                <td align="right">
+                  <span style="display:inline-block;background-color:#c2dcff;color:#48617e;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;">Driver Onboarded</span>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="2" style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#47607e;font-weight:600;padding-top:4px;">Transport Business, Ab Digital!</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;">
+            <h1 style="margin:0 0 12px 0;font-size:22px;color:#051125;font-family:Georgia,serif;">Welcome to the Fleet, {{driverName}}!</h1>
+            <p style="margin:0 0 24px 0;font-size:15px;line-height:22px;color:#45474d;">
+              Your commercial profile has been successfully approved and mapped to the CargoSetu logistics network.
+              You are now authorized to accept and execute automated load assignments.
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #c5c6cd;border-radius:10px;margin-bottom:20px;">
+              <tr>
+                <td style="padding:16px 20px;border-bottom:1px solid #c5c6cd;font-size:14px;font-weight:700;color:#051125;">
+                  Driver Profile &nbsp;
+                  <span style="float:right;font-size:12px;color:#75777d;font-weight:400;">ID: {{driverCode}}</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 20px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="50%" style="font-size:11px;color:#75777d;text-transform:uppercase;padding-bottom:4px;">Full Name</td>
+                      <td width="50%" style="font-size:11px;color:#75777d;text-transform:uppercase;padding-bottom:4px;">Registered Mobile</td>
+                    </tr>
+                    <tr>
+                      <td style="font-size:15px;font-weight:700;color:#051125;padding-bottom:4px;">{{driverName}}</td>
+                      <td style="font-size:15px;font-weight:700;color:#051125;padding-bottom:4px;">{{mobileNumber}}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            {{vehicleSection}}
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #c5c6cd;border-radius:10px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:16px 20px;border-bottom:1px solid #c5c6cd;">
+                  <span style="font-size:14px;font-weight:700;color:#051125;">License Verification</span>
+                  <span style="float:right;font-size:11px;font-weight:600;color:#065f46;background-color:#d1fae5;padding:3px 10px;border-radius:999px;">Active</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 20px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="50%" style="font-size:11px;color:#75777d;text-transform:uppercase;padding-bottom:4px;">License Number</td>
+                      <td width="50%" style="font-size:11px;color:#75777d;text-transform:uppercase;padding-bottom:4px;">Expiry Date</td>
+                    </tr>
+                    <tr>
+                      <td style="font-size:15px;font-weight:700;color:#051125;">{{licenseNumber}}</td>
+                      <td style="font-size:15px;font-weight:700;color:#051125;">{{licenseExpiryDate}}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f0;border-radius:10px;margin-bottom:24px;">
+              <tr>
+                <td style="padding:18px 20px;">
+                  <div style="font-size:14px;font-weight:700;color:#051125;margin-bottom:12px;">Quick Setup: CargoSetu Driver App</div>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td width="28" valign="top" style="font-size:13px;color:#ffffff;background-color:#051125;border-radius:50%;text-align:center;font-weight:700;">1</td>
+                      <td style="padding-left:10px;padding-bottom:10px;font-size:13px;color:#45474d;">Download the CargoSetu Driver App from the Play Store or a direct APK link.</td>
+                    </tr>
+                    <tr>
+                      <td valign="top" style="font-size:13px;color:#ffffff;background-color:#051125;border-radius:50%;text-align:center;font-weight:700;">2</td>
+                      <td style="padding-left:10px;padding-bottom:10px;font-size:13px;color:#45474d;">Verify your registered mobile number ({{mobileNumber}}) with the OTP sent by SMS.</td>
+                    </tr>
+                    <tr>
+                      <td valign="top" style="font-size:13px;color:#ffffff;background-color:#051125;border-radius:50%;text-align:center;font-weight:700;">3</td>
+                      <td style="padding-left:10px;font-size:13px;color:#45474d;">Accept assigned trips and upload proof of delivery directly from the app.</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="center" style="border-radius:8px;background-color:#051125;">
+                  <a href="{{viewProfileUrl}}" style="display:block;padding:14px 24px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">View Driver Profile &amp; Documents</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px;background-color:#e8e8e4;border-top:1px solid #c5c6cd;text-align:center;">
+            <p style="margin:0 0 6px 0;font-size:12px;color:#45474d;">CargoSetu Logistics Technologies Pvt. Ltd.</p>
+            <p style="margin:0;font-size:11px;color:#75777d;">This is an automated notification about your driver onboarding. For queries, contact <a href="mailto:support@cargosetu.in" style="color:#47607e;">support@cargosetu.in</a>.</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
