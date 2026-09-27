@@ -58,8 +58,8 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
             assignment.setVehicle(vehicle);
             assignment.setAssignedAt(LocalDateTime.now());
             assignment.setActive(true);
-            driver.setStatus("Assigned");
-            vehicle.setStatus("Assigned");
+            driver.setStatus("ASSIGNED");
+            vehicle.setStatus("ON_TRIP");
             driverRepository.save(driver);
             vehicleRepository.save(vehicle);
             return repository.save(assignment);
@@ -112,8 +112,8 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
 
                 repository.save(assignment);
 
-                driver.setStatus("Available");
-                vehicle.setStatus("Available");
+                driver.setStatus("AVAILABLE");
+                vehicle.setStatus("AVAILABLE");
                 driverRepository.save(driver);
                 vehicleRepository.save(vehicle);
 

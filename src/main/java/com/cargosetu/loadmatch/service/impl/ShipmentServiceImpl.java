@@ -22,11 +22,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Slf4j
 public class ShipmentServiceImpl implements ShipmentService {
+
+    // Statuses a shipment is considered "open"/searchable for a Find Loads
+    // search. DRAFT is intentionally excluded here (unlike LoadMatchingServiceImpl's
+    // CANDIDATE_SHIPMENT_STATUSES, which also includes DRAFT for internal
+    // matching candidacy): a shipment that hasn't been posted yet shouldn't be
+    // publicly discoverable via this search endpoint.
+    private static final Set<ShipmentStatus> OPEN_SEARCH_STATUSES = EnumSet.of(
+            ShipmentStatus.POSTED, ShipmentStatus.MATCHING, ShipmentStatus.PARTIALLY_ALLOCATED);
 
     private final ShipmentRepository shipmentRepository;
     private final ShipmentMapper shipmentMapper;
@@ -286,6 +297,29 @@ public class ShipmentServiceImpl implements ShipmentService {
             log.error("Error deleting shipment item with ID {}: {}", itemId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("An unexpected error occurred while deleting the shipment item.");
+        }
+        return response;
+    }
+
+    @Override
+    public GenericDataDTO searchOpenShipments(String sourceCity, String destinationCity, String vehicleTypeRequired,
+                                               Integer pageNumber, Integer pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shipment> shipments = shipmentRepository.searchOpen(
+                    sourceCity, destinationCity, vehicleTypeRequired,
+                    List.copyOf(OPEN_SEARCH_STATUSES), pageable);
+
+            Page<ShipmentDTO> shipmentDTOs = shipments.map(shipmentMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Open shipments fetched successfully!");
+            response.setData(shipmentDTOs);
+        } catch (Exception e) {
+            log.error("Error searching open shipments: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while searching shipments.");
+            response.setErrors(new Object[]{e.getMessage()});
         }
         return response;
     }

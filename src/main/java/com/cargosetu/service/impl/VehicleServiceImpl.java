@@ -72,6 +72,12 @@ public class VehicleServiceImpl implements VehicleService {
             vehicle.setManufacturer(updatedVehicle.getManufacturer());
             vehicle.setCapacityKg(updatedVehicle.getCapacityKg());
             vehicle.setStatus(updatedVehicle.getStatus());
+            vehicle.setBodyType(updatedVehicle.getBodyType());
+            vehicle.setCapacityCbm(updatedVehicle.getCapacityCbm());
+            vehicle.setLengthCm(updatedVehicle.getLengthCm());
+            vehicle.setWidthCm(updatedVehicle.getWidthCm());
+            vehicle.setHeightCm(updatedVehicle.getHeightCm());
+            vehicle.setEquipmentTags(updatedVehicle.getEquipmentTags());
             vehicle.setUpdatedAt(LocalDateTime.now());
 
             return vehicleRepository.save(vehicle);

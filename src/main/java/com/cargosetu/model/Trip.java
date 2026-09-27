@@ -1,7 +1,9 @@
 package com.cargosetu.model;
 
 import com.cargosetu.customer.entity.Shifting;
+import com.cargosetu.loadmatch.utils.VehicleTypeCategory;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -72,6 +74,9 @@ public class Trip {
 
     private Double vehicleCapacityCbm;
 
+    // Optional: a trip's capacity may not have this set yet. @Pattern doesn't
+    // fire on null, and "^$|" also allows an empty string through.
+    @Pattern(regexp = "^$|" + VehicleTypeCategory.VALIDATION_PATTERN, message = "Invalid vehicle type category")
     private String vehicleTypeCategory;
 
     private String equipmentTags;

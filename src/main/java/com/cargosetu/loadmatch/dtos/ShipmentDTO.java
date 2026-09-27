@@ -1,6 +1,8 @@
 package com.cargosetu.loadmatch.dtos;
 
 import com.cargosetu.loadmatch.entity.ShipmentStatus;
+import com.cargosetu.loadmatch.utils.VehicleTypeCategory;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -23,6 +25,7 @@ public class ShipmentDTO {
     private LocalDate requiredPickupDate;
     private LocalDate requiredDeliveryDate;
     private String specialHandling;
+    @Pattern(regexp = "^$|" + VehicleTypeCategory.VALIDATION_PATTERN, message = "Invalid vehicle type")
     private String vehicleTypeRequired;
     private ShipmentStatus status;
     private Integer companyId;

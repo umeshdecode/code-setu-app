@@ -1,6 +1,7 @@
 package com.cargosetu.model;
 
 import com.cargosetu.dto.VehicleDto;
+import com.cargosetu.loadmatch.utils.VehicleTypeCategory;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -35,7 +36,8 @@ public class Vehicle {
     private String registrationNumber;
 
     @NotBlank(message = "Vehicle type is mandatory")
-    private String vehicleType; // e.g., TRUCK, VAN, LCV
+    @Pattern(regexp = VehicleTypeCategory.VALIDATION_PATTERN, message = "Invalid vehicle type")
+    private String vehicleType; // e.g., OPEN, CONTAINER, LCV
 
     @NotBlank(message = "Model is mandatory")
     private String model;
@@ -107,6 +109,12 @@ public class Vehicle {
         this.registrationDate = dto.getRegistrationDate();
         this.pollutionExpiryDate = dto.getPollutionExpiryDate();
         this.currentLocation = dto.getCurrentLocation();
+        this.bodyType = dto.getBodyType();
+        this.capacityCbm = dto.getCapacityCbm();
+        this.lengthCm = dto.getLengthCm();
+        this.widthCm = dto.getWidthCm();
+        this.heightCm = dto.getHeightCm();
+        this.equipmentTags = dto.getEquipmentTags();
     }
 
     public Vehicle() {

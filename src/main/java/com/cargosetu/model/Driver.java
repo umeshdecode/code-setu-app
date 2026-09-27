@@ -44,7 +44,7 @@ public class Driver {
     @Size(max = 255)
     private String address;
 
-    @Pattern(regexp = "ACTIVE|INACTIVE|SUSPENDED", message = "Status must be ACTIVE, INACTIVE, or SUSPENDED")
+    @Pattern(regexp = "AVAILABLE|ASSIGNED|INACTIVE", message = "Status must be AVAILABLE, ASSIGNED, or INACTIVE")
     private String status;
 
     @PastOrPresent(message = "Joining date cannot be in the future")

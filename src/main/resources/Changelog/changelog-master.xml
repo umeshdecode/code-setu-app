@@ -835,6 +835,34 @@
     </changeSet>
 
     <!-- ===================================================== -->
+    <!-- 5b. vehicles - drop orphaned vehicle_number column      -->
+    <!-- (superseded by registration_number; the Vehicle entity  -->
+    <!-- never mapped this column, leaving every insert failing  -->
+    <!-- on its NOT NULL constraint)                             -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_VEHICLES_DROP_VEHICLE_NUMBER_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <columnExists tableName="vehicles" columnName="vehicle_number"/>
+        </preConditions>
+        <dropColumn tableName="vehicles" columnName="vehicle_number"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 5c. driver - drop orphaned phone column                 -->
+    <!-- (superseded by phone_number; the Driver entity never    -->
+    <!-- mapped this column, leaving every insert failing on its -->
+    <!-- NOT NULL constraint)                                    -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_DRIVER_DROP_PHONE_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver"/>
+            <columnExists tableName="driver" columnName="phone"/>
+        </preConditions>
+        <dropColumn tableName="driver" columnName="phone"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
     <!-- 6. Seed Shipment / Trip-Capacity Permissions           -->
     <!-- ===================================================== -->
     <changeSet id="LOADMATCH_PERMISSIONS_SEED_01" author="Smart Load Matching">

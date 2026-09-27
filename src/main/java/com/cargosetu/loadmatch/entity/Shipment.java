@@ -2,7 +2,9 @@ package com.cargosetu.loadmatch.entity;
 
 import com.cargosetu.abstracts.AbstractModel;
 import com.cargosetu.customer.entity.Customer;
+import com.cargosetu.loadmatch.utils.VehicleTypeCategory;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -47,6 +49,9 @@ public class Shipment extends AbstractModel {
     // comma-separated tags, e.g. "FRAGILE,TEMPERATURE_CONTROLLED"
     private String specialHandling;
 
+    // Optional: empty/null means "any vehicle type OK" (see MatchScoringEngine.scoreVehicle).
+    // @Pattern does not fire on null, so null stays valid; "^$|" also allows empty string.
+    @Pattern(regexp = "^$|" + VehicleTypeCategory.VALIDATION_PATTERN, message = "Invalid vehicle type")
     private String vehicleTypeRequired;
 
     @Enumerated(EnumType.STRING)

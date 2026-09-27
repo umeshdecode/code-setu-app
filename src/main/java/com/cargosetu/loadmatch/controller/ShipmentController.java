@@ -7,6 +7,7 @@ import com.cargosetu.loadmatch.service.ShipmentService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,13 +27,40 @@ public class ShipmentController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIPMENT_CREATE)")
     @PostMapping
-    public ResponseEntity<?> createShipment(@AuthenticationPrincipal LoggedInUser user, @RequestBody ShipmentDTO shipmentDTO) {
+    public ResponseEntity<?> createShipment(@AuthenticationPrincipal LoggedInUser user, @Valid @RequestBody ShipmentDTO shipmentDTO) {
         log.info("API: Create Shipment");
         GenericDataDTO response = new GenericDataDTO();
         try {
             response = shipmentService.createShipment(user, shipmentDTO);
         } catch (Exception e) {
             log.error("Error creating shipment: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    // Registered before /{shipmentId}: purely for readability, since Spring's
+    // handler mapping picks the most specific match regardless of declaration
+    // order. This is also safe from a "/search" request being swallowed by
+    // getShipment(shipmentId) below: {shipmentId} is typed as Long, so Spring
+    // fails to convert "search" to a Long for that handler and falls through
+    // (returning 400 only if no other handler matches - here /search does).
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIPMENT_READ)")
+    @GetMapping("/search")
+    public ResponseEntity<?> searchOpenShipments(@RequestParam(required = false) String sourceCity,
+                                                  @RequestParam(required = false) String destinationCity,
+                                                  @RequestParam(required = false) String vehicleTypeRequired,
+                                                  @RequestParam(defaultValue = "0") Integer pageNumber,
+                                                  @RequestParam(defaultValue = "10") Integer pageSize) {
+        log.info("API: Search Open Shipments, sourceCity={}, destinationCity={}, vehicleTypeRequired={}, page={}, size={}",
+                sourceCity, destinationCity, vehicleTypeRequired, pageNumber, pageSize);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = shipmentService.searchOpenShipments(sourceCity, destinationCity, vehicleTypeRequired, pageNumber, pageSize);
+        } catch (Exception e) {
+            log.error("Error searching open shipments: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setErrors(new Object[]{e.getMessage()});
             return ResponseEntity.internalServerError().body(response);
@@ -76,7 +104,7 @@ public class ShipmentController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).SHIPMENT_UPDATE)")
     @PutMapping("/{shipmentId}")
-    public ResponseEntity<?> updateShipment(@PathVariable Long shipmentId, @RequestBody ShipmentDTO shipmentDTO) {
+    public ResponseEntity<?> updateShipment(@PathVariable Long shipmentId, @Valid @RequestBody ShipmentDTO shipmentDTO) {
         log.info("API: Update Shipment with ID: {}", shipmentId);
         GenericDataDTO response = new GenericDataDTO();
         try {

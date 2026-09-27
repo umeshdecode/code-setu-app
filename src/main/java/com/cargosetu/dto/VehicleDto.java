@@ -1,6 +1,8 @@
 package com.cargosetu.dto;
 
+import com.cargosetu.loadmatch.utils.VehicleTypeCategory;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
@@ -18,6 +20,8 @@ public class VehicleDto {
     Double mileage;
 
     private String registrationNumber;
+
+    @Pattern(regexp = VehicleTypeCategory.VALIDATION_PATTERN, message = "Invalid vehicle type")
     private String vehicleType;
     private String model;
     private String manufacturer;
@@ -33,5 +37,15 @@ public class VehicleDto {
     private LocalDate registrationDate;
     LocalDate pollutionExpiryDate;
     private String currentLocation; // Optional (can normalize later)
+
+    // Smart Load Matching - additional capacity/equipment fields (bug fix:
+    // these existed on the Vehicle entity but were never bound from incoming
+    // requests because the controller binds to VehicleDto, not Vehicle).
+    private String bodyType;
+    private Double capacityCbm;
+    private Double lengthCm;
+    private Double widthCm;
+    private Double heightCm;
+    private String equipmentTags;
 
 }

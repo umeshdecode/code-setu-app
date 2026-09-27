@@ -7,6 +7,7 @@ import com.cargosetu.loadmatch.service.TripCapacityService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -59,7 +60,7 @@ public class TripCapacityController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).TRIP_CAPACITY_UPDATE)")
     @PutMapping("/{tripId}/capacity")
-    public ResponseEntity<?> updateCapacity(@PathVariable Long tripId, @RequestBody TripCapacityDTO capacityDTO) {
+    public ResponseEntity<?> updateCapacity(@PathVariable Long tripId, @Valid @RequestBody TripCapacityDTO capacityDTO) {
         log.info("API: Update Capacity for Trip ID: {}", tripId);
         GenericDataDTO response = new GenericDataDTO();
         try {

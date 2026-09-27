@@ -24,4 +24,7 @@ public interface ShipmentService {
     GenericDataDTO updateItem(Long shipmentId, Long itemId, ShipmentItemDTO itemDTO);
 
     GenericDataDTO deleteItem(Long shipmentId, Long itemId);
+
+    GenericDataDTO searchOpenShipments(String sourceCity, String destinationCity, String vehicleTypeRequired,
+                                        Integer pageNumber, Integer pageSize);
 }
