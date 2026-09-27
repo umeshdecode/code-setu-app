@@ -94,7 +94,8 @@ class NotificationFrameworkTests {
                 List.of("test@cargosetu.com"),
                 NotificationChannel.EMAIL,
                 variables,
-                java.time.Instant.now()
+                java.time.Instant.now(),
+                null
         );
 
         // Process event

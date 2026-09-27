@@ -66,6 +66,8 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
             audit.setMessageBody(renderedBody);
             audit.setStatus(NotificationStatus.PENDING);
             audit.setRetryCount(0);
+            audit.setIsHtml(template.getIsHtml());
+            audit.setReferenceId(event.referenceId());
 
             audit = auditRepository.save(audit);
 

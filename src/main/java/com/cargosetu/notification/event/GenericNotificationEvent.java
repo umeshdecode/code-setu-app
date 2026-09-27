@@ -13,11 +13,21 @@ public record GenericNotificationEvent(
     List<String> recipients,
     NotificationChannel channel,
     Map<String, Object> variables,
-    Instant timestamp
+    Instant timestamp,
+    String referenceId
 ) implements NotificationEvent {
 
     public GenericNotificationEvent(String templateCode, List<String> recipients, NotificationChannel channel, Map<String, Object> variables) {
-        this(UUID.randomUUID(), templateCode, recipients, channel, variables, Instant.now());
+        this(UUID.randomUUID(), templateCode, recipients, channel, variables, Instant.now(), null);
+    }
+
+    /**
+     * Overload that carries a business-level referenceId (e.g. a Trip ID) so downstream
+     * processing can deduplicate notifications per-recipient-per-reference (see
+     * NotificationAudit#referenceId and NotificationAuditRepository's dedup query).
+     */
+    public GenericNotificationEvent(String templateCode, List<String> recipients, NotificationChannel channel, Map<String, Object> variables, String referenceId) {
+        this(UUID.randomUUID(), templateCode, recipients, channel, variables, Instant.now(), referenceId);
     }
 
     @Override

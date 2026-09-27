@@ -105,4 +105,36 @@ CargoSetu Team"/>
             </column>
         </addColumn>
     </changeSet>
+    <changeSet id="ADD_IS_HTML_TO_NOTIFICATION_TEMPLATE_01" author="Subham Patel">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="notification_template" columnName="is_html"/></not>
+        </preConditions>
+        <addColumn tableName="notification_template">
+            <column name="is_html" type="BIT" defaultValueBoolean="false">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_IS_HTML_TO_NOTIFICATION_SKP_01" author="Subham Patel">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="notification_audit" columnName="is_html"/></not>
+        </preConditions>
+        <addColumn tableName="notification_audit">
+            <column name="is_html" type="BIT" defaultValueBoolean="false">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_REFERENCE_ID_TO_NOTIFICATION_SKP_01" author="Subham Patel">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><columnExists tableName="notification_audit" columnName="reference_id"/></not>
+        </preConditions>
+        <addColumn tableName="notification_audit">
+            <column name="reference_id" type="VARCHAR(100)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

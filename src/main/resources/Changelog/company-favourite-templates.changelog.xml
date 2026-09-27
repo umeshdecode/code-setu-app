@@ -8,7 +8,7 @@
     <!-- ===================================================== -->
     <!-- Create tblm_company_favourite_templates               -->
     <!-- ===================================================== -->
-    <changeSet id="CFT_2026_001" author="CargoSetu">
+    <changeSet id="CFT_2026_001" author="Subham Patel">
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="tblm_company_favourite_templates"/>

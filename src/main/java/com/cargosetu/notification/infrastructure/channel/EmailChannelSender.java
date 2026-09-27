@@ -10,11 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -68,13 +70,23 @@ public class EmailChannelSender implements NotificationChannelSender {
         } else {
             try {
                 log.info("[REAL EMAIL] Dispatching physical SMTP email to: {} via JavaMailSender", recipient);
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromEmail);
-                message.setTo(recipient);
-                message.setSubject(audit.getSubject());
-                message.setText(audit.getMessageBody());
-                
-                mailSender.send(message);
+                if (Boolean.TRUE.equals(audit.getIsHtml())) {
+                    MimeMessage mimeMessage = mailSender.createMimeMessage();
+                    MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+                    helper.setFrom(fromEmail);
+                    helper.setTo(recipient);
+                    helper.setSubject(audit.getSubject());
+                    helper.setText(audit.getMessageBody(), true);
+                    mailSender.send(mimeMessage);
+                } else {
+                    SimpleMailMessage message = new SimpleMailMessage();
+                    message.setFrom(fromEmail);
+                    message.setTo(recipient);
+                    message.setSubject(audit.getSubject());
+                    message.setText(audit.getMessageBody());
+
+                    mailSender.send(message);
+                }
             } catch (Exception e) {
                 log.error("Failed to send SMTP email to: {}", recipient, e);
                 throw new NotificationDeliveryException("SMTP client error: " + e.getMessage(), e);

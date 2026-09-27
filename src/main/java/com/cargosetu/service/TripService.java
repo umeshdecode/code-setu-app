@@ -4,10 +4,12 @@ import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.TripDTO;
 import com.cargosetu.mapper.TripMapper;
 import com.cargosetu.model.*;
+import com.cargosetu.notification.event.TripOpenedEvent;
 import com.cargosetu.repo.*;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +28,21 @@ public class TripService {
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final TripStatusHistoryRepository tripStatusHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
     public TripService(TripRepository tripRepository,
                        TripMapper tripMapper,
                        ShiftingRepository shiftingRepository,
                        DriverRepository driverRepository,
                        VehicleRepository vehicleRepository,
-                       TripStatusHistoryRepository tripStatusHistoryRepository) {
+                       TripStatusHistoryRepository tripStatusHistoryRepository,
+                       ApplicationEventPublisher eventPublisher) {
         this.tripRepository = tripRepository;
         this.tripMapper = tripMapper;
         this.shiftingRepository = shiftingRepository;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.tripStatusHistoryRepository = tripStatusHistoryRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -76,6 +81,8 @@ public class TripService {
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Trip created successfully!");
             response.setData(tripMapper.toDto(savedTrip));
+
+            eventPublisher.publishEvent(new TripOpenedEvent(savedTrip.getTripId()));
 
         } catch (Exception e) {
             log.error("Error creating trip: {}", e.getMessage(), e);

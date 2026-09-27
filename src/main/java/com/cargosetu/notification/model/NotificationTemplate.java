@@ -33,4 +33,7 @@ public class NotificationTemplate extends AbstractModel {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(name = "is_html")
+    private Boolean isHtml = false;
 }

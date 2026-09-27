@@ -135,6 +135,14 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 "Your CargoSetu OTP is {{otpCode}}. Please do not share it with anyone."
         ));
 
+        // 15. TRIP_OPENED - Email (HTML, sent to company Admin staff when a new Trip is created)
+        defaultTemplates.add(createHtmlTemplate(
+                "TRIP_OPENED",
+                NotificationChannel.EMAIL,
+                "New Load Available: {{sourceCity}} → {{destinationCity}}",
+                TRIP_OPENED_EMAIL_BODY
+        ));
+
         // Save templates if not already present
         for (NotificationTemplate t : defaultTemplates) {
             templateRepository.findByTemplateCodeAndChannel(t.getTemplateCode(), t.getChannel())
@@ -158,4 +166,54 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
         template.setIsActive(true);
         return template;
     }
+
+    private NotificationTemplate createHtmlTemplate(String code, NotificationChannel channel, String subject, String body) {
+        NotificationTemplate template = createTemplate(code, channel, subject, body);
+        template.setIsHtml(true);
+        return template;
+    }
+
+    // Table-based layout with inline CSS only (no <style> blocks / flexbox) so this renders
+    // correctly across email clients. Brand colors per the frontend theme
+    // (code-setu-app-ui/src/styles.css): #4663AC primary, #E1F1FD background tint,
+    // #C8D9ED / #C1D8F0 supporting surfaces, #D2DEEB borders.
+    private static final String TRIP_OPENED_EMAIL_BODY =
+            "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#E1F1FD;padding:24px 0;\">"
+            + "<tr><td align=\"center\">"
+            + "<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border:1px solid #D2DEEB;border-radius:8px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;\">"
+            + "<tr><td style=\"background-color:#4663AC;padding:20px 24px;\">"
+            + "<span style=\"color:#ffffff;font-size:20px;font-weight:bold;\">CargoSetu &mdash; New Load Available</span>"
+            + "</td></tr>"
+            + "<tr><td style=\"padding:24px;\">"
+            + "<p style=\"margin:0 0 16px 0;color:#333333;font-size:15px;\">"
+            + "A new trip has just been opened and is available for booking. Details are below:"
+            + "</p>"
+            + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#C8D9ED;border:1px solid #D2DEEB;border-radius:6px;margin-bottom:16px;\">"
+            + "<tr><td colspan=\"2\" style=\"padding:12px 12px 4px 12px;font-weight:bold;color:#4663AC;\">Trip Details</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;width:40%;\">Trip ID</td><td style=\"padding:8px 12px;\">{{tripNumber}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">From</td><td style=\"padding:8px 12px;\">{{sourceCity}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">To</td><td style=\"padding:8px 12px;\">{{destinationCity}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">Departure</td><td style=\"padding:8px 12px;\">{{plannedStartTime}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">Expected Delivery</td><td style=\"padding:8px 12px;\">{{plannedEenTime}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">Vehicle Type</td><td style=\"padding:8px 12px;\">{{vehicleTypeCategory}}</td></tr>"
+            + "<tr><td style=\"padding:8px 12px;color:#4663AC;font-weight:bold;\">Vehicle Number</td><td style=\"padding:8px 12px;\">{{vehicleNumber}}</td></tr>"
+            + "</table>"
+            + "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:16px;\">"
+            + "{{capacitySection}}"
+            + "{{cargoSection}}"
+            + "</table>"
+            + "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\">"
+            + "<tr><td style=\"background-color:#4663AC;border-radius:6px;\">"
+            + "<a href=\"{{viewTripUrl}}\" style=\"display:inline-block;padding:12px 28px;color:#ffffff;font-weight:bold;font-size:15px;text-decoration:none;\">View Trip</a>"
+            + "</td></tr>"
+            + "</table>"
+            + "</td></tr>"
+            + "<tr><td style=\"background-color:#C1D8F0;padding:16px 24px;\">"
+            + "<p style=\"margin:0;color:#4663AC;font-size:12px;\">"
+            + "This is an automated notification from CargoSetu. Please do not reply to this email."
+            + "</p>"
+            + "</td></tr>"
+            + "</table>"
+            + "</td></tr>"
+            + "</table>";
 }

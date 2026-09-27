@@ -53,4 +53,19 @@ public class NotificationAudit extends AbstractModel {
 
     @Column(name = "delivered_at")
     private java.time.LocalDateTime deliveredAt;
+
+    /**
+     * Copied from the resolved NotificationTemplate at audit-creation time so channel senders
+     * (e.g. EmailChannelSender) know how to render the body without re-fetching the template.
+     */
+    @Column(name = "is_html")
+    private Boolean isHtml = false;
+
+    /**
+     * Optional business-level identifier (e.g. a Trip ID) carried over from
+     * GenericNotificationEvent#referenceId, used to deduplicate repeat notifications for the
+     * same recipient about the same business entity (see NotificationAuditRepository).
+     */
+    @Column(name = "reference_id", length = 100)
+    private String referenceId;
 }
