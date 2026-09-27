@@ -5,4 +5,144 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
+    <!-- ===================================================== -->
+    <!-- vehicle_manufacturer_models - reference/seed data for  -->
+    <!-- the manufacturer -> model dropdown on the vehicle form. -->
+    <!-- Curated general industry knowledge (Indian commercial   -->
+    <!-- trucks), not sourced from any third-party API/scrape.   -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_VEHICLE_MANUFACTURER_MODELS_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicle_manufacturer_models"/></not>
+        </preConditions>
+        <createTable tableName="vehicle_manufacturer_models">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="manufacturer" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="model" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="vehicle_type_category" type="VARCHAR(50)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="SEED_VEHICLE_MANUFACTURER_MODELS_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicle_manufacturer_models"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM vehicle_manufacturer_models</sqlCheck>
+        </preConditions>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Ace"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="407"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="709"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="909"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="1109"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="1613"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="1616"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="2518"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="3118"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="4225"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Ultra T.7"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Ultra T.9"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Signa 2818.T"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Signa 4021.TK"/><column name="vehicle_type_category" value="TANKER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Prima"/><column name="vehicle_type_category" value="BULKER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Dost"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Dost+"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Partner"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Boss"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Ecomet 1215"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Ecomet 1615"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Ecomet 2820"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Ecomet 3718"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="Captain"/><column name="vehicle_type_category" value="DUMPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="U-Truck"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Jeeto"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Supro"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Bolero Pickup"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Furio 7"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Furio 11"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Furio 14"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Furio 16"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Blazo X 28"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Blazo X 35"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Blazo X 40"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Blazo X 49"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 1049"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 1059"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 2049"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 2059"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 2110"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 3015"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 3019"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 6031"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 6037"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 8031"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 8049"/><column name="vehicle_type_category" value="BULKER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="1015R"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="1217C"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="1917R"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="2523C"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="3123C"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="3128C"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="4923TT"/><column name="vehicle_type_category" value="TANKER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="5523TT"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Force Motors"/><column name="model" value="Trax"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Force Motors"/><column name="model" value="Kargo King"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Force Motors"/><column name="model" value="Traveller Cargo"/><column name="vehicle_type_category" value="LCV"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Isuzu"/><column name="model" value="D-Max"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Isuzu"/><column name="model" value="FTR"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Isuzu"/><column name="model" value="FRR"/><column name="vehicle_type_category" value="CONTAINER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="SML Isuzu"/><column name="model" value="Samrat GS"/><column name="vehicle_type_category" value="LCV"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="SML Isuzu"/><column name="model" value="Sartaj GS"/><column name="vehicle_type_category" value="OPEN"/></insert>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- vehicle_manufacturer_models - expansion pass: more      -->
+    <!-- Indian cargo-vehicle manufacturers/models, plus a few   -->
+    <!-- additional models for manufacturers already seeded.    -->
+    <!-- Cargo three-wheelers (Piaggio/Bajaj/Atul/TVS) map to    -->
+    <!-- MINI_PICKUP, the closest existing category - no new     -->
+    <!-- VehicleTypeCategory value introduced. Still cargo-only, -->
+    <!-- not India's full RTO vehicle classification (no         -->
+    <!-- two-wheelers/passenger cars/buses - out of scope for    -->
+    <!-- this freight logistics app).                            -->
+    <!-- ===================================================== -->
+    <changeSet id="SEED_VEHICLE_MANUFACTURER_MODELS_02" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicle_manufacturer_models"/>
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM vehicle_manufacturer_models WHERE manufacturer = 'Volvo Trucks'</sqlCheck>
+        </preConditions>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Volvo Trucks"/><column name="model" value="FMX"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Volvo Trucks"/><column name="model" value="FM"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Volvo Trucks"/><column name="model" value="FH"/><column name="vehicle_type_category" value="BULKER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Scania"/><column name="model" value="P-Series"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Scania"/><column name="model" value="G-Series"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Piaggio"/><column name="model" value="Porter 700"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Piaggio"/><column name="model" value="Porter 1000"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Bajaj"/><column name="model" value="Maxima Z"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Bajaj"/><column name="model" value="Maxima C"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Atul Auto"/><column name="model" value="Shakti"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="TVS"/><column name="model" value="King Duramax"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+
+        <!-- A few additional models for manufacturers already seeded -->
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="1512"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Tata Motors"/><column name="model" value="Signa 5525.S"/><column name="vehicle_type_category" value="TIPPER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="1616"/><column name="vehicle_type_category" value="OPEN"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Ashok Leyland"/><column name="model" value="AVTR 2820"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Mahindra"/><column name="model" value="Bolero Maxitruck Plus"/><column name="vehicle_type_category" value="MINI_PICKUP"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="Eicher"/><column name="model" value="Pro 5031"/><column name="vehicle_type_category" value="TRAILER"/></insert>
+        <insert tableName="vehicle_manufacturer_models"><column name="manufacturer" value="BharatBenz"/><column name="model" value="914R"/><column name="vehicle_type_category" value="LCV"/></insert>
+    </changeSet>
+
 </databaseChangeLog>

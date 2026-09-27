@@ -10,6 +10,7 @@ public interface BaseURL {
    final String SYSTEM_CONFIG ="/system/configuration";
    final String DOCS_UPLOADS = "/docs/uploads";
     final String VEHICLE = "/vehicle";
+    final String MANUFACTURER_MODELS = "/manufacturer-models";
     final String LOCATION = "/location";
     final String DRIVER ="/drivers";
     final String ASSIGNMENTS ="/assignments";
