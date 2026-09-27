@@ -2,6 +2,7 @@ package com.cargosetu.service;
 
 import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.TripDTO;
+import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.mapper.TripMapper;
 import com.cargosetu.model.*;
 import com.cargosetu.notification.event.TripOpenedEvent;
@@ -29,13 +30,17 @@ public class TripService {
     private final VehicleRepository vehicleRepository;
     private final TripStatusHistoryRepository tripStatusHistoryRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DriverVehicleAssignmentService driverVehicleAssignmentService;
+    private final DriverVehicleAssignmentRepository driverVehicleAssignmentRepository;
     public TripService(TripRepository tripRepository,
                        TripMapper tripMapper,
                        ShiftingRepository shiftingRepository,
                        DriverRepository driverRepository,
                        VehicleRepository vehicleRepository,
                        TripStatusHistoryRepository tripStatusHistoryRepository,
-                       ApplicationEventPublisher eventPublisher) {
+                       ApplicationEventPublisher eventPublisher,
+                       DriverVehicleAssignmentService driverVehicleAssignmentService,
+                       DriverVehicleAssignmentRepository driverVehicleAssignmentRepository) {
         this.tripRepository = tripRepository;
         this.tripMapper = tripMapper;
         this.shiftingRepository = shiftingRepository;
@@ -43,6 +48,8 @@ public class TripService {
         this.vehicleRepository = vehicleRepository;
         this.tripStatusHistoryRepository = tripStatusHistoryRepository;
         this.eventPublisher = eventPublisher;
+        this.driverVehicleAssignmentService = driverVehicleAssignmentService;
+        this.driverVehicleAssignmentRepository = driverVehicleAssignmentRepository;
     }
 
     @Transactional
@@ -62,6 +69,13 @@ public class TripService {
             if (tripDTO.getVehicleId() != null) {
                 vehicleRepository.findById(tripDTO.getVehicleId())
                         .ifPresent(trip::setVehicle);
+            }
+
+            // Assigning both a driver and a vehicle to a trip must go through the same
+            // availability/duplicate checks as the standalone assignment API, and keep
+            // Driver.status / Vehicle.status / driver_vehicle_assignments in sync.
+            if (tripDTO.getDriverId() != null && tripDTO.getVehicleId() != null) {
+                driverVehicleAssignmentService.assignDriver(tripDTO.getDriverId(), tripDTO.getVehicleId());
             }
 
             trip.setCreatedAt(LocalDateTime.now());
@@ -84,6 +98,10 @@ public class TripService {
 
             eventPublisher.publishEvent(new TripOpenedEvent(savedTrip.getTripId()));
 
+        } catch (CustomValidationException e) {
+            log.warn("Trip creation rejected: {}", e.getMessage());
+            response.setResponseCode(e.getErrorCode());
+            response.setResponseMessege(e.getMessage());
         } catch (Exception e) {
             log.error("Error creating trip: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -144,6 +162,9 @@ public class TripService {
 
             Trip existingTrip = existingTripOptional.get();
 
+            Long oldDriverId = existingTrip.getDriver() != null ? existingTrip.getDriver().getId() : null;
+            Long oldVehicleId = existingTrip.getVehicle() != null ? existingTrip.getVehicle().getId() : null;
+
             if (tripDTO.getTripNumber() != null) {
                 existingTrip.setTripNumber(tripDTO.getTripNumber());
             }
@@ -191,6 +212,27 @@ public class TripService {
                         .ifPresent(existingTrip::setVehicle);
             }
 
+            Long newDriverId = existingTrip.getDriver() != null ? existingTrip.getDriver().getId() : null;
+            Long newVehicleId = existingTrip.getVehicle() != null ? existingTrip.getVehicle().getId() : null;
+            boolean pairingChanged = !Objects.equals(oldDriverId, newDriverId) || !Objects.equals(oldVehicleId, newVehicleId);
+            boolean tripFinished = tripDTO.getStatus() != null
+                    && (tripDTO.getStatus() == TripStatus.COMPLETED
+                        || tripDTO.getStatus() == TripStatus.CANCELLED
+                        || tripDTO.getStatus() == TripStatus.CLOSED);
+
+            // Release the previous driver/vehicle's active assignment (back to AVAILABLE)
+            // whenever the pairing is changing, or the trip is finishing.
+            if ((pairingChanged || tripFinished) && oldDriverId != null && oldVehicleId != null) {
+                releaseActiveAssignmentForDriver(oldDriverId,
+                        tripFinished ? "Trip " + tripId + " " + tripDTO.getStatus() : "Reassigned from trip " + tripId);
+            }
+
+            // A genuinely new pairing (not part of a completion/cancellation call) must go
+            // through the same availability/duplicate checks as trip creation.
+            if (pairingChanged && !tripFinished && newDriverId != null && newVehicleId != null) {
+                driverVehicleAssignmentService.assignDriver(newDriverId, newVehicleId);
+            }
+
             existingTrip.setUpdatedAt(LocalDateTime.now());
 
             if(!Objects.equals(existingTrip.getStatus(),tripDTO.getStatus())) {
@@ -208,6 +250,10 @@ public class TripService {
             response.setResponseMessege("Trip updated successfully!");
             response.setData(tripMapper.toDto(savedTrip));
 
+        } catch (CustomValidationException e) {
+            log.warn("Trip update rejected for ID {}: {}", tripId, e.getMessage());
+            response.setResponseCode(e.getErrorCode());
+            response.setResponseMessege(e.getMessage());
         } catch (Exception e) {
             log.error("Error updating trip with ID {}: {}", tripId, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -215,6 +261,28 @@ public class TripService {
             response.setErrors(new Object[]{e.getMessage()});
         }
         return response;
+    }
+
+    /**
+     * Releases the given driver's currently active assignment (if any) back to
+     * AVAILABLE, e.g. when a trip is reassigned to a different driver/vehicle or
+     * finishes (COMPLETED/CANCELLED/CLOSED). Lenient by design: a trip's own
+     * lifecycle must not fail just because the assignment bookkeeping was already
+     * reconciled by some other path (e.g. a direct call to the assignments API).
+     */
+    private void releaseActiveAssignmentForDriver(Long driverId, String reason) {
+        List<DriverVehicleAssignment> active = driverVehicleAssignmentRepository.findByDriverIdAndActiveTrue(driverId);
+        if (active.isEmpty()) {
+            log.warn("No active driver-vehicle assignment found for driver {} while releasing from a trip; skipping.", driverId);
+            return;
+        }
+        for (DriverVehicleAssignment assignment : active) {
+            try {
+                driverVehicleAssignmentService.unassign(assignment.getId(), reason);
+            } catch (CustomValidationException e) {
+                log.warn("Could not release assignment {} for driver {}: {}", assignment.getId(), driverId, e.getMessage());
+            }
+        }
     }
 
     @Transactional

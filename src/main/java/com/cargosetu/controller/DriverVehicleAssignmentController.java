@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.awt.print.Pageable;
 import java.util.List;
 
 @RestController
@@ -32,8 +31,10 @@ public class DriverVehicleAssignmentController {
     }
 
     @PutMapping("/unassign/{id}")
-    public ResponseEntity<String> unassign(@PathVariable Long id) {
-        service.unassign(id, "discreption");
+    public ResponseEntity<String> unassign(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        service.unassign(id, reason);
         return ResponseEntity.ok("Unassigned successfully");
     }
 }

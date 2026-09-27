@@ -903,4 +903,145 @@
                 );
         </sql>
     </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 7. driver_vehicle_assignments - drop orphaned          -->
+    <!-- assigned_date column (superseded by assigned_at; the   -->
+    <!-- entity never mapped this column - Hibernate             -->
+    <!-- ddl-auto=update added assigned_at separately, leaving   -->
+    <!-- assigned_date orphaned and unused)                      -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_DVA_DROP_LEGACY_ASSIGNED_DATE_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver_vehicle_assignments"/>
+            <columnExists tableName="driver_vehicle_assignments" columnName="assigned_date"/>
+        </preConditions>
+        <dropColumn tableName="driver_vehicle_assignments" columnName="assigned_date"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 8. driver_vehicle_assignments - drop orphaned          -->
+    <!-- unassigned_date column (superseded by unassigned_at)    -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_DVA_DROP_LEGACY_UNASSIGNED_DATE_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver_vehicle_assignments"/>
+            <columnExists tableName="driver_vehicle_assignments" columnName="unassigned_date"/>
+        </preConditions>
+        <dropColumn tableName="driver_vehicle_assignments" columnName="unassigned_date"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 9. driver_vehicle_assignments - reconcile duplicate    -->
+    <!-- active rows before enforcing a DB-level unique          -->
+    <!-- constraint. Must run before changesets 10 and 11.       -->
+    <!-- Keeps the most-recently-assigned active row per         -->
+    <!-- driver_id and per vehicle_id; deactivates the rest.     -->
+    <!-- Uses session-variable ranking (MySQL 5.7+ compatible,   -->
+    <!-- no window functions). No-op on a clean DB.               -->
+    <!-- ===================================================== -->
+    <changeSet id="RECONCILE_DVA_DUPLICATE_ACTIVE_01" author="Smart Load Matching">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver_vehicle_assignments"/>
+            <columnExists tableName="driver_vehicle_assignments" columnName="active"/>
+            <columnExists tableName="driver_vehicle_assignments" columnName="assigned_at"/>
+        </preConditions>
+        <sql>SET @rn := 0, @prev_id := NULL;</sql>
+        <sql>
+            UPDATE driver_vehicle_assignments dva
+            JOIN (
+                SELECT id FROM (
+                    SELECT id,
+                           @rn := IF(@prev_id = driver_id, @rn + 1, 1) AS rn,
+                           @prev_id := driver_id
+                    FROM driver_vehicle_assignments
+                    WHERE active = 1
+                    ORDER BY driver_id, assigned_at DESC, id DESC
+                ) ranked
+                WHERE rn > 1
+            ) dup ON dup.id = dva.id
+            SET dva.active = 0,
+                dva.unassigned_at = NOW(),
+                dva.remarks = CONCAT(COALESCE(dva.remarks, ''),
+                    CASE WHEN dva.remarks IS NULL OR dva.remarks = '' THEN '' ELSE ' | ' END,
+                    'Deactivated by automated reconciliation - duplicate active assignment')
+            WHERE dva.active = 1;
+        </sql>
+        <sql>SET @rn := 0, @prev_id := NULL;</sql>
+        <sql>
+            UPDATE driver_vehicle_assignments dva
+            JOIN (
+                SELECT id FROM (
+                    SELECT id,
+                           @rn := IF(@prev_id = vehicle_id, @rn + 1, 1) AS rn,
+                           @prev_id := vehicle_id
+                    FROM driver_vehicle_assignments
+                    WHERE active = 1
+                    ORDER BY vehicle_id, assigned_at DESC, id DESC
+                ) ranked
+                WHERE rn > 1
+            ) dup ON dup.id = dva.id
+            SET dva.active = 0,
+                dva.unassigned_at = NOW(),
+                dva.remarks = CONCAT(COALESCE(dva.remarks, ''),
+                    CASE WHEN dva.remarks IS NULL OR dva.remarks = '' THEN '' ELSE ' | ' END,
+                    'Deactivated by automated reconciliation - duplicate active assignment')
+            WHERE dva.active = 1;
+        </sql>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 10. driver_vehicle_assignments - DB-level partial       -->
+    <!-- unique constraint: at most one active row per driver.   -->
+    <!-- Uses a STORED generated column so MySQL can enforce      -->
+    <!-- uniqueness only among active rows (NULL for inactive     -->
+    <!-- rows, which MySQL unique indexes always allow to repeat).-->
+    <!-- Must run after changeset 9 (reconciliation).             -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_DVA_ADD_ACTIVE_DRIVER_UNIQUE_01" author="Smart Load Matching" dbms="mysql">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver_vehicle_assignments"/>
+            <not>
+                <columnExists tableName="driver_vehicle_assignments" columnName="active_driver_id"/>
+            </not>
+        </preConditions>
+        <sql>
+            ALTER TABLE driver_vehicle_assignments
+                ADD COLUMN active_driver_id BIGINT
+                GENERATED ALWAYS AS (CASE WHEN active = 1 THEN driver_id END) STORED;
+        </sql>
+        <sql>
+            ALTER TABLE driver_vehicle_assignments
+                ADD UNIQUE INDEX uq_dva_active_driver (active_driver_id);
+        </sql>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 11. driver_vehicle_assignments - DB-level partial       -->
+    <!-- unique constraint: at most one active row per vehicle.  -->
+    <!-- Same generated-column technique as changeset 10.        -->
+    <!-- ===================================================== -->
+    <changeSet id="ALTER_DVA_ADD_ACTIVE_VEHICLE_UNIQUE_01" author="Smart Load Matching" dbms="mysql">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="driver_vehicle_assignments"/>
+            <not>
+                <columnExists tableName="driver_vehicle_assignments" columnName="active_vehicle_id"/>
+            </not>
+        </preConditions>
+        <sql>
+            ALTER TABLE driver_vehicle_assignments
+                ADD COLUMN active_vehicle_id BIGINT
+                GENERATED ALWAYS AS (CASE WHEN active = 1 THEN vehicle_id END) STORED;
+        </sql>
+        <sql>
+            ALTER TABLE driver_vehicle_assignments
+                ADD UNIQUE INDEX uq_dva_active_vehicle (active_vehicle_id);
+        </sql>
+    </changeSet>
+    <changeSet id="DROP_TBLM_CUSTOMERS_NAME_01" author="Subham Kumar">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <columnExists tableName="tblm_customers" columnName="name"/>
+        </preConditions>
+        <dropColumn tableName="tblm_customers" columnName="name"/>
+    </changeSet>
 </databaseChangeLog>

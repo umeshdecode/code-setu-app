@@ -3,7 +3,6 @@ package com.cargosetu.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -30,8 +29,9 @@ public class DriverVehicleAssignment {
     @JoinColumn(name = "vehicle_id", nullable = false)
     private Vehicle vehicle;
 
-    @NotNull(message = "Assignment timestamp is required")
-    @PastOrPresent(message = "Assignment time cannot be in the future")
+    // Auto-populated by Hibernate at insert time - no @NotNull/@PastOrPresent here.
+    // Bean Validation runs before @CreationTimestamp assigns the value, so
+    // requiring it non-null on this field made every insert fail validation.
     @CreationTimestamp
     private LocalDateTime assignedAt;
 

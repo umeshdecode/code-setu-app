@@ -6,7 +6,7 @@ import com.cargosetu.model.DriverVehicleAssignment;
 import java.util.List;
 
 public interface DriverVehicleAssignmentService {
-    public void unassign(Long assignmentId, String discreption) ;
-    public List<AssignedDriverToVehicleDto> getAllAssignments() ;
-    public DriverVehicleAssignment assignDriver(Long driverId, Long vehicleId) ;
-    }
+    public void unassign(Long assignmentId, String reason);
+    public List<AssignedDriverToVehicleDto> getAllAssignments();
+    public DriverVehicleAssignment assignDriver(Long driverId, Long vehicleId);
+}
