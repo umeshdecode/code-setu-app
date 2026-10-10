@@ -37,6 +37,24 @@ public class MarketplaceBookingController {
         }
     }
 
+    @PostMapping
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
+    public ResponseEntity<?> createBookingDirect(@AuthenticationPrincipal LoggedInUser user, @RequestBody CreateBookingRequest request) {
+        Long listingId = request != null ? request.getListingId() : null;
+        log.info("API entry for createBookingDirect listingId: {}", listingId);
+        if (listingId == null) {
+            return ResponseEntity.badRequest().body(new GenericDataDTO(CommonStatusCode.FAIL, "listingId is required", null, null));
+        }
+        try {
+            GenericDataDTO response = bookingService.createBooking(user, listingId, request);
+            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+        } catch (Exception e) {
+            log.error("Exception in createBookingDirect", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to create booking", null, new Object[]{e.getMessage()}));
+        }
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_READ + "')")
     public ResponseEntity<?> getMyBookings(@AuthenticationPrincipal LoggedInUser user, @RequestParam(required = false) String status) {

@@ -37,6 +37,23 @@ public class MarketplaceOfferController {
         }
     }
 
+    @PostMapping(MarketplaceUrlConstants.OFFERS)
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_CREATE + "')")
+    public ResponseEntity<?> createOfferDirect(@AuthenticationPrincipal LoggedInUser user, @RequestParam(required = false) Long listingId, @RequestBody CreateOfferRequest request) {
+        log.info("API entry for createOfferDirect listingId: {}", listingId);
+        if (listingId == null) {
+            return ResponseEntity.badRequest().body(new GenericDataDTO(CommonStatusCode.FAIL, "listingId parameter is required to submit an offer", null, null));
+        }
+        try {
+            GenericDataDTO response = offerService.createOffer(user, listingId, request);
+            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+        } catch (Exception e) {
+            log.error("Exception in createOfferDirect", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to create offer", null, new Object[]{e.getMessage()}));
+        }
+    }
+
     @GetMapping(MarketplaceUrlConstants.LISTINGS + "/{listingId}" + MarketplaceUrlConstants.OFFERS)
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_READ + "')")
     public ResponseEntity<?> getOffersForListing(@PathVariable Long listingId) {
@@ -46,6 +63,20 @@ public class MarketplaceOfferController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Exception in getOffersForListing", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get offers", null, new Object[]{e.getMessage()}));
+        }
+    }
+
+    @GetMapping(MarketplaceUrlConstants.OFFERS + "/listing/{listingId}")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_READ + "')")
+    public ResponseEntity<?> getOffersForListingLegacy(@PathVariable Long listingId) {
+        log.info("API entry for getOffersForListingLegacy listingId: {}", listingId);
+        try {
+            GenericDataDTO response = offerService.getOffersForListing(listingId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Exception in getOffersForListingLegacy", e);
             return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
                     .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get offers", null, new Object[]{e.getMessage()}));
         }

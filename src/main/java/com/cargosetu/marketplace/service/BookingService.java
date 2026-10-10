@@ -43,10 +43,23 @@ public class BookingService {
     private final VehicleRepository vehicleRepository;
     private final DriverRepository driverRepository;
 
+    private final com.cargosetu.repo.CompanyRepository companyRepository;
+
     @Transactional
     public GenericDataDTO createBooking(LoggedInUser user, Long listingId, CreateBookingRequest request) {
         GenericDataDTO response = new GenericDataDTO();
         try {
+            if (request == null) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Invalid booking request");
+                return response;
+            }
+            if (request.getAgreedFreight() == null || request.getAgreedFreight().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Agreed freight must be greater than zero");
+                return response;
+            }
+
             MarketplaceListing listing = listingRepository.findByIdWithLock(listingId).orElse(null);
             if (listing == null) {
                 response.setResponseCode(CommonStatusCode.NOT_FOUND);
@@ -54,10 +67,64 @@ public class BookingService {
                 return response;
             }
 
+            if (listing.getStatus() == com.cargosetu.marketplace.enums.ListingStatus.BOOKED
+                    || listing.getStatus() == com.cargosetu.marketplace.enums.ListingStatus.CLOSED
+                    || listing.getStatus() == com.cargosetu.marketplace.enums.ListingStatus.CANCELLED) {
+                response.setResponseCode(CommonStatusCode.CONFLICT);
+                response.setResponseMessege("Listing is no longer available for booking");
+                return response;
+            }
+
+            // Validate Offer if present
+            if (request.getOfferId() != null) {
+                com.cargosetu.marketplace.entity.MarketplaceOffer offer = offerRepository.findById(request.getOfferId()).orElse(null);
+                if (offer == null || !offer.getListing().getId().equals(listingId)) {
+                    response.setResponseCode(CommonStatusCode.FAIL);
+                    response.setResponseMessege("Offer does not belong to this listing");
+                    return response;
+                }
+            }
+
+            // Validate Vehicle and Driver ownership if provided
+            if (request.getVehicleId() != null) {
+                com.cargosetu.model.Vehicle vehicle = vehicleRepository.findById(request.getVehicleId()).orElse(null);
+                if (vehicle == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Selected vehicle not found");
+                    return response;
+                }
+                if (vehicle.getCompanyId() != null && !vehicle.getCompanyId().equals(user.getCompanyId())) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Vehicle does not belong to your company");
+                    return response;
+                }
+            }
+            if (request.getDriverId() != null) {
+                com.cargosetu.model.Driver driver = driverRepository.findById(request.getDriverId()).orElse(null);
+                if (driver == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Selected driver not found");
+                    return response;
+                }
+                if (driver.getCompanyId() != null && !driver.getCompanyId().equals(user.getCompanyId())) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Driver does not belong to your company");
+                    return response;
+                }
+            }
+
             MarketplaceBooking booking = new MarketplaceBooking();
             long count = bookingRepository.count() + 1;
             booking.setBookingNumber(String.format("BK-%s-%04d", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")), count));
             booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.PENDING_PAYMENT);
+            booking.setListing(listing);
+            booking.setOfferId(request.getOfferId());
+            booking.setVehicleId(request.getVehicleId());
+            booking.setDriverId(request.getDriverId());
+            booking.setAgreedFreight(request.getAgreedFreight());
+            booking.setPaymentTerms(request.getPaymentTerms() != null ? request.getPaymentTerms() : com.cargosetu.marketplace.enums.PaymentTermType.ADVANCE_PERCENT);
+            booking.setAdvancePercentage(request.getAdvancePercentage() != null ? request.getAdvancePercentage() : 50);
+            booking.setBookedAt(LocalDateTime.now());
             
             if (com.cargosetu.marketplace.enums.ListingType.LOAD_POST.equals(listing.getType())) {
                 booking.setShipperCompanyId(listing.getCompanyId());
@@ -69,35 +136,45 @@ public class BookingService {
                 TruckPost truckPost = truckPostRepository.findByListingId(listingId).orElse(null);
                 if (truckPost != null) {
                     double requestedCapacity = request.getRequestedCapacity() != null ? request.getRequestedCapacity() : 0.0;
-                    if (truckPost.getAvailableCapacity() < requestedCapacity) {
+                    if (truckPost.getAvailableCapacity() != null && truckPost.getAvailableCapacity() < requestedCapacity) {
                         response.setResponseCode(CommonStatusCode.FAIL);
-                        response.setResponseMessege("Insufficient capacity");
+                        response.setResponseMessege("Insufficient available capacity on truck");
                         return response;
                     }
-                    truckPost.setAvailableCapacity(truckPost.getAvailableCapacity() - requestedCapacity);
-                    truckPostRepository.save(truckPost);
+                    if (requestedCapacity > 0 && truckPost.getAvailableCapacity() != null) {
+                        truckPost.setAvailableCapacity(truckPost.getAvailableCapacity() - requestedCapacity);
+                        truckPost.setOccupiedCapacity((truckPost.getOccupiedCapacity() != null ? truckPost.getOccupiedCapacity() : 0.0) + requestedCapacity);
+                        if (truckPost.getAvailableCapacity() <= 0) {
+                            truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.BOOKED);
+                        }
+                        truckPostRepository.save(truckPost);
+                    }
                 }
             }
 
-            booking.setListing(listing);
             booking = bookingRepository.save(booking);
 
             BookingItem item = new BookingItem();
             item.setBookingId(booking.getId());
+            if (request.getRequestedCapacity() != null) {
+                item.setLoadWeight(request.getRequestedCapacity());
+                item.setAllocatedCapacity(request.getRequestedCapacity());
+            }
             bookingItemRepository.save(item);
 
             listing.setStatus(com.cargosetu.marketplace.enums.ListingStatus.BOOKED);
             listingRepository.save(listing);
 
-            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "CREATE", null, "PENDING");
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "CREATE", null, "PENDING_PAYMENT");
 
-            response.setData(bookingMapper.toDto(booking));
+            com.cargosetu.marketplace.dto.BookingResponse bookingResponse = enrichBookingResponse(booking);
+            response.setData(bookingResponse);
             response.setResponseCode(CommonStatusCode.CREATED);
-            response.setResponseMessege("Booking created");
+            response.setResponseMessege("Booking created successfully");
         } catch (Exception e) {
             log.error("Error creating booking", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to create booking");
+            response.setResponseMessege("Failed to create booking: " + e.getMessage());
         }
         return response;
     }
@@ -142,10 +219,25 @@ public class BookingService {
     public GenericDataDTO getBooking(LoggedInUser user, Long bookingId) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response.setData(bookingMapper.toDto(bookingRepository.findById(bookingId).orElse(null)));
+            MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
+            if (booking == null) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Booking not found");
+                return response;
+            }
+            if (user != null && user.getCompanyId() != null) {
+                if (!user.getCompanyId().equals(booking.getShipperCompanyId()) && !user.getCompanyId().equals(booking.getTransporterCompanyId())) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Unauthorized to view this booking");
+                    return response;
+                }
+            }
+            response.setData(enrichBookingResponse(booking));
             response.setResponseCode(CommonStatusCode.SUCCESS);
         } catch (Exception e) {
+            log.error("Error getting booking", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to get booking: " + e.getMessage());
         }
         return response;
     }
@@ -153,13 +245,24 @@ public class BookingService {
     public GenericDataDTO getMyBookings(LoggedInUser user, String status) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            com.cargosetu.marketplace.enums.BookingStatus bookingStatus = com.cargosetu.marketplace.enums.BookingStatus.valueOf(status);
-            java.util.List<MarketplaceBooking> bookings = new java.util.ArrayList<>(bookingRepository.findByShipperCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
-            bookings.addAll(bookingRepository.findByTransporterCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
-            response.setDataList(bookings);
+            java.util.List<MarketplaceBooking> bookings;
+            if (status != null && !status.isBlank()) {
+                com.cargosetu.marketplace.enums.BookingStatus bookingStatus = com.cargosetu.marketplace.enums.BookingStatus.valueOf(status.trim().toUpperCase());
+                bookings = new java.util.ArrayList<>(bookingRepository.findByShipperCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
+                bookings.addAll(bookingRepository.findByTransporterCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
+            } else {
+                bookings = bookingRepository.findByShipperCompanyIdOrTransporterCompanyId(user.getCompanyId(), user.getCompanyId());
+            }
+            java.util.List<com.cargosetu.marketplace.dto.BookingResponse> dtoList = bookings.stream()
+                    .map(this::enrichBookingResponse)
+                    .toList();
+            response.setDataList(dtoList);
             response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Bookings retrieved successfully");
         } catch (Exception e) {
+            log.error("Error fetching bookings", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to get bookings: " + e.getMessage());
         }
         return response;
     }
@@ -170,14 +273,75 @@ public class BookingService {
         try {
             MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
             if (booking != null) {
+                if (request.getVehicleId() != null) {
+                    com.cargosetu.model.Vehicle vehicle = vehicleRepository.findById(request.getVehicleId()).orElse(null);
+                    if (vehicle != null && vehicle.getCompanyId() != null && !vehicle.getCompanyId().equals(user.getCompanyId())) {
+                        response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                        response.setResponseMessege("Vehicle does not belong to your company");
+                        return response;
+                    }
+                }
+                if (request.getDriverId() != null) {
+                    com.cargosetu.model.Driver driver = driverRepository.findById(request.getDriverId()).orElse(null);
+                    if (driver != null && driver.getCompanyId() != null && !driver.getCompanyId().equals(user.getCompanyId())) {
+                        response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                        response.setResponseMessege("Driver does not belong to your company");
+                        return response;
+                    }
+                }
                 booking.setVehicleId(request.getVehicleId());
                 booking.setDriverId(request.getDriverId());
                 bookingRepository.save(booking);
+                response.setData(enrichBookingResponse(booking));
                 response.setResponseCode(CommonStatusCode.SUCCESS);
+                response.setResponseMessege("Vehicle and driver assigned successfully");
+            } else {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Booking not found");
             }
         } catch (Exception e) {
+            log.error("Error assigning vehicle/driver", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
         }
         return response;
+    }
+
+    private com.cargosetu.marketplace.dto.BookingResponse enrichBookingResponse(MarketplaceBooking booking) {
+        if (booking == null) return null;
+        com.cargosetu.marketplace.dto.BookingResponse dto = bookingMapper.toDto(booking);
+        if (booking.getShipperCompanyId() != null) {
+            companyRepository.findById(booking.getShipperCompanyId())
+                    .ifPresent(c -> dto.setShipperCompanyName(c.getCompanyName()));
+        }
+        if (booking.getTransporterCompanyId() != null) {
+            companyRepository.findById(booking.getTransporterCompanyId())
+                    .ifPresent(c -> dto.setTransporterCompanyName(c.getCompanyName()));
+        }
+        if (booking.getVehicleId() != null) {
+            vehicleRepository.findById(booking.getVehicleId()).ifPresent(v -> {
+                dto.setVehicleNumber(v.getRegistrationNumber());
+                dto.setVehicleType(v.getVehicleType());
+            });
+        }
+        if (booking.getDriverId() != null) {
+            driverRepository.findById(booking.getDriverId()).ifPresent(d -> {
+                dto.setDriverName(d.getName());
+            });
+        }
+        if (booking.getListing() != null) {
+            dto.setListingId(booking.getListing().getId());
+            dto.setListingNumber(booking.getListing().getListingNumber());
+            dto.setListingType(booking.getListing().getType());
+            if (booking.getListing().getLoadPost() != null) {
+                dto.setOriginCity(booking.getListing().getLoadPost().getOriginCity());
+                dto.setDestinationCity(booking.getListing().getLoadPost().getDestinationCity());
+                dto.setCargoType(booking.getListing().getLoadPost().getCargoType());
+                dto.setWeight(booking.getListing().getLoadPost().getWeight());
+            } else if (booking.getListing().getTruckPost() != null) {
+                dto.setOriginCity(booking.getListing().getTruckPost().getCurrentCity());
+                dto.setDestinationCity(booking.getListing().getTruckPost().getRouteTo());
+            }
+        }
+        return dto;
     }
 }

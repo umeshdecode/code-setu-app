@@ -26,15 +26,24 @@ public class OfferService {
     private final MarketplaceListingRepository listingRepository;
     private final OfferMapper offerMapper;
     private final MarketplaceAuditService auditService;
+    private final com.cargosetu.repo.CompanyRepository companyRepository;
+    private final com.cargosetu.repo.StaffRepository staffRepository;
 
     @Transactional
     public GenericDataDTO createOffer(LoggedInUser user, Long listingId, CreateOfferRequest request) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            MarketplaceListing listing = listingRepository.findById(listingId).orElse(null);
-            if (listing == null || listing.getStatus() != com.cargosetu.marketplace.enums.ListingStatus.PUBLISHED) {
+            if (request == null || request.getAmount() == null || request.getAmount().compareTo(java.math.BigDecimal.ZERO) <= 0) {
                 response.setResponseCode(CommonStatusCode.FAIL);
-                response.setResponseMessege("Listing not found or not published");
+                response.setResponseMessege("Offer amount must be greater than zero");
+                return response;
+            }
+
+            MarketplaceListing listing = listingRepository.findById(listingId).orElse(null);
+            if (listing == null || (listing.getStatus() != com.cargosetu.marketplace.enums.ListingStatus.PUBLISHED
+                    && listing.getStatus() != com.cargosetu.marketplace.enums.ListingStatus.NEGOTIATING)) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Listing not found or not active for offers");
                 return response;
             }
 
@@ -56,13 +65,13 @@ public class OfferService {
 
             auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceOffer", offer.getId(), "CREATE", null, "PENDING");
 
-            response.setData(offerMapper.toDto(offer));
+            response.setData(enrichOfferResponse(offer));
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Offer created successfully");
         } catch (Exception e) {
             log.error("Error creating offer", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to create offer");
+            response.setResponseMessege("Failed to create offer: " + e.getMessage());
         }
         return response;
     }
@@ -150,10 +159,16 @@ public class OfferService {
     public GenericDataDTO getOffersForListing(Long listingId) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response.setDataList(offerRepository.findByListingId(listingId));
+            java.util.List<com.cargosetu.marketplace.dto.OfferResponse> list = offerRepository.findByListingId(listingId).stream()
+                    .map(this::enrichOfferResponse)
+                    .toList();
+            response.setDataList(list);
             response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Offers retrieved successfully");
         } catch (Exception e) {
+            log.error("Error fetching offers for listing {}", listingId, e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to get offers: " + e.getMessage());
         }
         return response;
     }
@@ -161,11 +176,38 @@ public class OfferService {
     public GenericDataDTO getMyOffers(LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response.setDataList(offerRepository.findByBidderCompanyId(user.getCompanyId()));
+            java.util.List<com.cargosetu.marketplace.dto.OfferResponse> list = offerRepository.findByBidderCompanyId(user.getCompanyId()).stream()
+                    .map(this::enrichOfferResponse)
+                    .toList();
+            response.setDataList(list);
             response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("My offers retrieved successfully");
         } catch (Exception e) {
+            log.error("Error fetching offers for company {}", user.getCompanyId(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to get my offers: " + e.getMessage());
         }
         return response;
+    }
+
+    private com.cargosetu.marketplace.dto.OfferResponse enrichOfferResponse(MarketplaceOffer offer) {
+        if (offer == null) return null;
+        com.cargosetu.marketplace.dto.OfferResponse dto = offerMapper.toDto(offer);
+        if (offer.getListing() != null) {
+            dto.setListingId(offer.getListing().getId());
+            dto.setListingNumber(offer.getListing().getListingNumber());
+        }
+        if (offer.getBidderCompanyId() != null) {
+            companyRepository.findById(offer.getBidderCompanyId())
+                    .ifPresent(c -> dto.setBidderCompanyName(c.getCompanyName()));
+        }
+        if (offer.getOfferedByStaffId() != null) {
+            staffRepository.findById(offer.getOfferedByStaffId())
+                    .ifPresent(s -> {
+                        String name = s.getFirstName() != null ? (s.getFirstName() + (s.getLastName() != null ? " " + s.getLastName() : "")) : s.getUserName();
+                        dto.setOfferedByName(name);
+                    });
+        }
+        return dto;
     }
 }
