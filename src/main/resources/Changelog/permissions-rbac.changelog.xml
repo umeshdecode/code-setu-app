@@ -154,7 +154,7 @@
     <!-- ===================================================== -->
     <!-- 3. Seed SuperAdmin User & Map to SuperAdmin Role      -->
     <!-- ===================================================== -->
-    <changeSet id="RBAC_SUPERADMIN_USER_SEED_20260816_03" author="Umesh Sharma">
+    <changeSet id="RBAC_SUPERADMIN_USER_SEED_20260816_03" author="Umesh Sharma" runOnChange="true">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <tableExists tableName="tblm_staff"/>
             <tableExists tableName="tblm_roles"/>
@@ -173,6 +173,7 @@
             <column name="mobile_number" value="+++"/>
             <column name="password" value="$2a$10$c6yl2E/iNR99hiHKlg6zkOTJJAD48lhDxQzG5/3ByTMrdg/7XGrbm"/>
             <column name="staff_type" value="SUPERADMIN"/>
+            <column name="company_id" value="1"/>
             <column name="is_active" valueBoolean="true"/>
             <column name="is_deleted" valueBoolean="false"/>
         </insert>

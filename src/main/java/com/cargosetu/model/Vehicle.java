@@ -1,6 +1,7 @@
 package com.cargosetu.model;
 
 import com.cargosetu.dto.VehicleDto;
+import com.cargosetu.entity.VehicleModel;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -18,6 +19,9 @@ public class Vehicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "company_id")
+    private Integer companyId;
+
     @NotBlank(message = "Chassis number is mandatory")
     @Column(unique = true, nullable = false)
     private String chassisNumber;
@@ -33,6 +37,9 @@ public class Vehicle {
     @Size(min = 5, max = 20, message = "Registration number length invalid")
     @Column(unique = true, nullable = false)
     private String registrationNumber;
+
+    @Column(name = "vehicle_number")
+    private String vehicleNo;
 
     @NotBlank(message = "Vehicle type is mandatory")
     private String vehicleType; // e.g., TRUCK, VAN, LCV
@@ -67,9 +74,37 @@ public class Vehicle {
 
     private String currentLocation;
 
+    @Column(name = "truck_type")
+    private String truckType; // e.g., OPEN_TRUCK, CONTAINER, LCV, TIPPER, TANKER, TRAILER
+
+    @Column(name = "body_type")
+    private String bodyType; // e.g., LCV_OPEN, LCV_CONTAINER, OPEN_FULL_BODY, CLOSED_CONTAINER
+
+    @Column(name = "truck_length_feet")
+    private Double truckLengthFeet; // e.g., 17.0, 19.0, 32.0
+
+    @Column(name = "length_option")
+    private String lengthOption; // e.g., "17 Feet", "19 Feet", "32 Feet SXL"
+
+    @Column(name = "wheeler_count")
+    private Integer wheelerCount; // e.g., 4, 6, 14, 18
+
+    @Column(name = "wheeler_option")
+    private String wheelerOption; // e.g., "4 Wheeler", "6 Wheeler", "14 Wheeler"
+
+    @Column(name = "passing_capacity_tons")
+    private Double passingCapacityTons; // e.g., 24.5, 15.0
+
+    @Column(name = "passing_capacity_option")
+    private String passingCapacityOption; // e.g., "24-25 Ton", "15 Ton"
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_model_id")
+    private VehicleModel vehicleModel;
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
@@ -94,6 +129,14 @@ public class Vehicle {
         this.registrationDate = dto.getRegistrationDate();
         this.pollutionExpiryDate = dto.getPollutionExpiryDate();
         this.currentLocation = dto.getCurrentLocation();
+        this.truckType = dto.getTruckType();
+        this.bodyType = dto.getBodyType();
+        this.truckLengthFeet = dto.getTruckLengthFeet();
+        this.lengthOption = dto.getLengthOption();
+        this.wheelerCount = dto.getWheelerCount();
+        this.wheelerOption = dto.getWheelerOption();
+        this.passingCapacityTons = dto.getPassingCapacityTons();
+        this.passingCapacityOption = dto.getPassingCapacityOption();
     }
 
     public Vehicle() {

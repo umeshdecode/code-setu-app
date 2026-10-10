@@ -17,12 +17,16 @@ public class Driver {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "company_id")
+    private Integer companyId;
+
     @NotBlank(message = "Name is mandatory")
     @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
     private String name;
 
     @NotBlank(message = "Phone number is mandatory")
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
+    @Column(name = "phone")
     private String phoneNumber;
 
     @Email(message = "Invalid email format")

@@ -414,7 +414,7 @@
     </changeSet>
 
     <!-- 28. vehicles -->
-    <changeSet id="CREATE_VEHICLES_01" author="Umesh Sharma">
+    <changeSet id="CREATE_VEHICLES_01" author="Umesh Sharma" runOnChange="true">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <not><tableExists tableName="vehicles"/></not>
         </preConditions>

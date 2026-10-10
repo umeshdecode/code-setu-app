@@ -77,8 +77,11 @@ public class SecurityConfig {
                                 "/public/plan/public/**",
                                 "/public/**",
                                 "/api/v2/cargosetu/refreshtoken",
-                                "/refreshtoken"
+                                "/refreshtoken",
+                                "/api/v2/cargosetu/vehicles/**",
+                                "/api/v2/cargosetu/marketplace/payments/webhook"
                         ).permitAll()
+                        .requestMatchers("/api/admin/vehicle-catalogue/**").hasAnyRole("SUPERADMIN", "COMPANY_ADMIN")
                         .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket
                         .requestMatchers("/topic/**").permitAll() // optional
                         .anyRequest().authenticated()

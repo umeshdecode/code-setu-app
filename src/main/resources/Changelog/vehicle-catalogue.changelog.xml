@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===================================================== -->
+    <!-- 1. Create vehicle_brands                               -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_VEHICLE_BRANDS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicle_brands"/></not>
+        </preConditions>
+        <createTable tableName="vehicle_brands">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="slug" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_vehicle_brand_slug"/>
+            </column>
+            <column name="active" type="BIT" defaultValueBoolean="true"/>
+            <column name="source" type="VARCHAR(100)"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Create vehicle_models                              -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_VEHICLE_MODELS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicle_models"/></not>
+        </preConditions>
+        <createTable tableName="vehicle_models">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="brand_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_vehicle_model_brand" references="vehicle_brands(id)"/>
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="slug" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="brand_vehicle_name" type="VARCHAR(255)"/>
+            <column name="primary_slug" type="VARCHAR(255)"/>
+            <column name="category" type="VARCHAR(100)"/>
+            <column name="sub_category" type="VARCHAR(100)"/>
+            <column name="series_name" type="VARCHAR(255)"/>
+            <column name="series_slug" type="VARCHAR(255)"/>
+            <column name="brochure_url" type="VARCHAR(1000)"/>
+            <column name="source" type="VARCHAR(100)"/>
+            <column name="source_product_id" type="VARCHAR(100)"/>
+            <column name="active" type="BIT" defaultValueBoolean="true"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <addUniqueConstraint
+                tableName="vehicle_models"
+                columnNames="brand_id, slug"
+                constraintName="uk_vehicle_model_brand_slug"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 3. Create vehicle_specifications                      -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_VEHICLE_SPECIFICATIONS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicle_specifications"/></not>
+        </preConditions>
+        <createTable tableName="vehicle_specifications">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="vehicle_model_id" type="BIGINT">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uk_vehicle_spec_model"
+                             foreignKeyName="fk_vehicle_spec_model" references="vehicle_models(id)"/>
+            </column>
+            <!-- Engine -->
+            <column name="engine_type" type="VARCHAR(255)"/>
+            <column name="engine_cylinders" type="INT"/>
+            <column name="engine_displacement_cc" type="INT"/>
+            <column name="fuel_type" type="VARCHAR(100)"/>
+            <column name="emission_norm" type="VARCHAR(100)"/>
+            <column name="mileage_kmpl" type="DOUBLE"/>
+            <column name="fuel_tank_capacity_litres" type="INT"/>
+            <column name="torque_nm" type="DOUBLE"/>
+            <column name="engine_power_hp" type="DOUBLE"/>
+            <column name="engine_rpm" type="INT"/>
+            <column name="max_speed_kmh" type="DOUBLE"/>
+            <column name="gradeability" type="DOUBLE"/>
+
+            <!-- Dimensions -->
+            <column name="turning_radius_mm" type="INT"/>
+            <column name="wheelbase_mm" type="INT"/>
+            <column name="deck_length_mm" type="INT"/>
+            <column name="ground_clearance_mm" type="INT"/>
+            <column name="overall_width_mm" type="INT"/>
+            <column name="overall_height_mm" type="INT"/>
+            <column name="overall_length_mm" type="INT"/>
+
+            <!-- Weight / loading -->
+            <column name="kerb_weight_kg" type="INT"/>
+            <column name="gvw_kg" type="INT"/>
+            <column name="payload_kg" type="INT"/>
+            <column name="gearbox" type="VARCHAR(255)"/>
+
+            <!-- Axle / brake / suspension -->
+            <column name="axle_config" type="VARCHAR(100)"/>
+            <column name="front_axle" type="VARCHAR(255)"/>
+            <column name="rear_axle" type="VARCHAR(255)"/>
+            <column name="front_suspension" type="VARCHAR(255)"/>
+            <column name="rear_suspension" type="VARCHAR(255)"/>
+            <column name="brake_type" type="VARCHAR(255)"/>
+            <column name="abs" type="BIT"/>
+
+            <!-- Body / cabin -->
+            <column name="chassis_type" type="VARCHAR(255)"/>
+            <column name="cabin_type" type="VARCHAR(255)"/>
+            <column name="body_option" type="VARCHAR(255)"/>
+            <column name="seating_capacity" type="INT"/>
+
+            <!-- Tyres -->
+            <column name="tubeless_tyres" type="BIT"/>
+            <column name="front_tyre" type="VARCHAR(100)"/>
+            <column name="rear_tyre" type="VARCHAR(100)"/>
+            <column name="number_of_tyres" type="INT"/>
+
+            <!-- Pricing -->
+            <column name="min_price" type="DECIMAL(15,2)"/>
+            <column name="max_price" type="DECIMAL(15,2)"/>
+
+            <column name="last_synced_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 4. Create vehicle_model_images                        -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_VEHICLE_MODEL_IMAGES_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="vehicle_model_images"/></not>
+        </preConditions>
+        <createTable tableName="vehicle_model_images">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="vehicle_model_id" type="BIGINT">
+                <constraints nullable="false" foreignKeyName="fk_vehicle_model_image" references="vehicle_models(id)"/>
+            </column>
+            <column name="image_url" type="VARCHAR(1000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="INT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 5. Add vehicle_model_id to vehicles table             -->
+    <!-- ===================================================== -->
+    <changeSet id="ADD_VEHICLE_MODEL_ID_TO_VEHICLES_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="vehicle_model_id"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
+            <column name="vehicle_model_id" type="BIGINT"/>
+        </addColumn>
+        <addForeignKeyConstraint
+                baseTableName="vehicles"
+                baseColumnNames="vehicle_model_id"
+                constraintName="fk_vehicles_vehicle_model"
+                referencedTableName="vehicle_models"
+                referencedColumnNames="id"/>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 6. Seed default initial vehicle brands                -->
+    <!-- ===================================================== -->
+    <changeSet id="SEED_VEHICLE_BRANDS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM vehicle_brands WHERE slug = 'tata'</sqlCheck>
+        </preConditions>
+        <insert tableName="vehicle_brands">
+            <column name="name" value="Tata"/>
+            <column name="slug" value="tata"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="source" value="trucksfloor"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_brands">
+            <column name="name" value="Eicher"/>
+            <column name="slug" value="eicher"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="source" value="trucksfloor"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_brands">
+            <column name="name" value="Ashok Leyland"/>
+            <column name="slug" value="ashok-leyland"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="source" value="trucksfloor"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_brands">
+            <column name="name" value="BharatBenz"/>
+            <column name="slug" value="bharatbenz"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="source" value="trucksfloor"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_brands">
+            <column name="name" value="Mahindra"/>
+            <column name="slug" value="mahindra"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="source" value="trucksfloor"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 7. Seed default vehicle models & specifications       -->
+    <!-- ===================================================== -->
+    <changeSet id="SEED_VEHICLE_MODELS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <sqlCheck expectedResult="0">SELECT COUNT(*) FROM vehicle_models</sqlCheck>
+        </preConditions>
+
+        <!-- TATA MODELS -->
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="1"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='tata')"/>
+            <column name="name" value="Tata Signa 2823.K Drill 6x4"/>
+            <column name="slug" value="tata-signa-2823k"/>
+            <column name="category" value="OPEN_TRUCK"/>
+            <column name="sub_category" value="Heavy Commercial Vehicle"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="1"/>
+            <column name="engine_type" value="Cummins ISBe 5.6L BS6"/>
+            <column name="engine_displacement_cc" valueNumeric="5600"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="220"/>
+            <column name="torque_nm" valueNumeric="850"/>
+            <column name="gvw_kg" valueNumeric="28000"/>
+            <column name="payload_kg" valueNumeric="18500"/>
+            <column name="number_of_tyres" valueNumeric="10"/>
+            <column name="mileage_kmpl" valueNumeric="3.5"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="2"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='tata')"/>
+            <column name="name" value="Tata Intra V30 Smart Pick-Up"/>
+            <column name="slug" value="tata-intra-v30"/>
+            <column name="category" value="LCV"/>
+            <column name="sub_category" value="Light Commercial Vehicle"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="2"/>
+            <column name="engine_type" value="4 Cylinder 1496 cc DI Engine"/>
+            <column name="engine_displacement_cc" valueNumeric="1496"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="70"/>
+            <column name="torque_nm" valueNumeric="160"/>
+            <column name="gvw_kg" valueNumeric="2565"/>
+            <column name="payload_kg" valueNumeric="1300"/>
+            <column name="number_of_tyres" valueNumeric="4"/>
+            <column name="mileage_kmpl" valueNumeric="14.0"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- EICHER MODELS -->
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="3"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='eicher')"/>
+            <column name="name" value="Eicher Pro 2059 City Truck"/>
+            <column name="slug" value="eicher-pro-2059"/>
+            <column name="category" value="LCV"/>
+            <column name="sub_category" value="Light Duty Truck"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="3"/>
+            <column name="engine_type" value="E366 3-Cylinder 2.0L E494"/>
+            <column name="engine_displacement_cc" valueNumeric="2000"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="100"/>
+            <column name="torque_nm" valueNumeric="285"/>
+            <column name="gvw_kg" valueNumeric="6950"/>
+            <column name="payload_kg" valueNumeric="4200"/>
+            <column name="number_of_tyres" valueNumeric="6"/>
+            <column name="mileage_kmpl" valueNumeric="10.5"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="4"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='eicher')"/>
+            <column name="name" value="Eicher Pro 3019 Haulage Truck"/>
+            <column name="slug" value="eicher-pro-3019"/>
+            <column name="category" value="OPEN_TRUCK"/>
+            <column name="sub_category" value="Medium Duty Truck"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="4"/>
+            <column name="engine_type" value="E494 4-Cylinder 3.8L CRS"/>
+            <column name="engine_displacement_cc" valueNumeric="3800"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="180"/>
+            <column name="torque_nm" valueNumeric="600"/>
+            <column name="gvw_kg" valueNumeric="18500"/>
+            <column name="payload_kg" valueNumeric="12500"/>
+            <column name="number_of_tyres" valueNumeric="6"/>
+            <column name="mileage_kmpl" valueNumeric="6.5"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- ASHOK LEYLAND MODELS -->
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="5"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='ashok-leyland')"/>
+            <column name="name" value="Ashok Leyland Bada Dost i3"/>
+            <column name="slug" value="ashok-leyland-bada-dost-i3"/>
+            <column name="category" value="LCV"/>
+            <column name="sub_category" value="Light Commercial Vehicle"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="5"/>
+            <column name="engine_type" value="1.5L 3-Cylinder Turbocharged Diesel"/>
+            <column name="engine_displacement_cc" valueNumeric="1478"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="80"/>
+            <column name="torque_nm" valueNumeric="190"/>
+            <column name="gvw_kg" valueNumeric="3490"/>
+            <column name="payload_kg" valueNumeric="1400"/>
+            <column name="number_of_tyres" valueNumeric="4"/>
+            <column name="mileage_kmpl" valueNumeric="13.5"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- MAHINDRA MODELS -->
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="6"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='mahindra')"/>
+            <column name="name" value="Mahindra Blazo X 28 Tipper"/>
+            <column name="slug" value="mahindra-blazo-x-28"/>
+            <column name="category" value="TIPPER"/>
+            <column name="sub_category" value="Heavy Duty Tipper"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="6"/>
+            <column name="engine_type" value="mPOWER 7.2L FuelSmart BS6"/>
+            <column name="engine_displacement_cc" valueNumeric="7200"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="280"/>
+            <column name="torque_nm" valueNumeric="1050"/>
+            <column name="gvw_kg" valueNumeric="28000"/>
+            <column name="payload_kg" valueNumeric="17000"/>
+            <column name="number_of_tyres" valueNumeric="10"/>
+            <column name="mileage_kmpl" valueNumeric="3.2"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- BHARATBENZ MODELS -->
+        <insert tableName="vehicle_models">
+            <column name="id" valueNumeric="7"/>
+            <column name="brand_id" valueComputed="(SELECT id FROM vehicle_brands WHERE slug='bharatbenz')"/>
+            <column name="name" value="BharatBenz 2823C Tipper"/>
+            <column name="slug" value="bharatbenz-2823c"/>
+            <column name="category" value="TIPPER"/>
+            <column name="sub_category" value="Construction &amp; Mining Tipper"/>
+            <column name="source" value="catalogue-seed"/>
+            <column name="active" valueBoolean="true"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="vehicle_specifications">
+            <column name="vehicle_model_id" valueNumeric="7"/>
+            <column name="engine_type" value="OM926 6-Cylinder 7.2L Engine"/>
+            <column name="engine_displacement_cc" valueNumeric="7200"/>
+            <column name="fuel_type" value="DIESEL"/>
+            <column name="engine_power_hp" valueNumeric="240"/>
+            <column name="torque_nm" valueNumeric="850"/>
+            <column name="gvw_kg" valueNumeric="28000"/>
+            <column name="payload_kg" valueNumeric="17500"/>
+            <column name="number_of_tyres" valueNumeric="10"/>
+            <column name="mileage_kmpl" valueNumeric="3.0"/>
+            <column name="last_synced_at" valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

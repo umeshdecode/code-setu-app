@@ -1,11 +1,12 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.dto.TruckOptionsDto;
 import com.cargosetu.dto.VehicleDto;
 import com.cargosetu.model.Vehicle;
 import com.cargosetu.repo.VehicleRepository;
+import com.cargosetu.service.TruckOptionService;
 import com.cargosetu.service.VehicleService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,11 +20,15 @@ public class VehicleServiceImpl implements VehicleService {
     @Autowired
     private VehicleRepository vehicleRepository;
 
+    @Autowired
+    private TruckOptionService truckOptionService;
+
     @Override
     public Vehicle createVehicle(VehicleDto vehicleDto) {
         try {
             log.info("Creating vehicle with registration: {}", vehicleDto.getRegistrationNumber());
             Vehicle vehicle = new Vehicle(vehicleDto);
+            vehicle.setVehicleNo(vehicleDto.getRegistrationNumber());
             vehicle.setCreatedAt(LocalDateTime.now());
             vehicle.setUpdatedAt(LocalDateTime.now());
 
@@ -72,6 +77,19 @@ public class VehicleServiceImpl implements VehicleService {
             vehicle.setManufacturer(updatedVehicle.getManufacturer());
             vehicle.setCapacityKg(updatedVehicle.getCapacityKg());
             vehicle.setStatus(updatedVehicle.getStatus());
+            vehicle.setFuelType(updatedVehicle.getFuelType());
+            vehicle.setCurrentLocation(updatedVehicle.getCurrentLocation());
+
+            // Load posting & truck classification options
+            vehicle.setTruckType(updatedVehicle.getTruckType());
+            vehicle.setBodyType(updatedVehicle.getBodyType());
+            vehicle.setTruckLengthFeet(updatedVehicle.getTruckLengthFeet());
+            vehicle.setLengthOption(updatedVehicle.getLengthOption());
+            vehicle.setWheelerCount(updatedVehicle.getWheelerCount());
+            vehicle.setWheelerOption(updatedVehicle.getWheelerOption());
+            vehicle.setPassingCapacityTons(updatedVehicle.getPassingCapacityTons());
+            vehicle.setPassingCapacityOption(updatedVehicle.getPassingCapacityOption());
+
             vehicle.setUpdatedAt(LocalDateTime.now());
 
             return vehicleRepository.save(vehicle);
@@ -81,8 +99,9 @@ public class VehicleServiceImpl implements VehicleService {
             throw e;
         }
     }
-@Override
-public void deleteVehicle(Long id) {
+
+    @Override
+    public void deleteVehicle(Long id) {
         try {
             log.info("Deleting vehicle id: {}", id);
 
@@ -93,5 +112,10 @@ public void deleteVehicle(Long id) {
             log.error("Error deleting vehicle id {}: {}", id, e.getMessage(), e);
             throw e;
         }
+    }
+
+    @Override
+    public List<TruckOptionsDto> getTruckOptions(String truckType) {
+        return truckOptionService.getPublicTruckOptions(truckType);
     }
 }

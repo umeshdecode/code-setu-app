@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Seeds marketplace permissions into tblm_permissions (same convention as permissions-rbac). -->
+    <changeSet id="MARKETPLACE_PERMISSIONS_SEED_01" author="cargosetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_permissions"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM tblm_permissions WHERE code = 'MARKETPLACE_LOAD_CREATE'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_LOAD_CREATE"/>
+            <column name="name" value="Marketplace Load Create"/>
+            <column name="description" value="Permission: Marketplace Load Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_LOAD_READ"/>
+            <column name="name" value="Marketplace Load Read"/>
+            <column name="description" value="Permission: Marketplace Load Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_LOAD_UPDATE"/>
+            <column name="name" value="Marketplace Load Update"/>
+            <column name="description" value="Permission: Marketplace Load Update"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_TRUCK_CREATE"/>
+            <column name="name" value="Marketplace Truck Create"/>
+            <column name="description" value="Permission: Marketplace Truck Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_TRUCK_READ"/>
+            <column name="name" value="Marketplace Truck Read"/>
+            <column name="description" value="Permission: Marketplace Truck Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_TRUCK_UPDATE"/>
+            <column name="name" value="Marketplace Truck Update"/>
+            <column name="description" value="Permission: Marketplace Truck Update"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_OFFER_CREATE"/>
+            <column name="name" value="Marketplace Offer Create"/>
+            <column name="description" value="Permission: Marketplace Offer Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_OFFER_READ"/>
+            <column name="name" value="Marketplace Offer Read"/>
+            <column name="description" value="Permission: Marketplace Offer Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_BOOKING_CREATE"/>
+            <column name="name" value="Marketplace Booking Create"/>
+            <column name="description" value="Permission: Marketplace Booking Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_BOOKING_READ"/>
+            <column name="name" value="Marketplace Booking Read"/>
+            <column name="description" value="Permission: Marketplace Booking Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_BOOKING_CANCEL"/>
+            <column name="name" value="Marketplace Booking Cancel"/>
+            <column name="description" value="Permission: Marketplace Booking Cancel"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_BOOKING_ASSIGN"/>
+            <column name="name" value="Marketplace Booking Assign"/>
+            <column name="description" value="Permission: Marketplace Booking Assign"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_TRIP_READ"/>
+            <column name="name" value="Marketplace Trip Read"/>
+            <column name="description" value="Permission: Marketplace Trip Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_TRIP_UPDATE"/>
+            <column name="name" value="Marketplace Trip Update"/>
+            <column name="description" value="Permission: Marketplace Trip Update"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_PAYMENT_CREATE"/>
+            <column name="name" value="Marketplace Payment Create"/>
+            <column name="description" value="Permission: Marketplace Payment Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_PAYMENT_READ"/>
+            <column name="name" value="Marketplace Payment Read"/>
+            <column name="description" value="Permission: Marketplace Payment Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_WALLET_READ"/>
+            <column name="name" value="Marketplace Wallet Read"/>
+            <column name="description" value="Permission: Marketplace Wallet Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_CHAT_CREATE"/>
+            <column name="name" value="Marketplace Chat Create"/>
+            <column name="description" value="Permission: Marketplace Chat Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_CHAT_READ"/>
+            <column name="name" value="Marketplace Chat Read"/>
+            <column name="description" value="Permission: Marketplace Chat Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_DISPUTE_CREATE"/>
+            <column name="name" value="Marketplace Dispute Create"/>
+            <column name="description" value="Permission: Marketplace Dispute Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_DISPUTE_READ"/>
+            <column name="name" value="Marketplace Dispute Read"/>
+            <column name="description" value="Permission: Marketplace Dispute Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_DISPUTE_RESOLVE"/>
+            <column name="name" value="Marketplace Dispute Resolve"/>
+            <column name="description" value="Permission: Marketplace Dispute Resolve"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_RATING_CREATE"/>
+            <column name="name" value="Marketplace Rating Create"/>
+            <column name="description" value="Permission: Marketplace Rating Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_RATING_READ"/>
+            <column name="name" value="Marketplace Rating Read"/>
+            <column name="description" value="Permission: Marketplace Rating Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_MATCH_READ"/>
+            <column name="name" value="Marketplace Match Read"/>
+            <column name="description" value="Permission: Marketplace Match Read"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_MATCH_CREATE"/>
+            <column name="name" value="Marketplace Match Create"/>
+            <column name="description" value="Permission: Marketplace Match Create"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_CHAT_UPDATE"/>
+            <column name="name" value="Marketplace Chat Update"/>
+            <column name="description" value="Permission: Marketplace Chat Update"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_DISPUTE_UPDATE"/>
+            <column name="name" value="Marketplace Dispute Update"/>
+            <column name="description" value="Permission: Marketplace Dispute Update"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_ADMIN_MODERATE"/>
+            <column name="name" value="Marketplace Admin Moderate"/>
+            <column name="description" value="Permission: Marketplace Admin Moderate"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_ADMIN_SETTLE"/>
+            <column name="name" value="Marketplace Admin Settle"/>
+            <column name="description" value="Permission: Marketplace Admin Settle"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+        <insert tableName="tblm_permissions">
+            <column name="code" value="MARKETPLACE_ADMIN_CONFIG"/>
+            <column name="name" value="Marketplace Admin Config"/>
+            <column name="description" value="Permission: Marketplace Admin Config"/>
+            <column name="module" value="Marketplace Module"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by_name" value="SYSTEM-DEFAULT"/>
+        </insert>
+    </changeSet>
+
+    <!-- Grant the new permissions to the SUPERADMIN role. -->
+    <changeSet id="MARKETPLACE_PERMISSIONS_SUPERADMIN_BIND_02" author="cargosetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_role_permissions"/>
+            <tableExists tableName="tblm_roles"/>
+        </preConditions>
+        <sql>
+            INSERT INTO tblm_role_permissions (role_id, permission_id)
+            SELECT r.role_id, p.permission_id
+            FROM tblm_roles r
+            CROSS JOIN tblm_permissions p
+            WHERE r.code = 'SUPERADMIN'
+              AND p.code LIKE 'MARKETPLACE\_%'
+              AND NOT EXISTS (
+                  SELECT 1 FROM tblm_role_permissions rp
+                  WHERE rp.role_id = r.role_id AND rp.permission_id = p.permission_id
+              );
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

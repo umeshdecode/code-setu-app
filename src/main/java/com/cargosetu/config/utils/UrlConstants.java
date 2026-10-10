@@ -33,4 +33,22 @@ public class UrlConstants {
         public static final String TRIP_EXPENSE = "/trip-expense";
         public static final String TRIP_DOCUMENT = "/trip-document";
     }
+
+    public interface MarketplaceUrlConstants {
+        String MARKETPLACE = "/marketplace";
+        String LOADS = "/loads";
+        String TRUCKS = "/trucks";
+        String OFFERS = "/offers";
+        String BOOKINGS = "/bookings";
+        String TRIPS = "/trips";
+        String PAYMENTS = "/payments";
+        String CONVERSATIONS = "/conversations";
+        String MESSAGES = "/messages";
+        String DISPUTES = "/disputes";
+        String RATINGS = "/ratings";
+        String MATCHES = "/matches";
+        String ALERTS = "/alerts";
+        String WALLET = "/wallet";
+        String LISTINGS = "/listings";
+    }
 }

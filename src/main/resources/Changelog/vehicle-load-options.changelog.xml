@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- ===================================================== -->
+    <!-- 1. Add Load Posting Columns to Vehicles               -->
+    <!-- ===================================================== -->
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="truck_type"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
+            <column name="truck_type" type="VARCHAR(50)"/>
+            <column name="body_type" type="VARCHAR(50)"/>
+            <column name="truck_length_feet" type="DOUBLE"/>
+            <column name="length_option" type="VARCHAR(50)"/>
+            <column name="wheeler_count" type="INT"/>
+            <column name="wheeler_option" type="VARCHAR(50)"/>
+            <column name="passing_capacity_tons" type="DOUBLE"/>
+            <column name="passing_capacity_option" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- ===================================================== -->
+    <!-- 2. Create Dynamic Truck Options Tables                -->
+    <!-- ===================================================== -->
+    <changeSet id="CREATE_TRUCK_OPTIONS_TABLES_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="truck_options"/></not>
+        </preConditions>
+        <createTable tableName="truck_options">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="truck_type" type="VARCHAR(50)"><constraints nullable="false" unique="true"/></column>
+            <column name="display_name" type="VARCHAR(100)"><constraints nullable="false"/></column>
+            <column name="is_active" type="BIT" defaultValueBoolean="true"><constraints nullable="false"/></column>
+            <column name="is_deleted" type="BIT" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+
+        <createTable tableName="truck_option_body_types">
+            <column name="truck_option_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="body_type" type="VARCHAR(100)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="truck_option_body_types" baseColumnNames="truck_option_id" constraintName="fk_truck_opt_body" referencedTableName="truck_options" referencedColumnNames="id"/>
+
+        <createTable tableName="truck_option_lengths">
+            <column name="truck_option_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="length_feet_option" type="VARCHAR(50)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="truck_option_lengths" baseColumnNames="truck_option_id" constraintName="fk_truck_opt_len" referencedTableName="truck_options" referencedColumnNames="id"/>
+
+        <createTable tableName="truck_option_wheelers">
+            <column name="truck_option_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="wheeler_option" type="VARCHAR(50)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="truck_option_wheelers" baseColumnNames="truck_option_id" constraintName="fk_truck_opt_wh" referencedTableName="truck_options" referencedColumnNames="id"/>
+
+        <createTable tableName="truck_option_passing_tons">
+            <column name="truck_option_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="passing_ton_option" type="VARCHAR(50)"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="truck_option_passing_tons" baseColumnNames="truck_option_id" constraintName="fk_truck_opt_ton" referencedTableName="truck_options" referencedColumnNames="id"/>
+    </changeSet>
+
+</databaseChangeLog>

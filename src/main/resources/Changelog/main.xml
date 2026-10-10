@@ -13,5 +13,10 @@
     <include file="classpath:Changelog/company-roles.changelog.xml"/>
     <include file="classpath:Changelog/shifting-token-money.changelog.xml"/>
     <include file="classpath:Changelog/company-favourite-templates.changelog.xml"/>
+    <include file="classpath:Changelog/vehicle-catalogue.changelog.xml"/>
+    <include file="classpath:Changelog/vehicle-load-options.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-tables.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-permissions.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-master-data.changelog.xml"/>
 
 </databaseChangeLog>

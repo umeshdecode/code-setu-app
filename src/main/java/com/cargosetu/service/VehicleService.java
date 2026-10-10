@@ -1,5 +1,6 @@
 package com.cargosetu.service;
 
+import com.cargosetu.dto.TruckOptionsDto;
 import com.cargosetu.dto.VehicleDto;
 import com.cargosetu.model.Vehicle;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,7 @@ public interface VehicleService {
 
     public Vehicle updateVehicle(Long id, VehicleDto updatedVehicle);
 
+    public void deleteVehicle(Long id);
 
-        public void deleteVehicle(Long id);
-
-
+    public List<TruckOptionsDto> getTruckOptions(String truckType);
 }
