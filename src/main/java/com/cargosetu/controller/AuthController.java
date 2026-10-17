@@ -6,6 +6,7 @@ import com.cargosetu.config.dto.TokenResponse;
 import com.cargosetu.config.JwtUtils;
 import com.cargosetu.config.utils.UrlConstants;
 import com.cargosetu.dto.StaffDTO;
+import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.AuthService;
 import com.cargosetu.service.StaffService;
@@ -45,14 +46,18 @@ public class AuthController {
     @PostMapping(UrlConstants.LOGIN_URL)
     public ResponseEntity<?> login(@RequestBody LoginRequest loginDto, HttpServletRequest request) {
         TokenResponse tokenResponse = new TokenResponse();
-        boolean validRequest = authService.isValidRequest(loginDto);
-        if (validRequest) {
-            tokenResponse = authService.loginUser(loginDto);
-            if (tokenResponse.getAccessToken() == null) {
-                ApiResponseDto responseDto = generateResponse(HttpStatus.EXPECTATION_FAILED.value(), "Something went wrong!!", tokenResponse);
-                return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(responseDto);
+        try {
+            boolean validRequest = authService.isValidRequest(loginDto);
+            if (validRequest) {
+                tokenResponse = authService.loginUser(loginDto);
+                if (tokenResponse.getAccessToken() == null) {
+                    ApiResponseDto responseDto = generateResponse(HttpStatus.EXPECTATION_FAILED.value(), "Something went wrong!!", tokenResponse);
+                    return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body(responseDto);
+                }
+                return ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
             }
-            return ResponseEntity.status(HttpStatus.OK).body(tokenResponse);
+        } catch (CustomValidationException e) {
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
         return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED).body("Something went wrong");
     }

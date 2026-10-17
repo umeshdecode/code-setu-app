@@ -88,7 +88,8 @@ public class MarketplaceOfferController {
         log.info("API entry for acceptOffer offerId: {}", offerId);
         try {
             GenericDataDTO response = offerService.acceptOffer(user, offerId);
-            return ResponseEntity.ok(response);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("Exception in acceptOffer", e);
             return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
@@ -97,11 +98,13 @@ public class MarketplaceOfferController {
     }
 
     @PostMapping(MarketplaceUrlConstants.OFFERS + "/{offerId}/reject")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_CREATE + "')")
     public ResponseEntity<?> rejectOffer(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long offerId) {
         log.info("API entry for rejectOffer offerId: {}", offerId);
         try {
             GenericDataDTO response = offerService.rejectOffer(user, offerId);
-            return ResponseEntity.ok(response);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("Exception in rejectOffer", e);
             return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
@@ -110,11 +113,13 @@ public class MarketplaceOfferController {
     }
 
     @PostMapping(MarketplaceUrlConstants.OFFERS + "/{offerId}/counter")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_CREATE + "')")
     public ResponseEntity<?> counterOffer(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long offerId, @RequestBody CounterOfferRequest request) {
         log.info("API entry for counterOffer offerId: {}", offerId);
         try {
             GenericDataDTO response = offerService.counterOffer(user, offerId, request);
-            return ResponseEntity.ok(response);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
         } catch (Exception e) {
             log.error("Exception in counterOffer", e);
             return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)

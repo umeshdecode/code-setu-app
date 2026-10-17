@@ -183,4 +183,146 @@ class OfferServiceTest {
         assertThat(offer.getStatus()).isEqualTo(OfferStatus.REJECTED);
         verify(offerRepository).save(offer);
     }
+
+    @Test
+    @DisplayName("acceptOffer should fail with FORBIDDEN when called by unrelated company or bidder")
+    void acceptOffer_failsWhenUnrelatedCompanyOrBidder() {
+        MarketplaceOffer offer = new MarketplaceOffer();
+        offer.setId(55L);
+        offer.setListing(listing);
+        offer.setBidderCompanyId(200);
+        offer.setStatus(OfferStatus.PENDING);
+
+        when(offerRepository.findById(55L)).thenReturn(Optional.of(offer));
+
+        LoggedInUser unrelatedUser = new LoggedInUser();
+        unrelatedUser.setCompanyId(300);
+        unrelatedUser.setStaffId(9L);
+
+        GenericDataDTO unrelatedRes = offerService.acceptOffer(unrelatedUser, 55L);
+        assertThat(unrelatedRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
+
+        GenericDataDTO bidderRes = offerService.acceptOffer(bidderUser, 55L);
+        assertThat(bidderRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
+
+        verify(offerRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("rejectOffer should fail with FORBIDDEN when called by unrelated company or bidder")
+    void rejectOffer_failsWhenUnrelatedCompanyOrBidder() {
+        MarketplaceOffer offer = new MarketplaceOffer();
+        offer.setId(55L);
+        offer.setListing(listing);
+        offer.setBidderCompanyId(200);
+        offer.setStatus(OfferStatus.PENDING);
+
+        when(offerRepository.findById(55L)).thenReturn(Optional.of(offer));
+
+        LoggedInUser unrelatedUser = new LoggedInUser();
+        unrelatedUser.setCompanyId(300);
+        unrelatedUser.setStaffId(9L);
+
+        GenericDataDTO unrelatedRes = offerService.rejectOffer(unrelatedUser, 55L);
+        assertThat(unrelatedRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
+
+        GenericDataDTO bidderRes = offerService.rejectOffer(bidderUser, 55L);
+        assertThat(bidderRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
+
+        verify(offerRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("counterOffer should fail with FORBIDDEN when called by unrelated company")
+    void counterOffer_failsWhenUnrelatedCompany() {
+        MarketplaceOffer offer = new MarketplaceOffer();
+        offer.setId(55L);
+        offer.setListing(listing);
+        offer.setBidderCompanyId(200);
+        offer.setStatus(OfferStatus.PENDING);
+
+        when(offerRepository.findById(55L)).thenReturn(Optional.of(offer));
+
+        LoggedInUser unrelatedUser = new LoggedInUser();
+        unrelatedUser.setCompanyId(300);
+        unrelatedUser.setStaffId(9L);
+
+        com.cargosetu.marketplace.dto.CounterOfferRequest counterReq = com.cargosetu.marketplace.dto.CounterOfferRequest.builder()
+                .amount(BigDecimal.valueOf(42000))
+                .paymentTerms(PaymentTermType.ADVANCE_PERCENT)
+                .message("Unauthorized counter")
+                .build();
+
+        GenericDataDTO response = offerService.counterOffer(unrelatedUser, 55L, counterReq);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
+        verify(offerRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("counterOffer should succeed for legitimate negotiation participants")
+    void counterOffer_succeedsForNegotiationParticipants() {
+        MarketplaceOffer offer = new MarketplaceOffer();
+        offer.setId(55L);
+        offer.setListing(listing);
+        offer.setBidderCompanyId(200);
+        offer.setStatus(OfferStatus.PENDING);
+
+        when(offerRepository.findById(55L)).thenReturn(Optional.of(offer));
+        when(offerRepository.save(any(MarketplaceOffer.class))).thenAnswer(i -> {
+            MarketplaceOffer saved = i.getArgument(0);
+            if (saved.getId() == null) {
+                saved.setId(56L);
+            }
+            return saved;
+        });
+
+        OfferResponse mappedDto = new OfferResponse();
+        mappedDto.setId(56L);
+        mappedDto.setAmount(BigDecimal.valueOf(43000));
+        when(offerMapper.toDto(any(MarketplaceOffer.class))).thenReturn(mappedDto);
+
+        com.cargosetu.marketplace.dto.CounterOfferRequest counterReq = com.cargosetu.marketplace.dto.CounterOfferRequest.builder()
+                .amount(BigDecimal.valueOf(43000))
+                .paymentTerms(PaymentTermType.ADVANCE_PERCENT)
+                .message("Counter from listing owner")
+                .build();
+
+        GenericDataDTO response = offerService.counterOffer(listingOwnerUser, 55L, counterReq);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.COUNTERED);
+        verify(offerRepository, times(2)).save(any(MarketplaceOffer.class));
+    }
+
+    @Test
+    @DisplayName("accept, reject, and counter should fail when offer status is not PENDING")
+    void offerStatusTransitions_failWhenNotPending() {
+        MarketplaceOffer acceptedOffer = new MarketplaceOffer();
+        acceptedOffer.setId(60L);
+        acceptedOffer.setListing(listing);
+        acceptedOffer.setBidderCompanyId(200);
+        acceptedOffer.setStatus(OfferStatus.ACCEPTED);
+
+        when(offerRepository.findById(60L)).thenReturn(Optional.of(acceptedOffer));
+
+        GenericDataDTO acceptRes = offerService.acceptOffer(listingOwnerUser, 60L);
+        assertThat(acceptRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+
+        GenericDataDTO rejectRes = offerService.rejectOffer(listingOwnerUser, 60L);
+        assertThat(rejectRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+
+        com.cargosetu.marketplace.dto.CounterOfferRequest counterReq = com.cargosetu.marketplace.dto.CounterOfferRequest.builder()
+                .amount(BigDecimal.valueOf(40000))
+                .build();
+        GenericDataDTO counterRes = offerService.counterOffer(listingOwnerUser, 60L, counterReq);
+        assertThat(counterRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+
+        verify(offerRepository, never()).save(any());
+    }
 }

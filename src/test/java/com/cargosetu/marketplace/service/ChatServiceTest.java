@@ -37,6 +37,8 @@ class ChatServiceTest {
     @Mock private MarketplaceAuditService auditService;
     @Mock private CompanyRepository companyRepository;
     @Mock private StaffRepository staffRepository;
+    @Mock private com.cargosetu.marketplace.repository.MarketplaceListingRepository listingRepository;
+    @Mock private com.cargosetu.marketplace.repository.MarketplaceBookingRepository bookingRepository;
 
     @InjectMocks
     private ChatService chatService;
@@ -59,6 +61,16 @@ class ChatServiceTest {
                 .participantStaffId(8L)
                 .initialMessage("Hello, is the load still available?")
                 .build();
+
+        com.cargosetu.model.Staff otherStaff = new com.cargosetu.model.Staff();
+        otherStaff.setStaffId(8L);
+        otherStaff.setCompanyId(200);
+        when(staffRepository.findById(8L)).thenReturn(Optional.of(otherStaff));
+
+        com.cargosetu.marketplace.entity.MarketplaceListing listing = new com.cargosetu.marketplace.entity.MarketplaceListing();
+        listing.setId(12L);
+        listing.setCompanyId(200);
+        when(listingRepository.findById(12L)).thenReturn(Optional.of(listing));
 
         when(conversationRepository.findByParticipant1CompanyIdAndParticipant2CompanyIdAndListingId(100, 200, 12L))
                 .thenReturn(Optional.empty());
@@ -131,6 +143,12 @@ class ChatServiceTest {
     @Test
     @DisplayName("markAsRead marks unread messages from other party")
     void markAsRead_success() {
+        ChatConversation convo = new ChatConversation();
+        convo.setId(10L);
+        convo.setParticipant1CompanyId(100);
+        convo.setParticipant2CompanyId(200);
+        when(conversationRepository.findById(10L)).thenReturn(Optional.of(convo));
+
         ChatMessage unread = new ChatMessage();
         unread.setId(1L);
         unread.setConversationId(10L);
@@ -145,5 +163,111 @@ class ChatServiceTest {
         assertThat(response.getResponseMessege()).contains("read");
         assertThat(unread.getReadAt()).isNotNull();
         verify(messageRepository).saveAll(Collections.singletonList(unread));
+    }
+
+    @Test
+    @DisplayName("markAsRead fails with NOT_FOUND when conversation does not exist")
+    void markAsRead_failsWhenConversationNotFound() {
+        when(conversationRepository.findById(999L)).thenReturn(Optional.empty());
+
+        GenericDataDTO response = chatService.markAsRead(currentUser, 999L);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.NOT_FOUND);
+        verifyNoInteractions(messageRepository);
+    }
+
+    @Test
+    @DisplayName("markAsRead fails with FORBIDDEN when user company is not a participant")
+    void markAsRead_failsWhenUnauthorizedParticipant() {
+        ChatConversation convo = new ChatConversation();
+        convo.setId(10L);
+        convo.setParticipant1CompanyId(200);
+        convo.setParticipant2CompanyId(300);
+        when(conversationRepository.findById(10L)).thenReturn(Optional.of(convo));
+
+        GenericDataDTO response = chatService.markAsRead(currentUser, 10L);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        verifyNoInteractions(messageRepository);
+    }
+
+    @Test
+    @DisplayName("startConversation fails when attempting self-conversation")
+    void startConversation_failsWhenSelfConversation() {
+        StartConversationRequest request = StartConversationRequest.builder()
+                .listingId(12L)
+                .participantCompanyId(100) // same as currentUser
+                .build();
+
+        GenericDataDTO response = chatService.startConversation(currentUser, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(response.getResponseMessege()).contains("own company");
+        verifyNoInteractions(conversationRepository);
+    }
+
+    @Test
+    @DisplayName("startConversation fails with FORBIDDEN when staff does not belong to participant company")
+    void startConversation_failsWhenStaffBelongsToWrongCompany() {
+        StartConversationRequest request = StartConversationRequest.builder()
+                .listingId(12L)
+                .participantCompanyId(200)
+                .participantStaffId(8L)
+                .build();
+
+        when(companyRepository.findById(200)).thenReturn(Optional.of(new Company()));
+
+        com.cargosetu.model.Staff mismatchedStaff = new com.cargosetu.model.Staff();
+        mismatchedStaff.setStaffId(8L);
+        mismatchedStaff.setCompanyId(999); // does not belong to company 200
+        when(staffRepository.findById(8L)).thenReturn(Optional.of(mismatchedStaff));
+
+        GenericDataDTO response = chatService.startConversation(currentUser, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        verifyNoInteractions(conversationRepository);
+    }
+
+    @Test
+    @DisplayName("startConversation fails with FORBIDDEN on unauthorized participant injection for listing")
+    void startConversation_failsWhenNeitherParticipantOwnsListing() {
+        StartConversationRequest request = StartConversationRequest.builder()
+                .listingId(12L)
+                .participantCompanyId(200) // neither 100 nor 200 owns listing 12
+                .build();
+
+        when(companyRepository.findById(200)).thenReturn(Optional.of(new Company()));
+
+        com.cargosetu.marketplace.entity.MarketplaceListing listing = new com.cargosetu.marketplace.entity.MarketplaceListing();
+        listing.setId(12L);
+        listing.setCompanyId(300); // owned by company 300
+        when(listingRepository.findById(12L)).thenReturn(Optional.of(listing));
+
+        GenericDataDTO response = chatService.startConversation(currentUser, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        verifyNoInteractions(conversationRepository);
+    }
+
+    @Test
+    @DisplayName("startConversation fails with FORBIDDEN when participants do not match booking parties")
+    void startConversation_failsWhenUnauthorizedBookingParticipants() {
+        StartConversationRequest request = StartConversationRequest.builder()
+                .bookingId(50L)
+                .participantCompanyId(200)
+                .build();
+
+        when(companyRepository.findById(200)).thenReturn(Optional.of(new Company()));
+
+        com.cargosetu.marketplace.entity.MarketplaceBooking booking = new com.cargosetu.marketplace.entity.MarketplaceBooking();
+        booking.setId(50L);
+        booking.setShipperCompanyId(100);
+        booking.setTransporterCompanyId(300); // company 200 is not part of this booking
+        when(bookingRepository.findById(50L)).thenReturn(Optional.of(booking));
+
+        GenericDataDTO response = chatService.startConversation(currentUser, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        verifyNoInteractions(conversationRepository);
     }
 }

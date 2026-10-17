@@ -28,11 +28,19 @@ public class ChatService {
     private final MarketplaceAuditService auditService;
     private final com.cargosetu.repo.CompanyRepository companyRepository;
     private final com.cargosetu.repo.StaffRepository staffRepository;
+    private final com.cargosetu.marketplace.repository.MarketplaceListingRepository listingRepository;
+    private final com.cargosetu.marketplace.repository.MarketplaceBookingRepository bookingRepository;
 
     @Transactional
     public GenericDataDTO startConversation(LoggedInUser user, StartConversationRequest request) {
         GenericDataDTO response = new GenericDataDTO();
         try {
+            if (user == null || user.getCompanyId() == null || user.getStaffId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+
             if (request == null || request.getParticipantCompanyId() == null) {
                 response.setResponseCode(CommonStatusCode.FAIL);
                 response.setResponseMessege("Participant company is required");
@@ -42,22 +50,118 @@ public class ChatService {
             Integer myCompanyId = user.getCompanyId();
             Integer otherCompanyId = request.getParticipantCompanyId();
             Long listingId = request.getListingId();
+            Long bookingId = request.getBookingId();
 
-            // Look for existing conversation between these participants for the listing
-            ChatConversation convo = null;
+            // Prevent self-conversations
+            if (myCompanyId.equals(otherCompanyId)) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Cannot start a conversation with your own company");
+                return response;
+            }
+            if (request.getParticipantStaffId() != null && user.getStaffId().equals(request.getParticipantStaffId())) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Cannot start a conversation with yourself");
+                return response;
+            }
+
+            // Validate participant company exists
+            if (companyRepository.findById(otherCompanyId).isEmpty()) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Participant company not found");
+                return response;
+            }
+
+            // Validate participant staff belongs to participant company
+            if (request.getParticipantStaffId() != null) {
+                com.cargosetu.model.Staff participantStaff = staffRepository.findById(request.getParticipantStaffId()).orElse(null);
+                if (participantStaff == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Participant staff not found");
+                    return response;
+                }
+                if (participantStaff.getCompanyId() == null || !participantStaff.getCompanyId().equals(otherCompanyId)) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Participant staff does not belong to the specified participant company");
+                    return response;
+                }
+            }
+
+            // Validate listing relationship and prevent unauthorized participant injection
             if (listingId != null) {
+                com.cargosetu.marketplace.entity.MarketplaceListing listing = listingRepository.findById(listingId).orElse(null);
+                if (listing == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Listing not found");
+                    return response;
+                }
+                Integer listingOwnerId = listing.getCompanyId();
+                if (listingOwnerId == null || (!listingOwnerId.equals(myCompanyId) && !listingOwnerId.equals(otherCompanyId))) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Unauthorized participant for this listing: conversation must involve the listing owner");
+                    return response;
+                }
+            }
+
+            // Validate booking relationship and participants
+            if (bookingId != null) {
+                com.cargosetu.marketplace.entity.MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
+                if (booking == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Booking not found");
+                    return response;
+                }
+                if (listingId != null && (booking.getListing() == null || !booking.getListing().getId().equals(listingId))) {
+                    response.setResponseCode(CommonStatusCode.FAIL);
+                    response.setResponseMessege("Booking does not belong to the specified listing");
+                    return response;
+                }
+                if (listingId == null && booking.getListing() != null) {
+                    listingId = booking.getListing().getId();
+                }
+                boolean validBookingParties =
+                        (myCompanyId.equals(booking.getShipperCompanyId()) && otherCompanyId.equals(booking.getTransporterCompanyId()))
+                        || (myCompanyId.equals(booking.getTransporterCompanyId()) && otherCompanyId.equals(booking.getShipperCompanyId()));
+                if (!validBookingParties) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Unauthorized: only booking participants can start a conversation for this booking");
+                    return response;
+                }
+            }
+
+            // Look for existing conversation and validate access when reusing
+            ChatConversation convo = null;
+            if (bookingId != null) {
+                java.util.List<ChatConversation> bookingConvos = conversationRepository.findByBookingId(bookingId);
+                if (bookingConvos != null && !bookingConvos.isEmpty()) {
+                    for (ChatConversation existing : bookingConvos) {
+                        if (!isParticipant(myCompanyId, existing) || !isParticipant(otherCompanyId, existing)) {
+                            response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                            response.setResponseMessege("Unauthorized to access existing booking conversation");
+                            return response;
+                        }
+                        convo = existing;
+                        break;
+                    }
+                }
+            }
+            if (convo == null && listingId != null) {
                 convo = conversationRepository.findByParticipant1CompanyIdAndParticipant2CompanyIdAndListingId(myCompanyId, otherCompanyId, listingId)
                         .orElse(null);
                 if (convo == null) {
                     convo = conversationRepository.findByParticipant1CompanyIdAndParticipant2CompanyIdAndListingId(otherCompanyId, myCompanyId, listingId)
                             .orElse(null);
                 }
+                if (convo != null && (!isParticipant(myCompanyId, convo) || !isParticipant(otherCompanyId, convo))) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Unauthorized to access existing conversation");
+                    return response;
+                }
             }
 
             if (convo == null) {
                 convo = new ChatConversation();
                 convo.setListingId(listingId);
-                convo.setBookingId(request.getBookingId());
+                convo.setBookingId(bookingId);
                 convo.setParticipant1CompanyId(myCompanyId);
                 convo.setParticipant1StaffId(user.getStaffId());
                 convo.setParticipant2CompanyId(otherCompanyId);
@@ -111,7 +215,7 @@ public class ChatService {
             }
 
             // Authorization check: user must belong to one of the participant companies
-            if (!user.getCompanyId().equals(convo.getParticipant1CompanyId()) && !user.getCompanyId().equals(convo.getParticipant2CompanyId())) {
+            if (!isParticipant(user != null ? user.getCompanyId() : null, convo)) {
                 response.setResponseCode(CommonStatusCode.FORBIDDEN);
                 response.setResponseMessege("Unauthorized to send message in this conversation");
                 return response;
@@ -175,7 +279,7 @@ public class ChatService {
                 response.setResponseMessege("Conversation not found");
                 return response;
             }
-            if (!user.getCompanyId().equals(convo.getParticipant1CompanyId()) && !user.getCompanyId().equals(convo.getParticipant2CompanyId())) {
+            if (!isParticipant(user != null ? user.getCompanyId() : null, convo)) {
                 response.setResponseCode(CommonStatusCode.FORBIDDEN);
                 response.setResponseMessege("Unauthorized to view this conversation");
                 return response;
@@ -200,6 +304,25 @@ public class ChatService {
     public GenericDataDTO markAsRead(LoggedInUser user, Long conversationId) {
         GenericDataDTO response = new GenericDataDTO();
         try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+
+            ChatConversation convo = conversationRepository.findById(conversationId).orElse(null);
+            if (convo == null) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Conversation not found");
+                return response;
+            }
+
+            if (!isParticipant(user.getCompanyId(), convo)) {
+                response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                response.setResponseMessege("Unauthorized to mark messages as read in this conversation");
+                return response;
+            }
+
             java.util.List<ChatMessage> unreadMessages = messageRepository.findByConversationIdAndReadAtIsNullAndSenderStaffIdNot(conversationId, user.getStaffId());
             for (ChatMessage m : unreadMessages) {
                 m.setReadAt(LocalDateTime.now());
@@ -210,8 +333,14 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error marking messages as read", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to mark messages as read: " + e.getMessage());
         }
         return response;
+    }
+
+    private boolean isParticipant(Integer companyId, ChatConversation convo) {
+        if (companyId == null || convo == null) return false;
+        return companyId.equals(convo.getParticipant1CompanyId()) || companyId.equals(convo.getParticipant2CompanyId());
     }
 
     private com.cargosetu.marketplace.dto.ConversationResponse toConversationResponse(ChatConversation c, LoggedInUser user) {

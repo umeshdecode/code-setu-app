@@ -187,4 +187,209 @@ class BookingServiceTest {
         assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
         verify(bookingRepository).save(booking);
     }
+
+    @Test
+    @DisplayName("createBooking should fail when referenced offer is PENDING or REJECTED")
+    void createBooking_failsWhenOfferRejectedOrPending() {
+        com.cargosetu.marketplace.entity.MarketplaceOffer pendingOffer = new com.cargosetu.marketplace.entity.MarketplaceOffer();
+        pendingOffer.setId(20L);
+        pendingOffer.setListing(truckListing);
+        pendingOffer.setBidderCompanyId(500);
+        pendingOffer.setAmount(BigDecimal.valueOf(35000));
+        pendingOffer.setStatus(com.cargosetu.marketplace.enums.OfferStatus.PENDING);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(offerRepository.findById(20L)).thenReturn(Optional.of(pendingOffer));
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .offerId(20L)
+                .agreedFreight(BigDecimal.valueOf(35000))
+                .build();
+
+        GenericDataDTO pendingRes = bookingService.createBooking(shipperUser, 99L, request);
+        assertThat(pendingRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(pendingRes.getResponseMessege()).contains("ACCEPTED");
+
+        pendingOffer.setStatus(com.cargosetu.marketplace.enums.OfferStatus.REJECTED);
+        GenericDataDTO rejectedRes = bookingService.createBooking(shipperUser, 99L, request);
+        assertThat(rejectedRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(rejectedRes.getResponseMessege()).contains("ACCEPTED");
+
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createBooking should fail when agreedFreight does not match accepted offer amount")
+    void createBooking_failsWhenFreightMismatched() {
+        com.cargosetu.marketplace.entity.MarketplaceOffer acceptedOffer = new com.cargosetu.marketplace.entity.MarketplaceOffer();
+        acceptedOffer.setId(21L);
+        acceptedOffer.setListing(truckListing);
+        acceptedOffer.setBidderCompanyId(500);
+        acceptedOffer.setAmount(BigDecimal.valueOf(38000));
+        acceptedOffer.setStatus(com.cargosetu.marketplace.enums.OfferStatus.ACCEPTED);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(offerRepository.findById(21L)).thenReturn(Optional.of(acceptedOffer));
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .offerId(21L)
+                .agreedFreight(BigDecimal.valueOf(35000)) // mismatch
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(shipperUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(response.getResponseMessege()).contains("match the accepted offer amount");
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createBooking should fail with FORBIDDEN when offer belongs to a different bidder")
+    void createBooking_failsWhenWrongBidder() {
+        com.cargosetu.marketplace.entity.MarketplaceOffer acceptedOffer = new com.cargosetu.marketplace.entity.MarketplaceOffer();
+        acceptedOffer.setId(22L);
+        acceptedOffer.setListing(truckListing);
+        acceptedOffer.setBidderCompanyId(777); // another company's accepted offer
+        acceptedOffer.setAmount(BigDecimal.valueOf(35000));
+        acceptedOffer.setStatus(com.cargosetu.marketplace.enums.OfferStatus.ACCEPTED);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(offerRepository.findById(22L)).thenReturn(Optional.of(acceptedOffer));
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .offerId(22L)
+                .agreedFreight(BigDecimal.valueOf(35000))
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(shipperUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(response.getResponseMessege()).contains("Offer does not belong to your company");
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createBooking should fail with FORBIDDEN on unauthorized self-booking")
+    void createBooking_failsWhenSelfBooking() {
+        LoggedInUser ownerUser = new LoggedInUser();
+        ownerUser.setCompanyId(200); // owns truckListing
+        ownerUser.setStaffId(3L);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .agreedFreight(BigDecimal.valueOf(35000))
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(ownerUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(response.getResponseMessege()).contains("Cannot book your own listing");
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("createBooking preserves remaining capacity and keeps listing PUBLISHED on partial truck booking")
+    void createBooking_partialCapacityPreservesListingAvailability() {
+        com.cargosetu.marketplace.entity.TruckPost truckPost = new com.cargosetu.marketplace.entity.TruckPost();
+        truckPost.setId(10L);
+        truckPost.setListing(truckListing);
+        truckPost.setTotalCapacity(25.0);
+        truckPost.setAvailableCapacity(20.0);
+        truckPost.setOccupiedCapacity(5.0);
+        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.EMPTY_STANDING);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(truckPostRepository.findByListingId(99L)).thenReturn(Optional.of(truckPost));
+        when(bookingRepository.save(any(MarketplaceBooking.class))).thenAnswer(i -> {
+            MarketplaceBooking b = i.getArgument(0);
+            b.setId(201L);
+            return b;
+        });
+        when(bookingMapper.toDto(any(MarketplaceBooking.class))).thenReturn(new BookingResponse());
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .agreedFreight(BigDecimal.valueOf(20000))
+                .requestedCapacity(8.0)
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(shipperUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.CREATED);
+        assertThat(truckPost.getAvailableCapacity()).isEqualTo(12.0);
+        assertThat(truckPost.getOccupiedCapacity()).isEqualTo(13.0);
+        assertThat(truckPost.getTruckStatus()).isEqualTo(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.PARTIALLY_LOADED);
+        assertThat(truckListing.getStatus()).isEqualTo(ListingStatus.PUBLISHED);
+        verify(truckPostRepository).save(truckPost);
+    }
+
+    @Test
+    @DisplayName("createBooking marks truck and listing BOOKED when exact remaining capacity is booked")
+    void createBooking_exactCapacityMarksBooked() {
+        com.cargosetu.marketplace.entity.TruckPost truckPost = new com.cargosetu.marketplace.entity.TruckPost();
+        truckPost.setId(10L);
+        truckPost.setListing(truckListing);
+        truckPost.setTotalCapacity(20.0);
+        truckPost.setAvailableCapacity(12.0);
+        truckPost.setOccupiedCapacity(8.0);
+        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.PARTIALLY_LOADED);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(truckPostRepository.findByListingId(99L)).thenReturn(Optional.of(truckPost));
+        when(bookingRepository.save(any(MarketplaceBooking.class))).thenAnswer(i -> {
+            MarketplaceBooking b = i.getArgument(0);
+            b.setId(202L);
+            return b;
+        });
+        when(bookingMapper.toDto(any(MarketplaceBooking.class))).thenReturn(new BookingResponse());
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .agreedFreight(BigDecimal.valueOf(28000))
+                .requestedCapacity(12.0)
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(shipperUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.CREATED);
+        assertThat(truckPost.getAvailableCapacity()).isEqualTo(0.0);
+        assertThat(truckPost.getOccupiedCapacity()).isEqualTo(20.0);
+        assertThat(truckPost.getTruckStatus()).isEqualTo(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.BOOKED);
+        assertThat(truckListing.getStatus()).isEqualTo(ListingStatus.BOOKED);
+        verify(truckPostRepository).save(truckPost);
+    }
+
+    @Test
+    @DisplayName("createBooking fails when requestedCapacity exceeds availableCapacity")
+    void createBooking_insufficientCapacityFails() {
+        com.cargosetu.marketplace.entity.TruckPost truckPost = new com.cargosetu.marketplace.entity.TruckPost();
+        truckPost.setId(10L);
+        truckPost.setListing(truckListing);
+        truckPost.setTotalCapacity(20.0);
+        truckPost.setAvailableCapacity(10.0);
+        truckPost.setOccupiedCapacity(10.0);
+        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.PARTIALLY_LOADED);
+
+        when(listingRepository.findByIdWithLock(99L)).thenReturn(Optional.of(truckListing));
+        when(truckPostRepository.findByListingId(99L)).thenReturn(Optional.of(truckPost));
+
+        CreateBookingRequest request = CreateBookingRequest.builder()
+                .listingId(99L)
+                .agreedFreight(BigDecimal.valueOf(30000))
+                .requestedCapacity(15.0)
+                .build();
+
+        GenericDataDTO response = bookingService.createBooking(shipperUser, 99L, request);
+
+        assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(response.getResponseMessege()).contains("Insufficient available capacity");
+        assertThat(truckPost.getAvailableCapacity()).isEqualTo(10.0);
+        assertThat(truckListing.getStatus()).isEqualTo(ListingStatus.PUBLISHED);
+        verify(bookingRepository, never()).save(any());
+    }
 }
