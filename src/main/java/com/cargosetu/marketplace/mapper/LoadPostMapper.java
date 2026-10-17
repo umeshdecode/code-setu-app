@@ -10,6 +10,8 @@ import org.mapstruct.Mapping;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface LoadPostMapper extends BaseUpdateMapper<LoadPostResponse, LoadPost> {
+    @Mapping(target = "routeDistanceKm", ignore = true)
+    @Mapping(target = "routeDistanceType", ignore = true)
     LoadPostResponse toResponse(LoadPost entity);
 
     @Mapping(target = "listingId", source = "listing.id")
@@ -19,6 +21,8 @@ public interface LoadPostMapper extends BaseUpdateMapper<LoadPostResponse, LoadP
     @Mapping(target = "postedByStaffId", source = "listing.postedByStaffId")
     @Mapping(target = "validFrom", source = "listing.validFrom")
     @Mapping(target = "validUntil", source = "listing.validUntil")
+    @Mapping(target = "routeDistanceKm", ignore = true)
+    @Mapping(target = "routeDistanceType", ignore = true)
     LoadPostResponse toResponseWithListing(LoadPost entity);
 
     @Mapping(target = "id", ignore = true)

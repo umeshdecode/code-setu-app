@@ -23,4 +23,5 @@ public class CreateBookingRequest {
     @NotNull private PaymentTermType paymentTerms;
     private Integer advancePercentage;
     private Double requestedCapacity;
+    private String remarks;
 }

@@ -30,6 +30,11 @@ public interface TruckPostMapper {
     @Mapping(target = "verificationStatus", ignore = true)
     @Mapping(target = "overallRating", ignore = true)
     @Mapping(target = "completedTrips", ignore = true)
+    @Mapping(target = "routeDistanceKm", ignore = true)
+    @Mapping(target = "distanceFromOriginKm", ignore = true)
+    @Mapping(target = "distanceFromDestinationKm", ignore = true)
+    @Mapping(target = "distanceFromCorridorKm", ignore = true)
+    @Mapping(target = "distanceType", ignore = true)
     TruckPostResponse toResponse(TruckPost entity);
 
     @Mapping(target = "id", ignore = true)

@@ -55,6 +55,24 @@ public class MarketplaceLoadController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_READ + "')")
+    public ResponseEntity<?> getMyLoads(
+            @AuthenticationPrincipal LoggedInUser user,
+            @RequestParam(required = false) String status) {
+        log.info("API: Get My Load Posts by company: {}", user != null ? user.getCompanyId() : null);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = listingService.getMyLoadPosts(user, status);
+        } catch (Exception e) {
+            log.error("Error fetching my loads: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_READ + "')")
     public ResponseEntity<?> getLoad(@PathVariable Long id) {

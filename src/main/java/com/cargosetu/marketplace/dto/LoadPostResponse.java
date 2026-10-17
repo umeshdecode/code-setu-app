@@ -57,4 +57,6 @@ public class LoadPostResponse {
     private PaymentTermType paymentTerms;
     private String specialInstructions;
     private BigDecimal declaredValue;
+    private Double routeDistanceKm;
+    private String routeDistanceType;
 }

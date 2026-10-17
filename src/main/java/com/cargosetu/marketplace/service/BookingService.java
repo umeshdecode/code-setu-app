@@ -161,12 +161,18 @@ public class BookingService {
             MarketplaceBooking booking = new MarketplaceBooking();
             long count = bookingRepository.count() + 1;
             booking.setBookingNumber(String.format("BK-%s-%04d", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")), count));
-            booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.PENDING_PAYMENT);
+            booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL);
             booking.setListing(listing);
             booking.setOfferId(request.getOfferId());
+            booking.setRequestedByCompanyId(user.getCompanyId());
+            booking.setRequestedByStaffId(user.getStaffId());
+            booking.setRequestedCapacity(request.getRequestedCapacity());
             booking.setVehicleId(request.getVehicleId());
             booking.setDriverId(request.getDriverId());
+            booking.setProposedFreight(request.getAgreedFreight());
             booking.setAgreedFreight(request.getAgreedFreight());
+            booking.setLastActionByCompanyId(user.getCompanyId());
+            booking.setRemarks(request.getRemarks());
             booking.setPaymentTerms(request.getPaymentTerms() != null ? request.getPaymentTerms() : com.cargosetu.marketplace.enums.PaymentTermType.ADVANCE_PERCENT);
             booking.setAdvancePercentage(request.getAdvancePercentage() != null ? request.getAdvancePercentage() : 50);
             booking.setBookedAt(LocalDateTime.now());
@@ -174,6 +180,9 @@ public class BookingService {
             if (com.cargosetu.marketplace.enums.ListingType.LOAD_POST.equals(listing.getType())) {
                 booking.setShipperCompanyId(listing.getCompanyId());
                 booking.setTransporterCompanyId(user.getCompanyId());
+                if (booking.getRequestedCapacity() == null && listing.getLoadPost() != null) {
+                    booking.setRequestedCapacity(listing.getLoadPost().getWeight());
+                }
                 listing.setStatus(ListingStatus.BOOKED);
             } else {
                 booking.setShipperCompanyId(user.getCompanyId());
@@ -200,6 +209,7 @@ public class BookingService {
                             response.setResponseMessege("Insufficient available capacity on truck");
                             return response;
                         }
+                        booking.setRequestedCapacity(requestedCapacity);
                         double remainingCapacity = availableCap - requestedCapacity;
                         truckPost.setAvailableCapacity(Math.max(0.0, remainingCapacity));
                         truckPost.setOccupiedCapacity((truckPost.getOccupiedCapacity() != null ? truckPost.getOccupiedCapacity() : 0.0) + requestedCapacity);
@@ -225,15 +235,15 @@ public class BookingService {
 
             BookingItem item = new BookingItem();
             item.setBookingId(booking.getId());
-            if (request.getRequestedCapacity() != null) {
-                item.setLoadWeight(request.getRequestedCapacity());
-                item.setAllocatedCapacity(request.getRequestedCapacity());
+            if (booking.getRequestedCapacity() != null) {
+                item.setLoadWeight(booking.getRequestedCapacity());
+                item.setAllocatedCapacity(booking.getRequestedCapacity());
             }
             bookingItemRepository.save(item);
 
             listingRepository.save(listing);
 
-            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "CREATE", null, "PENDING_PAYMENT");
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "CREATE", null, "PENDING_APPROVAL");
 
             com.cargosetu.marketplace.dto.BookingResponse bookingResponse = enrichBookingResponse(booking);
             response.setData(bookingResponse);
@@ -261,6 +271,280 @@ public class BookingService {
             depth++;
         }
         return offer != null ? offer.getBidderCompanyId() : null;
+    }
+
+    private Integer resolveRequesterCompanyId(MarketplaceBooking booking) {
+        if (booking == null) return null;
+        if (booking.getRequestedByCompanyId() != null) {
+            return booking.getRequestedByCompanyId();
+        }
+        if (booking.getListing() != null && booking.getListing().getCompanyId() != null) {
+            Integer ownerId = booking.getListing().getCompanyId();
+            if (ownerId.equals(booking.getShipperCompanyId())) {
+                return booking.getTransporterCompanyId();
+            }
+            if (ownerId.equals(booking.getTransporterCompanyId())) {
+                return booking.getShipperCompanyId();
+            }
+        }
+        return booking.getShipperCompanyId();
+    }
+
+    private boolean isParticipant(Integer companyId, MarketplaceBooking booking) {
+        if (companyId == null || booking == null) return false;
+        return companyId.equals(booking.getShipperCompanyId())
+                || companyId.equals(booking.getTransporterCompanyId())
+                || (booking.getListing() != null && companyId.equals(booking.getListing().getCompanyId()));
+    }
+
+    @Transactional
+    public GenericDataDTO acceptBooking(LoggedInUser user, Long bookingId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
+            if (booking == null) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Booking not found");
+                return response;
+            }
+            if (!isParticipant(user.getCompanyId(), booking)) {
+                response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                response.setResponseMessege("Unauthorized: only booking participants can accept this booking");
+                return response;
+            }
+
+            com.cargosetu.marketplace.enums.BookingStatus currentStatus = booking.getStatus();
+            if (currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.REQUESTED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.COUNTERED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_PAYMENT) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Cannot accept booking in status " + currentStatus);
+                return response;
+            }
+
+            Integer requesterId = resolveRequesterCompanyId(booking);
+            Integer listingOwnerId = booking.getListing() != null ? booking.getListing().getCompanyId() : null;
+
+            if (currentStatus == com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL
+                    || currentStatus == com.cargosetu.marketplace.enums.BookingStatus.REQUESTED) {
+                boolean isListingOwner = listingOwnerId != null
+                        ? listingOwnerId.equals(user.getCompanyId())
+                        : !user.getCompanyId().equals(requesterId);
+                if (!isListingOwner) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Only the listing owner can approve a pending booking request");
+                    return response;
+                }
+            } else if (currentStatus == com.cargosetu.marketplace.enums.BookingStatus.COUNTERED) {
+                if (booking.getLastActionByCompanyId() != null && booking.getLastActionByCompanyId().equals(user.getCompanyId())) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Cannot accept your own counter-offer; waiting for the other party");
+                    return response;
+                }
+                if (booking.getCounterFreight() != null) {
+                    booking.setAgreedFreight(booking.getCounterFreight());
+                }
+            }
+
+            String prevStatus = currentStatus != null ? currentStatus.name() : null;
+            booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.CONFIRMED);
+            booking.setLastActionByCompanyId(user.getCompanyId());
+            booking = bookingRepository.save(booking);
+
+            tripService.createTripFromBooking(booking);
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "ACCEPT", prevStatus, "CONFIRMED");
+
+            response.setData(enrichBookingResponse(booking));
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Booking request accepted and confirmed");
+        } catch (Exception e) {
+            log.error("Error accepting booking", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to accept booking: " + e.getMessage());
+        }
+        return response;
+    }
+
+    @Transactional
+    public GenericDataDTO rejectBooking(LoggedInUser user, Long bookingId, com.cargosetu.marketplace.dto.RejectBookingRequest request) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
+            if (booking == null) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Booking not found");
+                return response;
+            }
+            if (!isParticipant(user.getCompanyId(), booking)) {
+                response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                response.setResponseMessege("Unauthorized: only booking participants can reject this booking");
+                return response;
+            }
+
+            com.cargosetu.marketplace.enums.BookingStatus currentStatus = booking.getStatus();
+            if (currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.REQUESTED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.COUNTERED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_PAYMENT) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Cannot reject booking in status " + currentStatus);
+                return response;
+            }
+
+            Integer requesterId = resolveRequesterCompanyId(booking);
+            Integer listingOwnerId = booking.getListing() != null ? booking.getListing().getCompanyId() : null;
+            if (currentStatus == com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL
+                    || currentStatus == com.cargosetu.marketplace.enums.BookingStatus.REQUESTED) {
+                boolean isListingOwner = listingOwnerId != null
+                        ? listingOwnerId.equals(user.getCompanyId())
+                        : !user.getCompanyId().equals(requesterId);
+                if (!isListingOwner) {
+                    response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                    response.setResponseMessege("Only the listing owner can reject an incoming booking request");
+                    return response;
+                }
+            }
+
+            String prevStatus = currentStatus != null ? currentStatus.name() : null;
+            booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.REJECTED);
+            booking.setLastActionByCompanyId(user.getCompanyId());
+            if (request != null && request.getReason() != null && !request.getReason().isBlank()) {
+                booking.setRejectionReason(request.getReason().trim());
+            } else {
+                booking.setRejectionReason("Declined by participant");
+            }
+
+            releaseReservedCapacity(booking);
+            booking = bookingRepository.save(booking);
+
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "REJECT", prevStatus, "REJECTED");
+
+            response.setData(enrichBookingResponse(booking));
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Booking request rejected");
+        } catch (Exception e) {
+            log.error("Error rejecting booking", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to reject booking: " + e.getMessage());
+        }
+        return response;
+    }
+
+    @Transactional
+    public GenericDataDTO counterBooking(LoggedInUser user, Long bookingId, com.cargosetu.marketplace.dto.CounterBookingRequest request) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            if (request == null || request.getProposedFreight() == null
+                    || request.getProposedFreight().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Proposed counter freight must be greater than zero");
+                return response;
+            }
+
+            MarketplaceBooking booking = bookingRepository.findById(bookingId).orElse(null);
+            if (booking == null) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Booking not found");
+                return response;
+            }
+            if (!isParticipant(user.getCompanyId(), booking)) {
+                response.setResponseCode(CommonStatusCode.FORBIDDEN);
+                response.setResponseMessege("Unauthorized: only booking participants can counter this booking");
+                return response;
+            }
+
+            com.cargosetu.marketplace.enums.BookingStatus currentStatus = booking.getStatus();
+            if (currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_APPROVAL
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.REQUESTED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.COUNTERED
+                    && currentStatus != com.cargosetu.marketplace.enums.BookingStatus.PENDING_PAYMENT) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Cannot counter booking in status " + currentStatus);
+                return response;
+            }
+
+            String prevStatus = currentStatus != null ? currentStatus.name() : null;
+            booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.COUNTERED);
+            booking.setCounterFreight(request.getProposedFreight());
+            booking.setAgreedFreight(request.getProposedFreight());
+            booking.setLastActionByCompanyId(user.getCompanyId());
+            if (request.getPaymentTerms() != null) {
+                booking.setPaymentTerms(request.getPaymentTerms());
+            }
+            if (request.getAdvancePercentage() != null) {
+                booking.setAdvancePercentage(request.getAdvancePercentage());
+            }
+            if (request.getRemarks() != null && !request.getRemarks().isBlank()) {
+                booking.setRemarks(request.getRemarks().trim());
+            }
+            booking = bookingRepository.save(booking);
+
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceBooking", booking.getId(), "COUNTER", prevStatus, "COUNTERED");
+
+            response.setData(enrichBookingResponse(booking));
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Counter price proposed successfully");
+        } catch (Exception e) {
+            log.error("Error countering booking", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to counter booking: " + e.getMessage());
+        }
+        return response;
+    }
+
+    private void releaseReservedCapacity(MarketplaceBooking booking) {
+        if (booking == null || booking.getListing() == null) return;
+        MarketplaceListing listing = booking.getListing();
+        if (com.cargosetu.marketplace.enums.ListingType.TRUCK_POST.equals(listing.getType())) {
+            TruckPost truckPost = truckPostRepository.findByListingId(listing.getId()).orElse(null);
+            if (truckPost != null) {
+                Double allocated = booking.getRequestedCapacity();
+                if (allocated == null && booking.getId() != null) {
+                    java.util.List<BookingItem> items = bookingItemRepository.findByBookingId(booking.getId());
+                    if (items != null && !items.isEmpty() && items.get(0).getAllocatedCapacity() != null) {
+                        allocated = items.get(0).getAllocatedCapacity();
+                    }
+                }
+                if (allocated != null && allocated > 0 && truckPost.getAvailableCapacity() != null) {
+                    double currentAvail = truckPost.getAvailableCapacity();
+                    double totalCap = truckPost.getTotalCapacity() != null ? truckPost.getTotalCapacity() : (currentAvail + allocated);
+                    double restoredAvail = Math.min(totalCap, currentAvail + allocated);
+                    double currentOccupied = truckPost.getOccupiedCapacity() != null ? truckPost.getOccupiedCapacity() : 0.0;
+                    double restoredOccupied = Math.max(0.0, currentOccupied - allocated);
+                    truckPost.setAvailableCapacity(restoredAvail);
+                    truckPost.setOccupiedCapacity(restoredOccupied);
+                    if (restoredOccupied <= 0.0) {
+                        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.EMPTY_STANDING);
+                    } else {
+                        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.PARTIALLY_LOADED);
+                    }
+                } else {
+                    truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.EMPTY_STANDING);
+                }
+                truckPostRepository.save(truckPost);
+            }
+            listing.setStatus(ListingStatus.PUBLISHED);
+            listingRepository.save(listing);
+        } else {
+            listing.setStatus(ListingStatus.PUBLISHED);
+            listingRepository.save(listing);
+        }
     }
 
     @Transactional
@@ -294,17 +578,28 @@ public class BookingService {
                 return response;
             }
             if (user != null && user.getCompanyId() != null) {
-                boolean isParticipant = user.getCompanyId().equals(booking.getShipperCompanyId())
-                        || user.getCompanyId().equals(booking.getTransporterCompanyId());
-                if (!isParticipant) {
+                if (!isParticipant(user.getCompanyId(), booking)) {
                     response.setResponseCode(CommonStatusCode.FORBIDDEN);
                     response.setResponseMessege("Not authorized to cancel this booking");
                     return response;
                 }
             }
+            if (booking.getStatus() == com.cargosetu.marketplace.enums.BookingStatus.COMPLETED
+                    || booking.getStatus() == com.cargosetu.marketplace.enums.BookingStatus.CANCELLED
+                    || booking.getStatus() == com.cargosetu.marketplace.enums.BookingStatus.REJECTED) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Booking cannot be cancelled in status " + booking.getStatus());
+                return response;
+            }
+            if (request != null && request.getReasonText() != null && !request.getReasonText().isBlank()) {
+                booking.setRejectionReason(request.getReasonText().trim());
+            }
+            releaseReservedCapacity(booking);
             booking.setStatus(com.cargosetu.marketplace.enums.BookingStatus.CANCELLED);
             bookingRepository.save(booking);
+            response.setData(enrichBookingResponse(booking));
             response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Booking cancelled successfully");
         } catch (Exception e) {
             log.error("Error cancelling booking", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -322,7 +617,7 @@ public class BookingService {
                 return response;
             }
             if (user != null && user.getCompanyId() != null) {
-                if (!user.getCompanyId().equals(booking.getShipperCompanyId()) && !user.getCompanyId().equals(booking.getTransporterCompanyId())) {
+                if (!isParticipant(user.getCompanyId(), booking)) {
                     response.setResponseCode(CommonStatusCode.FORBIDDEN);
                     response.setResponseMessege("Unauthorized to view this booking");
                     return response;
@@ -339,17 +634,61 @@ public class BookingService {
     }
 
     public GenericDataDTO getMyBookings(LoggedInUser user, String status) {
+        return getMyBookings(user, status, null);
+    }
+
+    public GenericDataDTO getMyBookings(LoggedInUser user, String status, String role) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            java.util.List<MarketplaceBooking> bookings;
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            Integer companyId = user.getCompanyId();
+            java.util.List<MarketplaceBooking> rawBookings;
             if (status != null && !status.isBlank()) {
                 com.cargosetu.marketplace.enums.BookingStatus bookingStatus = com.cargosetu.marketplace.enums.BookingStatus.valueOf(status.trim().toUpperCase());
-                bookings = new java.util.ArrayList<>(bookingRepository.findByShipperCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
-                bookings.addAll(bookingRepository.findByTransporterCompanyIdAndStatus(user.getCompanyId(), bookingStatus));
+                rawBookings = new java.util.ArrayList<>(bookingRepository.findByShipperCompanyIdAndStatus(companyId, bookingStatus));
+                rawBookings.addAll(bookingRepository.findByTransporterCompanyIdAndStatus(companyId, bookingStatus));
             } else {
-                bookings = bookingRepository.findByShipperCompanyIdOrTransporterCompanyId(user.getCompanyId(), user.getCompanyId());
+                rawBookings = bookingRepository.findByShipperCompanyIdOrTransporterCompanyId(companyId, companyId);
             }
-            java.util.List<com.cargosetu.marketplace.dto.BookingResponse> dtoList = bookings.stream()
+
+            // Deduplicate by id while preserving order
+            java.util.Map<Long, MarketplaceBooking> uniqueMap = new java.util.LinkedHashMap<>();
+            if (rawBookings != null) {
+                for (MarketplaceBooking b : rawBookings) {
+                    if (b != null && b.getId() != null) {
+                        uniqueMap.putIfAbsent(b.getId(), b);
+                    }
+                }
+            }
+
+            String normalizedRole = role != null ? role.trim().toUpperCase() : "ALL";
+            java.util.List<com.cargosetu.marketplace.dto.BookingResponse> dtoList = uniqueMap.values().stream()
+                    .filter(b -> {
+                        Integer requesterId = resolveRequesterCompanyId(b);
+                        Integer ownerId = b.getListing() != null ? b.getListing().getCompanyId() : null;
+                        return switch (normalizedRole) {
+                            case "OUTGOING", "REQUESTED_BY_ME", "MY_REQUESTS" -> companyId.equals(requesterId);
+                            case "INCOMING", "RECEIVED" -> (ownerId != null && companyId.equals(ownerId))
+                                    || (ownerId == null && !companyId.equals(requesterId));
+                            case "SHIPPER" -> companyId.equals(b.getShipperCompanyId());
+                            case "TRANSPORTER" -> companyId.equals(b.getTransporterCompanyId());
+                            default -> true;
+                        };
+                    })
+                    .sorted((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                            if (cmp != 0) return cmp;
+                        }
+                        if (a.getId() != null && b.getId() != null) {
+                            return b.getId().compareTo(a.getId());
+                        }
+                        return 0;
+                    })
                     .map(this::enrichBookingResponse)
                     .toList();
             response.setDataList(dtoList);
@@ -404,7 +743,31 @@ public class BookingService {
 
     private com.cargosetu.marketplace.dto.BookingResponse enrichBookingResponse(MarketplaceBooking booking) {
         if (booking == null) return null;
-        com.cargosetu.marketplace.dto.BookingResponse dto = bookingMapper.toDto(booking);
+        com.cargosetu.marketplace.dto.BookingResponse mapped = bookingMapper.toDto(booking);
+        com.cargosetu.marketplace.dto.BookingResponse dto = mapped != null ? mapped : new com.cargosetu.marketplace.dto.BookingResponse();
+        dto.setId(booking.getId());
+        dto.setBookingNumber(booking.getBookingNumber());
+        dto.setOfferId(booking.getOfferId());
+        dto.setShipperCompanyId(booking.getShipperCompanyId());
+        dto.setTransporterCompanyId(booking.getTransporterCompanyId());
+        dto.setRequestedByCompanyId(resolveRequesterCompanyId(booking));
+        dto.setRequestedByStaffId(booking.getRequestedByStaffId());
+        dto.setRequestedCapacity(booking.getRequestedCapacity());
+        dto.setVehicleId(booking.getVehicleId());
+        dto.setDriverId(booking.getDriverId());
+        dto.setProposedFreight(booking.getProposedFreight() != null ? booking.getProposedFreight() : booking.getAgreedFreight());
+        dto.setAgreedFreight(booking.getAgreedFreight());
+        dto.setCounterFreight(booking.getCounterFreight());
+        dto.setLastActionByCompanyId(booking.getLastActionByCompanyId());
+        dto.setPaymentTerms(booking.getPaymentTerms());
+        dto.setAdvancePercentage(booking.getAdvancePercentage());
+        dto.setStatus(booking.getStatus());
+        dto.setBookedAt(booking.getBookedAt());
+        dto.setRejectionReason(booking.getRejectionReason());
+        dto.setRemarks(booking.getRemarks());
+        dto.setCreatedAt(booking.getCreatedAt());
+        dto.setUpdatedAt(booking.getUpdatedAt());
+
         if (booking.getShipperCompanyId() != null) {
             companyRepository.findById(booking.getShipperCompanyId())
                     .ifPresent(c -> dto.setShipperCompanyName(c.getCompanyName()));
@@ -428,14 +791,30 @@ public class BookingService {
             dto.setListingId(booking.getListing().getId());
             dto.setListingNumber(booking.getListing().getListingNumber());
             dto.setListingType(booking.getListing().getType());
+            dto.setListingOwnerCompanyId(booking.getListing().getCompanyId());
+            dto.setListingPostedByStaffId(booking.getListing().getPostedByStaffId());
             if (booking.getListing().getLoadPost() != null) {
-                dto.setOriginCity(booking.getListing().getLoadPost().getOriginCity());
-                dto.setDestinationCity(booking.getListing().getLoadPost().getDestinationCity());
-                dto.setCargoType(booking.getListing().getLoadPost().getCargoType());
-                dto.setWeight(booking.getListing().getLoadPost().getWeight());
+                LoadPost lp = booking.getListing().getLoadPost();
+                dto.setOriginCity(lp.getOriginCity());
+                dto.setOriginState(lp.getOriginState());
+                dto.setDestinationCity(lp.getDestinationCity());
+                dto.setDestinationState(lp.getDestinationState());
+                dto.setCargoType(lp.getCargoType());
+                dto.setWeight(lp.getWeight());
+                dto.setCapacityUnit(lp.getWeightUnit());
+                if (dto.getRequestedCapacity() == null) {
+                    dto.setRequestedCapacity(lp.getWeight());
+                }
             } else if (booking.getListing().getTruckPost() != null) {
-                dto.setOriginCity(booking.getListing().getTruckPost().getCurrentCity());
-                dto.setDestinationCity(booking.getListing().getTruckPost().getRouteTo());
+                TruckPost tp = booking.getListing().getTruckPost();
+                dto.setOriginCity(tp.getRouteFrom() != null && !tp.getRouteFrom().isBlank() ? tp.getRouteFrom() : tp.getCurrentCity());
+                dto.setOriginState(tp.getRouteFromState() != null ? tp.getRouteFromState() : tp.getCurrentState());
+                dto.setDestinationCity(tp.getRouteTo());
+                dto.setDestinationState(tp.getRouteToState());
+                dto.setCapacityUnit(tp.getCapacityUnit());
+                if (dto.getWeight() == null) {
+                    dto.setWeight(dto.getRequestedCapacity() != null ? dto.getRequestedCapacity() : tp.getAvailableCapacity());
+                }
             }
         }
         return dto;

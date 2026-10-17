@@ -33,12 +33,19 @@ public class TruckPost {
     private Long driverId;
 
     private String currentCity;
+    private String currentState;
     private String currentAddress;
     private Double currentLat;
     private Double currentLng;
 
     private String routeFrom;
+    private String routeFromState;
+    private Double routeFromLat;
+    private Double routeFromLng;
     private String routeTo;
+    private String routeToState;
+    private Double routeToLat;
+    private Double routeToLng;
 
     @Column(columnDefinition = "TEXT")
     private String waypoints;

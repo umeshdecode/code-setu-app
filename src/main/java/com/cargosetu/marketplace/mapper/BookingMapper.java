@@ -13,6 +13,8 @@ public interface BookingMapper extends BaseUpdateMapper<BookingResponse, Marketp
     @Mapping(target = "listingId", source = "listing.id")
     @Mapping(target = "listingNumber", source = "listing.listingNumber")
     @Mapping(target = "listingType", source = "listing.type")
+    @Mapping(target = "listingOwnerCompanyId", source = "listing.companyId")
+    @Mapping(target = "listingPostedByStaffId", source = "listing.postedByStaffId")
     BookingResponse toResponse(MarketplaceBooking entity);
 
     @Mapping(target = "id", ignore = true)
@@ -20,6 +22,12 @@ public interface BookingMapper extends BaseUpdateMapper<BookingResponse, Marketp
     @Mapping(target = "bookingNumber", ignore = true)
     @Mapping(target = "shipperCompanyId", ignore = true)
     @Mapping(target = "transporterCompanyId", ignore = true)
+    @Mapping(target = "requestedByCompanyId", ignore = true)
+    @Mapping(target = "requestedByStaffId", ignore = true)
+    @Mapping(target = "proposedFreight", ignore = true)
+    @Mapping(target = "counterFreight", ignore = true)
+    @Mapping(target = "lastActionByCompanyId", ignore = true)
+    @Mapping(target = "rejectionReason", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "bookedAt", ignore = true)
     @Mapping(target = "cancellationPolicySnapshot", ignore = true)

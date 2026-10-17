@@ -63,15 +63,27 @@ public class ListingService {
             listing = listingRepository.save(listing);
 
             LoadPost loadPost = loadPostMapper.toEntity(request);
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(loadPost.getOriginLat(), loadPost.getOriginLng())) {
+                double[] oCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, loadPost.getOriginCity());
+                if (oCoords != null) {
+                    loadPost.setOriginLat(oCoords[0]);
+                    loadPost.setOriginLng(oCoords[1]);
+                }
+            }
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(loadPost.getDestinationLat(), loadPost.getDestinationLng())) {
+                double[] dCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, loadPost.getDestinationCity());
+                if (dCoords != null) {
+                    loadPost.setDestinationLat(dCoords[0]);
+                    loadPost.setDestinationLng(dCoords[1]);
+                }
+            }
             loadPost.setListing(listing);
             loadPost = loadPostRepository.save(loadPost);
 
             auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceListing", listing.getId(), "CREATE_LOAD", null, listing.getStatus().name());
 
             LoadPostResponse loadResponse = loadPostMapper.toResponseWithListing(loadPost);
-            if (listing.getCompanyId() != null) {
-                companyRepository.findById(listing.getCompanyId()).ifPresent(c -> loadResponse.setCompanyName(c.getCompanyName()));
-            }
+            enrichLoadPostResponse(loadResponse, loadPost);
             response.setData(loadResponse);
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Load post created successfully");
@@ -106,6 +118,29 @@ public class ListingService {
             listing = listingRepository.save(listing);
 
             TruckPost truckPost = truckPostMapper.toEntity(request);
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(truckPost.getCurrentLat(), truckPost.getCurrentLng())) {
+                double[] cCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, truckPost.getCurrentCity());
+                if (cCoords != null) {
+                    truckPost.setCurrentLat(cCoords[0]);
+                    truckPost.setCurrentLng(cCoords[1]);
+                }
+            }
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(truckPost.getRouteFromLat(), truckPost.getRouteFromLng())
+                    && truckPost.getRouteFrom() != null && !truckPost.getRouteFrom().isBlank()) {
+                double[] rfCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, truckPost.getRouteFrom());
+                if (rfCoords != null) {
+                    truckPost.setRouteFromLat(rfCoords[0]);
+                    truckPost.setRouteFromLng(rfCoords[1]);
+                }
+            }
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(truckPost.getRouteToLat(), truckPost.getRouteToLng())
+                    && truckPost.getRouteTo() != null && !truckPost.getRouteTo().isBlank()) {
+                double[] rtCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, truckPost.getRouteTo());
+                if (rtCoords != null) {
+                    truckPost.setRouteToLat(rtCoords[0]);
+                    truckPost.setRouteToLng(rtCoords[1]);
+                }
+            }
             truckPost.setListing(listing);
             if(request.getWaypoints() != null) {
                 truckPost.setWaypoints(objectMapper.writeValueAsString(request.getWaypoints()));
@@ -200,9 +235,7 @@ public class ListingService {
                 return response;
             }
             LoadPostResponse dto = loadPostMapper.toResponseWithListing(post);
-            if (post.getListing() != null && post.getListing().getCompanyId() != null) {
-                companyRepository.findById(post.getListing().getCompanyId()).ifPresent(c -> dto.setCompanyName(c.getCompanyName()));
-            }
+            enrichLoadPostResponse(dto, post);
             response.setData(dto);
             response.setResponseCode(CommonStatusCode.SUCCESS);
         } catch (Exception e) {
@@ -298,9 +331,7 @@ public class ListingService {
             auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceListing", listing.getId(), "UPDATE_LOAD", null, listing.getStatus().name());
 
             LoadPostResponse loadResponse = loadPostMapper.toResponseWithListing(loadPost);
-            if (listing.getCompanyId() != null) {
-                companyRepository.findById(listing.getCompanyId()).ifPresent(c -> loadResponse.setCompanyName(c.getCompanyName()));
-            }
+            enrichLoadPostResponse(loadResponse, loadPost);
             response.setData(loadResponse);
             response.setResponseCode(CommonStatusCode.SUCCESS);
             response.setResponseMessege("Load post updated successfully");
@@ -343,11 +374,18 @@ public class ListingService {
             }
             if (request.getDriverId() != null) truckPost.setDriverId(request.getDriverId());
             if (request.getCurrentCity() != null) truckPost.setCurrentCity(request.getCurrentCity());
+            if (request.getCurrentState() != null) truckPost.setCurrentState(request.getCurrentState());
             if (request.getCurrentAddress() != null) truckPost.setCurrentAddress(request.getCurrentAddress());
             if (request.getCurrentLat() != null) truckPost.setCurrentLat(request.getCurrentLat());
             if (request.getCurrentLng() != null) truckPost.setCurrentLng(request.getCurrentLng());
             if (request.getRouteFrom() != null) truckPost.setRouteFrom(request.getRouteFrom());
+            if (request.getRouteFromState() != null) truckPost.setRouteFromState(request.getRouteFromState());
+            if (request.getRouteFromLat() != null) truckPost.setRouteFromLat(request.getRouteFromLat());
+            if (request.getRouteFromLng() != null) truckPost.setRouteFromLng(request.getRouteFromLng());
             if (request.getRouteTo() != null) truckPost.setRouteTo(request.getRouteTo());
+            if (request.getRouteToState() != null) truckPost.setRouteToState(request.getRouteToState());
+            if (request.getRouteToLat() != null) truckPost.setRouteToLat(request.getRouteToLat());
+            if (request.getRouteToLng() != null) truckPost.setRouteToLng(request.getRouteToLng());
             if (request.getWaypoints() != null) {
                 truckPost.setWaypoints(objectMapper.writeValueAsString(request.getWaypoints()));
             }
@@ -460,15 +498,7 @@ public class ListingService {
 
             List<LoadPostResponse> responseList = pagedResult.getContent().stream().map(post -> {
                 LoadPostResponse dto = loadPostMapper.toResponseWithListing(post);
-                if (dto.getListingNumber() == null || dto.getListingNumber().isBlank()) {
-                    dto.setListingNumber(String.format("LD-%04d", post.getId()));
-                }
-                if (dto.getStatus() == null) {
-                    dto.setStatus(ListingStatus.PUBLISHED);
-                }
-                if (post.getListing() != null && post.getListing().getCompanyId() != null) {
-                    companyRepository.findById(post.getListing().getCompanyId()).ifPresent(c -> dto.setCompanyName(c.getCompanyName()));
-                }
+                enrichLoadPostResponse(dto, post);
                 return dto;
             }).toList();
 
@@ -495,6 +525,35 @@ public class ListingService {
             }
             final TruckPostSearchRequest req = searchRequest;
 
+            String originText = (req.getOriginCity() != null && !req.getOriginCity().isBlank())
+                    ? req.getOriginCity().trim()
+                    : (req.getCurrentCity() != null && !req.getCurrentCity().isBlank() ? req.getCurrentCity().trim() : null);
+            String destText = (req.getDestinationCity() != null && !req.getDestinationCity().isBlank())
+                    ? req.getDestinationCity().trim()
+                    : (req.getRouteTo() != null && !req.getRouteTo().isBlank() ? req.getRouteTo().trim() : null);
+
+            final double[] originCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                    req.getOriginLat(), req.getOriginLng(), originText);
+            final double[] destCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                    req.getDestinationLat(), req.getDestinationLng(), destText);
+            final double radiusKm = com.cargosetu.marketplace.util.GeoDistanceUtils.clampRadiusKm(
+                    req.getRadiusKm() != null ? req.getRadiusKm() : req.getMaxDetourKm());
+            final boolean useGeoCorridorSearch = (originCoords != null || destCoords != null);
+
+            final com.cargosetu.marketplace.util.GeoDistanceUtils.BoundingBox bbox;
+            if (originCoords != null && destCoords != null) {
+                bbox = com.cargosetu.marketplace.util.GeoDistanceUtils.computeBoundingBox(
+                        originCoords[0], originCoords[1], destCoords[0], destCoords[1], radiusKm);
+            } else if (originCoords != null) {
+                bbox = com.cargosetu.marketplace.util.GeoDistanceUtils.computeBoundingBox(
+                        originCoords[0], originCoords[1], originCoords[0], originCoords[1], radiusKm);
+            } else if (destCoords != null) {
+                bbox = com.cargosetu.marketplace.util.GeoDistanceUtils.computeBoundingBox(
+                        destCoords[0], destCoords[1], destCoords[0], destCoords[1], radiusKm);
+            } else {
+                bbox = null;
+            }
+
             Specification<TruckPost> spec = (root, query, cb) -> {
                 List<Predicate> predicates = new ArrayList<>();
 
@@ -516,25 +575,33 @@ public class ListingService {
                     ));
                 }
 
-                // City filter with LIKE condition on currentCity or routeFrom
-                String city = req.getCurrentCity() != null && !req.getCurrentCity().isBlank()
-                        ? req.getCurrentCity()
-                        : req.getOriginCity();
-                if (city != null && !city.isBlank()) {
-                    String cityPattern = "%" + city.trim().toLowerCase() + "%";
-                    predicates.add(cb.or(
-                            cb.like(cb.lower(root.get("currentCity")), cityPattern),
-                            cb.like(cb.lower(root.get("routeFrom")), cityPattern)
-                    ));
-                }
-
-                // Destination / Route to filter with LIKE condition
-                String targetRoute = req.getRouteTo() != null && !req.getRouteTo().isBlank()
-                        ? req.getRouteTo()
-                        : req.getDestinationCity();
-                if (targetRoute != null && !targetRoute.isBlank()) {
-                    String routePattern = "%" + targetRoute.trim().toLowerCase() + "%";
-                    predicates.add(cb.like(cb.lower(root.get("routeTo")), routePattern));
+                if (!useGeoCorridorSearch) {
+                    if (originText != null && !originText.isBlank()) {
+                        String cityPattern = "%" + originText.toLowerCase() + "%";
+                        predicates.add(cb.or(
+                                cb.like(cb.lower(root.get("currentCity")), cityPattern),
+                                cb.like(cb.lower(root.get("routeFrom")), cityPattern)
+                        ));
+                    }
+                    if (destText != null && !destText.isBlank()) {
+                        String routePattern = "%" + destText.toLowerCase() + "%";
+                        predicates.add(cb.like(cb.lower(root.get("routeTo")), routePattern));
+                    }
+                } else if (bbox != null) {
+                    // Spatial bounding-box prefilter (allowing rows with null coordinates or planned routes to be evaluated via city fallback)
+                    Predicate inCurrentBbox = cb.and(
+                            cb.isNotNull(root.get("currentLat")),
+                            cb.isNotNull(root.get("currentLng")),
+                            cb.between(root.get("currentLat"), bbox.minLat(), bbox.maxLat()),
+                            cb.between(root.get("currentLng"), bbox.minLng(), bbox.maxLng())
+                    );
+                    Predicate nullCoordsOrRoute = cb.or(
+                            cb.isNull(root.get("currentLat")),
+                            cb.isNull(root.get("currentLng")),
+                            cb.isNotNull(root.get("routeFrom")),
+                            cb.isNotNull(root.get("routeTo"))
+                    );
+                    predicates.add(cb.or(inCurrentBbox, nullCoordsOrRoute));
                 }
 
                 if (req.getMinCapacity() != null && req.getMinCapacity() > 0) {
@@ -561,30 +628,340 @@ public class ListingService {
                 Sort.Direction direction = "asc".equalsIgnoreCase(req.getSortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
                 sort = Sort.by(direction, req.getSortBy());
             } else {
-                // Latest created first by default
                 sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
             }
 
-            Pageable pageable = PageRequest.of(page, size, sort);
-            Page<TruckPost> pagedResult = truckPostRepository.findAll(spec, pageable);
+            if (!useGeoCorridorSearch && req.getTruckType() == null && req.getBodyType() == null
+                    && req.getTruckLength() == null && req.getCargoType() == null) {
+                Pageable pageable = PageRequest.of(page, size, sort);
+                Page<TruckPost> pagedResult = truckPostRepository.findAll(spec, pageable);
 
-            List<TruckPostResponse> responseList = pagedResult.getContent().stream().map(post -> {
+                List<TruckPostResponse> responseList = pagedResult.getContent().stream().map(post -> {
+                    TruckPostResponse dto = truckPostMapper.toResponse(post);
+                    enrichTruckPostResponse(dto, post);
+                    return dto;
+                }).toList();
+
+                response.setDataList(responseList);
+                response.setTotalRecords(pagedResult.getTotalElements());
+                response.setPageRecords(pagedResult.getNumberOfElements());
+                response.setCurrentPageNumber(pagedResult.getNumber());
+                response.setTotalPages(pagedResult.getTotalPages());
+                response.setResponseCode(CommonStatusCode.SUCCESS);
+                response.setResponseMessege("Trucks fetched successfully");
+                return response;
+            }
+
+            // Corridor / enriched attribute filtering with deterministic sorting and pagination
+            List<TruckPost> candidates = truckPostRepository.findAll(spec, sort);
+            Double searchedRouteDistanceKm = (originCoords != null && destCoords != null)
+                    ? com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                            originCoords[0], originCoords[1], destCoords[0], destCoords[1])
+                    : null;
+
+            List<TruckPostResponse> matchedList = new ArrayList<>();
+            for (TruckPost post : candidates) {
                 TruckPostResponse dto = truckPostMapper.toResponse(post);
                 enrichTruckPostResponse(dto, post);
-                return dto;
-            }).toList();
 
-            response.setDataList(responseList);
-            response.setTotalRecords(pagedResult.getTotalElements());
-            response.setPageRecords(pagedResult.getNumberOfElements());
-            response.setCurrentPageNumber(pagedResult.getNumber());
-            response.setTotalPages(pagedResult.getTotalPages());
+                // Additional vehicle/cargo filters
+                if (req.getTruckType() != null && !req.getTruckType().isBlank()) {
+                    String tt = dto.getTruckType() != null ? dto.getTruckType() : dto.getVehicleType();
+                    if (tt == null || !tt.toLowerCase().contains(req.getTruckType().trim().toLowerCase())) {
+                        continue;
+                    }
+                }
+                if (req.getBodyType() != null && !req.getBodyType().isBlank()) {
+                    if (dto.getBodyType() == null || !dto.getBodyType().toLowerCase().contains(req.getBodyType().trim().toLowerCase())) {
+                        continue;
+                    }
+                }
+                if (req.getTruckLength() != null && req.getTruckLength() > 0) {
+                    if (dto.getTruckLengthFeet() == null || Math.abs(dto.getTruckLengthFeet() - req.getTruckLength()) > 0.5) {
+                        continue;
+                    }
+                }
+                if (req.getCargoType() != null && req.getCargoType() != CargoType.ALL) {
+                    if (dto.getAcceptedLoadTypes() != null && !dto.getAcceptedLoadTypes().isEmpty()
+                            && !dto.getAcceptedLoadTypes().contains(req.getCargoType())
+                            && !dto.getAcceptedLoadTypes().contains(CargoType.ALL)) {
+                        continue;
+                    }
+                }
+
+                if (useGeoCorridorSearch) {
+                    if (!matchesCorridorAndPopulateDistances(post, dto, originCoords, destCoords, originText, destText, radiusKm, searchedRouteDistanceKm)) {
+                        continue;
+                    }
+                }
+                matchedList.add(dto);
+            }
+
+            if (useGeoCorridorSearch && (req.getSortBy() == null || req.getSortBy().isBlank())) {
+                matchedList.sort((a, b) -> {
+                    double ca = a.getDistanceFromCorridorKm() != null ? a.getDistanceFromCorridorKm() : Double.MAX_VALUE;
+                    double cbDist = b.getDistanceFromCorridorKm() != null ? b.getDistanceFromCorridorKm() : Double.MAX_VALUE;
+                    int cmp = Double.compare(ca, cbDist);
+                    if (cmp != 0) return cmp;
+                    double oa = a.getDistanceFromOriginKm() != null ? a.getDistanceFromOriginKm() : Double.MAX_VALUE;
+                    double ob = b.getDistanceFromOriginKm() != null ? b.getDistanceFromOriginKm() : Double.MAX_VALUE;
+                    cmp = Double.compare(oa, ob);
+                    if (cmp != 0) return cmp;
+                    if (a.getId() != null && b.getId() != null) {
+                        return b.getId().compareTo(a.getId());
+                    }
+                    return 0;
+                });
+            }
+
+            int totalElements = matchedList.size();
+            int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 1;
+            int fromIndex = Math.min(page * size, totalElements);
+            int toIndex = Math.min(fromIndex + size, totalElements);
+            List<TruckPostResponse> pageSlice = matchedList.subList(fromIndex, toIndex);
+
+            response.setDataList(pageSlice);
+            response.setTotalRecords(totalElements);
+            response.setPageRecords(pageSlice.size());
+            response.setCurrentPageNumber(page);
+            response.setTotalPages(totalPages);
             response.setResponseCode(CommonStatusCode.SUCCESS);
             response.setResponseMessege("Trucks fetched successfully");
         } catch (Exception e) {
             log.error("Error searching trucks", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("Failed to search trucks: " + e.getMessage());
+        }
+        return response;
+    }
+
+    private boolean matchesCorridorAndPopulateDistances(
+            TruckPost post,
+            TruckPostResponse dto,
+            double[] originCoords,
+            double[] destCoords,
+            String originText,
+            String destText,
+            double radiusKm,
+            Double searchedRouteDistanceKm) {
+        double[] currentCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getCurrentLat(), post.getCurrentLng(), post.getCurrentCity());
+        double[] routeFromCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getRouteFromLat(), post.getRouteFromLng(), post.getRouteFrom());
+        double[] routeToCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getRouteToLat(), post.getRouteToLng(), post.getRouteTo());
+
+        double[] primaryStartCoords = currentCoords != null ? currentCoords : routeFromCoords;
+
+        // Case 1: Both Origin and Destination coordinates exist -> Corridor Search (default 200 km radius)
+        if (originCoords != null && destCoords != null) {
+            Double distOrigin = null;
+            if (currentCoords != null) {
+                distOrigin = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        currentCoords[0], currentCoords[1], originCoords[0], originCoords[1]);
+            }
+            if (routeFromCoords != null) {
+                double rfOrigin = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        routeFromCoords[0], routeFromCoords[1], originCoords[0], originCoords[1]);
+                distOrigin = distOrigin == null ? rfOrigin : Math.min(distOrigin, rfOrigin);
+            }
+
+            Double distDest = null;
+            if (routeToCoords != null) {
+                distDest = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        routeToCoords[0], routeToCoords[1], destCoords[0], destCoords[1]);
+            } else if (currentCoords != null) {
+                distDest = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        currentCoords[0], currentCoords[1], destCoords[0], destCoords[1]);
+            }
+
+            Double distCorridor = null;
+            if (currentCoords != null) {
+                distCorridor = com.cargosetu.marketplace.util.GeoDistanceUtils.distanceToSegmentKm(
+                        currentCoords[0], currentCoords[1],
+                        originCoords[0], originCoords[1],
+                        destCoords[0], destCoords[1]);
+            }
+            if (routeFromCoords != null) {
+                double rfCorridor = com.cargosetu.marketplace.util.GeoDistanceUtils.distanceToSegmentKm(
+                        routeFromCoords[0], routeFromCoords[1],
+                        originCoords[0], originCoords[1],
+                        destCoords[0], destCoords[1]);
+                distCorridor = distCorridor == null ? rfCorridor : Math.min(distCorridor, rfCorridor);
+            }
+            if (dto.getWaypoints() != null) {
+                for (String wp : dto.getWaypoints()) {
+                    double[] wpCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(null, null, wp);
+                    if (wpCoords != null) {
+                        double wpCorridor = com.cargosetu.marketplace.util.GeoDistanceUtils.distanceToSegmentKm(
+                                wpCoords[0], wpCoords[1],
+                                originCoords[0], originCoords[1],
+                                destCoords[0], destCoords[1]);
+                        distCorridor = distCorridor == null ? wpCorridor : Math.min(distCorridor, wpCorridor);
+                    }
+                }
+            }
+
+            if (distCorridor == null) {
+                // Fallback to text match if truck has neither coordinates nor recognized city
+                return matchesCityText(post, originText, destText);
+            }
+
+            if (distCorridor > radiusKm) {
+                return false;
+            }
+
+            // Directional compatibility check
+            if (!com.cargosetu.marketplace.util.GeoDistanceUtils.isDirectionallyCompatible(
+                    primaryStartCoords, routeToCoords,
+                    originCoords[0], originCoords[1],
+                    destCoords[0], destCoords[1],
+                    radiusKm)) {
+                return false;
+            }
+
+            dto.setDistanceFromOriginKm(distOrigin);
+            dto.setDistanceFromDestinationKm(distDest);
+            dto.setDistanceFromCorridorKm(distCorridor);
+            if (dto.getRouteDistanceKm() == null && searchedRouteDistanceKm != null) {
+                dto.setRouteDistanceKm(searchedRouteDistanceKm);
+            }
+            dto.setDistanceType("STRAIGHT_LINE");
+            return true;
+        }
+
+        // Case 2: Only Origin coordinates exist -> Origin Radius Search (default 200 km)
+        if (originCoords != null) {
+            Double distOrigin = null;
+            if (currentCoords != null) {
+                distOrigin = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        currentCoords[0], currentCoords[1], originCoords[0], originCoords[1]);
+            }
+            if (routeFromCoords != null) {
+                double rfOrigin = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        routeFromCoords[0], routeFromCoords[1], originCoords[0], originCoords[1]);
+                distOrigin = distOrigin == null ? rfOrigin : Math.min(distOrigin, rfOrigin);
+            }
+            if (distOrigin == null) {
+                return matchesCityText(post, originText, destText);
+            }
+            if (distOrigin > radiusKm) {
+                return false;
+            }
+            dto.setDistanceFromOriginKm(distOrigin);
+            dto.setDistanceFromCorridorKm(distOrigin);
+            dto.setDistanceType("STRAIGHT_LINE");
+            return true;
+        }
+
+        // Case 3: Only Destination coordinates exist -> Destination Radius Search (default 200 km)
+        if (destCoords != null) {
+            Double distDest = null;
+            if (routeToCoords != null) {
+                distDest = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        routeToCoords[0], routeToCoords[1], destCoords[0], destCoords[1]);
+            }
+            if (currentCoords != null) {
+                double currDest = com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                        currentCoords[0], currentCoords[1], destCoords[0], destCoords[1]);
+                distDest = distDest == null ? currDest : Math.min(distDest, currDest);
+            }
+            if (distDest == null) {
+                return matchesCityText(post, originText, destText);
+            }
+            if (distDest > radiusKm) {
+                return false;
+            }
+            dto.setDistanceFromDestinationKm(distDest);
+            dto.setDistanceFromCorridorKm(distDest);
+            dto.setDistanceType("STRAIGHT_LINE");
+            return true;
+        }
+
+        return true;
+    }
+
+    private boolean matchesCityText(TruckPost post, String originText, String destText) {
+        if (originText != null && !originText.isBlank()) {
+            String needle = originText.trim().toLowerCase();
+            boolean matchCurrent = post.getCurrentCity() != null && post.getCurrentCity().toLowerCase().contains(needle);
+            boolean matchFrom = post.getRouteFrom() != null && post.getRouteFrom().toLowerCase().contains(needle);
+            if (!matchCurrent && !matchFrom) return false;
+        }
+        if (destText != null && !destText.isBlank()) {
+            String needle = destText.trim().toLowerCase();
+            boolean matchTo = post.getRouteTo() != null && post.getRouteTo().toLowerCase().contains(needle);
+            if (!matchTo) return false;
+        }
+        return true;
+    }
+
+    public GenericDataDTO getMyLoadPosts(LoggedInUser user, String status) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            Specification<LoadPost> spec = (root, query, cb) -> {
+                Join<LoadPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.INNER);
+                List<Predicate> predicates = new ArrayList<>();
+                predicates.add(cb.equal(listingJoin.get("companyId"), user.getCompanyId()));
+                if (status != null && !status.isBlank()) {
+                    predicates.add(cb.equal(listingJoin.get("status"), ListingStatus.valueOf(status.trim().toUpperCase())));
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+            List<LoadPost> posts = loadPostRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+            List<LoadPostResponse> dtos = posts.stream().map(post -> {
+                LoadPostResponse dto = loadPostMapper.toResponseWithListing(post);
+                enrichLoadPostResponse(dto, post);
+                return dto;
+            }).toList();
+            response.setDataList(dtos);
+            response.setTotalRecords(dtos.size());
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("My load posts retrieved successfully");
+        } catch (Exception e) {
+            log.error("Error fetching my load posts", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to fetch my load posts: " + e.getMessage());
+        }
+        return response;
+    }
+
+    public GenericDataDTO getMyTruckPosts(LoggedInUser user, String status) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            Specification<TruckPost> spec = (root, query, cb) -> {
+                Join<TruckPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.INNER);
+                List<Predicate> predicates = new ArrayList<>();
+                predicates.add(cb.equal(listingJoin.get("companyId"), user.getCompanyId()));
+                if (status != null && !status.isBlank()) {
+                    predicates.add(cb.equal(listingJoin.get("status"), ListingStatus.valueOf(status.trim().toUpperCase())));
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+            List<TruckPost> posts = truckPostRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+            List<TruckPostResponse> dtos = posts.stream().map(post -> {
+                TruckPostResponse dto = truckPostMapper.toResponse(post);
+                enrichTruckPostResponse(dto, post);
+                return dto;
+            }).toList();
+            response.setDataList(dtos);
+            response.setTotalRecords(dtos.size());
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("My truck posts retrieved successfully");
+        } catch (Exception e) {
+            log.error("Error fetching my truck posts", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to fetch my truck posts: " + e.getMessage());
         }
         return response;
     }
@@ -617,6 +994,37 @@ public class ListingService {
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
         }
         return response;
+    }
+
+    private void enrichLoadPostResponse(LoadPostResponse dto, LoadPost post) {
+        if (dto == null || post == null) return;
+        if (dto.getListingNumber() == null || dto.getListingNumber().isBlank()) {
+            dto.setListingNumber(String.format("LD-%04d", post.getId()));
+        }
+        if (dto.getStatus() == null) {
+            dto.setStatus(ListingStatus.PUBLISHED);
+        }
+        if (post.getListing() != null && post.getListing().getCompanyId() != null) {
+            companyRepository.findById(post.getListing().getCompanyId())
+                    .ifPresent(c -> dto.setCompanyName(c.getCompanyName()));
+        }
+        double[] oCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getOriginLat(), post.getOriginLng(), post.getOriginCity());
+        double[] dCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getDestinationLat(), post.getDestinationLng(), post.getDestinationCity());
+        if (oCoords != null) {
+            if (dto.getOriginLat() == null) dto.setOriginLat(oCoords[0]);
+            if (dto.getOriginLng() == null) dto.setOriginLng(oCoords[1]);
+        }
+        if (dCoords != null) {
+            if (dto.getDestinationLat() == null) dto.setDestinationLat(dCoords[0]);
+            if (dto.getDestinationLng() == null) dto.setDestinationLng(dCoords[1]);
+        }
+        if (oCoords != null && dCoords != null) {
+            dto.setRouteDistanceKm(com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                    oCoords[0], oCoords[1], dCoords[0], dCoords[1]));
+            dto.setRouteDistanceType("STRAIGHT_LINE");
+        }
     }
 
     private void enrichTruckPostResponse(TruckPostResponse dto, TruckPost post) {
@@ -675,6 +1083,21 @@ public class ListingService {
             try {
                 dto.setAcceptedLoadTypes(objectMapper.readValue(post.getAcceptedLoadTypes(), new TypeReference<List<CargoType>>() {}));
             } catch (Exception ignored) {}
+        }
+
+        boolean hasDistinctRouteFrom = post.getRouteFrom() != null
+                && !post.getRouteFrom().isBlank()
+                && (post.getCurrentCity() == null || !post.getRouteFrom().trim().equalsIgnoreCase(post.getCurrentCity().trim()));
+        String startCity = hasDistinctRouteFrom ? post.getRouteFrom() : post.getCurrentCity();
+        Double startLat = hasDistinctRouteFrom ? post.getRouteFromLat() : (post.getRouteFromLat() != null ? post.getRouteFromLat() : post.getCurrentLat());
+        Double startLng = hasDistinctRouteFrom ? post.getRouteFromLng() : (post.getRouteFromLng() != null ? post.getRouteFromLng() : post.getCurrentLng());
+        double[] startCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(startLat, startLng, startCity);
+        double[] endCoords = com.cargosetu.marketplace.util.GeoDistanceUtils.resolveCoordinates(
+                post.getRouteToLat(), post.getRouteToLng(), post.getRouteTo());
+        if (startCoords != null && endCoords != null) {
+            dto.setRouteDistanceKm(com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(
+                    startCoords[0], startCoords[1], endCoords[0], endCoords[1]));
+            dto.setDistanceType("STRAIGHT_LINE");
         }
     }
 }

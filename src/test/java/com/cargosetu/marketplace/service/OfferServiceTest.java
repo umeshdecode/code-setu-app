@@ -106,6 +106,7 @@ class OfferServiceTest {
 
         Company bidderComp = new Company();
         bidderComp.setCompanyName("Express Logistics");
+        lenient().when(companyRepository.findById(anyInt())).thenReturn(Optional.empty());
         when(companyRepository.findById(200)).thenReturn(Optional.of(bidderComp));
 
         GenericDataDTO response = offerService.createOffer(bidderUser, 1L, request);
@@ -324,5 +325,35 @@ class OfferServiceTest {
         assertThat(counterRes.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
 
         verify(offerRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("getMyOffers returns offers scoped to authenticated company with route enrichment")
+    void getMyOffers_returnsEnrichedCompanyOffers() {
+        com.cargosetu.marketplace.entity.LoadPost lp = new com.cargosetu.marketplace.entity.LoadPost();
+        lp.setOriginCity("Mumbai");
+        lp.setOriginState("Maharashtra");
+        lp.setDestinationCity("Delhi");
+        lp.setDestinationState("Delhi");
+        lp.setAskingPrice(BigDecimal.valueOf(50000));
+        listing.setLoadPost(lp);
+
+        MarketplaceOffer offer = new MarketplaceOffer();
+        offer.setId(70L);
+        offer.setListing(listing);
+        offer.setBidderCompanyId(200);
+        offer.setOfferedByStaffId(5L);
+        offer.setAmount(BigDecimal.valueOf(46000));
+        offer.setStatus(OfferStatus.PENDING);
+
+        when(offerRepository.findByBidderCompanyId(200)).thenReturn(java.util.List.of(offer));
+
+        GenericDataDTO res = offerService.getMyOffers(bidderUser);
+        assertThat(res.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(res.getDataList()).hasSize(1);
+        OfferResponse dto = (OfferResponse) res.getDataList().get(0);
+        assertThat(dto.getOriginCity()).isEqualTo("Mumbai");
+        assertThat(dto.getDestinationCity()).isEqualTo("Delhi");
+        assertThat(dto.getListingOwnerCompanyId()).isEqualTo(100);
     }
 }

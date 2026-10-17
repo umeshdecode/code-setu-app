@@ -71,9 +71,12 @@ public class ChatService {
                 return response;
             }
 
-            // Validate participant staff belongs to participant company
-            if (request.getParticipantStaffId() != null) {
-                com.cargosetu.model.Staff participantStaff = staffRepository.findById(request.getParticipantStaffId()).orElse(null);
+            // Validate participant staff belongs to participant company if provided (> 0)
+            Long targetStaffId = (request.getParticipantStaffId() != null && request.getParticipantStaffId() > 0)
+                    ? request.getParticipantStaffId()
+                    : null;
+            if (targetStaffId != null) {
+                com.cargosetu.model.Staff participantStaff = staffRepository.findById(targetStaffId).orElse(null);
                 if (participantStaff == null) {
                     response.setResponseCode(CommonStatusCode.NOT_FOUND);
                     response.setResponseMessege("Participant staff not found");
@@ -100,6 +103,9 @@ public class ChatService {
                     response.setResponseMessege("Unauthorized participant for this listing: conversation must involve the listing owner");
                     return response;
                 }
+                if (targetStaffId == null && listingOwnerId.equals(otherCompanyId)) {
+                    targetStaffId = listing.getPostedByStaffId();
+                }
             }
 
             // Validate booking relationship and participants
@@ -125,6 +131,13 @@ public class ChatService {
                     response.setResponseCode(CommonStatusCode.FORBIDDEN);
                     response.setResponseMessege("Unauthorized: only booking participants can start a conversation for this booking");
                     return response;
+                }
+                if (targetStaffId == null) {
+                    if (booking.getRequestedByCompanyId() != null && booking.getRequestedByCompanyId().equals(otherCompanyId)) {
+                        targetStaffId = booking.getRequestedByStaffId();
+                    } else if (booking.getListing() != null && otherCompanyId.equals(booking.getListing().getCompanyId())) {
+                        targetStaffId = booking.getListing().getPostedByStaffId();
+                    }
                 }
             }
 
@@ -165,7 +178,7 @@ public class ChatService {
                 convo.setParticipant1CompanyId(myCompanyId);
                 convo.setParticipant1StaffId(user.getStaffId());
                 convo.setParticipant2CompanyId(otherCompanyId);
-                convo.setParticipant2StaffId(request.getParticipantStaffId());
+                convo.setParticipant2StaffId(targetStaffId);
                 convo.setStatus("ACTIVE");
                 convo.setLastMessageAt(LocalDateTime.now());
                 convo = conversationRepository.save(convo);
@@ -286,8 +299,56 @@ public class ChatService {
             }
 
             java.util.List<ChatMessage> messages = messageRepository.findByConversationIdOrderBySentAtAsc(conversationId);
+            if (messages == null) {
+                messages = java.util.Collections.emptyList();
+            }
+
+            // Batch-load sender staff names and company names to avoid N+1 queries
+            java.util.Set<Long> staffIds = messages.stream()
+                    .map(ChatMessage::getSenderStaffId)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toSet());
+            java.util.Set<Integer> companyIds = messages.stream()
+                    .map(ChatMessage::getSenderCompanyId)
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            java.util.Map<Long, String> staffNameMap = new java.util.HashMap<>();
+            if (!staffIds.isEmpty()) {
+                java.util.List<com.cargosetu.model.Staff> staffs = staffRepository.findAllById(staffIds);
+                if (staffs != null) {
+                    for (com.cargosetu.model.Staff s : staffs) {
+                        if (s != null && s.getStaffId() != null) {
+                            staffNameMap.put(s.getStaffId(), formatStaffName(s));
+                        }
+                    }
+                }
+                for (Long sid : staffIds) {
+                    if (!staffNameMap.containsKey(sid)) {
+                        staffRepository.findById(sid).ifPresent(s -> staffNameMap.put(sid, formatStaffName(s)));
+                    }
+                }
+            }
+
+            java.util.Map<Integer, String> companyNameMap = new java.util.HashMap<>();
+            if (!companyIds.isEmpty()) {
+                java.util.List<com.cargosetu.model.Company> companies = companyRepository.findAllById(companyIds);
+                if (companies != null) {
+                    for (com.cargosetu.model.Company comp : companies) {
+                        if (comp != null && comp.getCompanyId() != null) {
+                            companyNameMap.put(comp.getCompanyId(), comp.getCompanyName());
+                        }
+                    }
+                }
+                for (Integer cid : companyIds) {
+                    if (!companyNameMap.containsKey(cid)) {
+                        companyRepository.findById(cid).ifPresent(comp -> companyNameMap.put(cid, comp.getCompanyName()));
+                    }
+                }
+            }
+
             java.util.List<com.cargosetu.marketplace.dto.ChatMessageResponse> dtos = messages.stream()
-                    .map(this::toChatMessageResponse)
+                    .map(m -> toChatMessageResponse(m, staffNameMap, companyNameMap))
                     .toList();
             response.setDataList(dtos);
             response.setResponseCode(CommonStatusCode.SUCCESS);
@@ -350,7 +411,9 @@ public class ChatService {
                 .listingId(c.getListingId())
                 .bookingId(c.getBookingId())
                 .participant1CompanyId(c.getParticipant1CompanyId())
+                .participant1StaffId(c.getParticipant1StaffId())
                 .participant2CompanyId(c.getParticipant2CompanyId())
+                .participant2StaffId(c.getParticipant2StaffId())
                 .status(c.getStatus())
                 .lastMessageAt(c.getLastMessageAt())
                 .createdAt(c.getCreatedAt())
@@ -378,14 +441,56 @@ public class ChatService {
         return dto;
     }
 
+    private String formatStaffName(com.cargosetu.model.Staff s) {
+        if (s == null) return null;
+        if (s.getFirstName() != null && !s.getFirstName().isBlank()) {
+            return (s.getFirstName().trim() + (s.getLastName() != null && !s.getLastName().isBlank() ? " " + s.getLastName().trim() : "")).trim();
+        }
+        return s.getUserName();
+    }
+
     private com.cargosetu.marketplace.dto.ChatMessageResponse toChatMessageResponse(ChatMessage msg) {
+        return toChatMessageResponse(msg, null, null);
+    }
+
+    private com.cargosetu.marketplace.dto.ChatMessageResponse toChatMessageResponse(
+            ChatMessage msg,
+            java.util.Map<Long, String> staffNameMap,
+            java.util.Map<Integer, String> companyNameMap) {
         if (msg == null) return null;
-        com.cargosetu.marketplace.dto.ChatMessageResponse dto = messageMapper.toResponse(msg);
+        com.cargosetu.marketplace.dto.ChatMessageResponse mapped = messageMapper.toResponse(msg);
+        com.cargosetu.marketplace.dto.ChatMessageResponse dto = mapped != null
+                ? mapped
+                : com.cargosetu.marketplace.dto.ChatMessageResponse.builder().build();
+        dto.setId(msg.getId());
+        dto.setConversationId(msg.getConversationId());
+        dto.setSenderStaffId(msg.getSenderStaffId());
+        dto.setSenderCompanyId(msg.getSenderCompanyId());
+        dto.setMessageType(msg.getMessageType());
+        dto.setMessage(msg.getMessage());
+        dto.setAttachmentRef(msg.getAttachmentRef());
+        dto.setSentAt(msg.getSentAt());
+        dto.setDeliveredAt(msg.getDeliveredAt());
+        dto.setReadAt(msg.getReadAt());
+
         if (msg.getSenderStaffId() != null) {
-            staffRepository.findById(msg.getSenderStaffId()).ifPresent(s -> {
-                String name = s.getFirstName() != null ? (s.getFirstName() + (s.getLastName() != null ? " " + s.getLastName() : "")) : s.getUserName();
-                dto.setSenderName(name);
-            });
+            String staffName = staffNameMap != null ? staffNameMap.get(msg.getSenderStaffId()) : null;
+            if (staffName == null) {
+                com.cargosetu.model.Staff s = staffRepository.findById(msg.getSenderStaffId()).orElse(null);
+                staffName = formatStaffName(s);
+            }
+            dto.setSenderName(staffName);
+            dto.setSenderStaffName(staffName);
+        }
+        if (msg.getSenderCompanyId() != null) {
+            String companyName = companyNameMap != null ? companyNameMap.get(msg.getSenderCompanyId()) : null;
+            if (companyName == null) {
+                com.cargosetu.model.Company comp = companyRepository.findById(msg.getSenderCompanyId()).orElse(null);
+                if (comp != null) {
+                    companyName = comp.getCompanyName();
+                }
+            }
+            dto.setSenderCompanyName(companyName);
         }
         return dto;
     }

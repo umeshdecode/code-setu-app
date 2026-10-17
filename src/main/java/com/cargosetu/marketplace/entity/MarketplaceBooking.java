@@ -38,11 +38,23 @@ public class MarketplaceBooking {
 
     private Integer transporterCompanyId;
 
+    private Integer requestedByCompanyId;
+
+    private Long requestedByStaffId;
+
+    private Double requestedCapacity;
+
     private Long vehicleId;
 
     private Long driverId;
 
+    private BigDecimal proposedFreight;
+
     private BigDecimal agreedFreight;
+
+    private BigDecimal counterFreight;
+
+    private Integer lastActionByCompanyId;
 
     @Enumerated(EnumType.STRING)
     private PaymentTermType paymentTerms;
@@ -53,6 +65,12 @@ public class MarketplaceBooking {
     private BookingStatus status;
 
     private LocalDateTime bookedAt;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
+    @Column(columnDefinition = "TEXT")
+    private String remarks;
 
     @Column(columnDefinition = "TEXT")
     private String cancellationPolicySnapshot;

@@ -270,4 +270,66 @@ class ChatServiceTest {
         assertThat(response.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
         verifyNoInteractions(conversationRepository);
     }
+
+    @Test
+    @DisplayName("getMessages populates senderStaffId, senderStaffName, senderCompanyId, and senderCompanyName")
+    void getMessages_populatesSenderIdentity() {
+        ChatConversation convo = new ChatConversation();
+        convo.setId(10L);
+        convo.setParticipant1CompanyId(100);
+        convo.setParticipant2CompanyId(200);
+        when(conversationRepository.findById(10L)).thenReturn(Optional.of(convo));
+
+        ChatMessage m1 = new ChatMessage();
+        m1.setId(1L);
+        m1.setConversationId(10L);
+        m1.setSenderStaffId(5L);
+        m1.setSenderCompanyId(100);
+        m1.setMessage("Can you load by 9 AM?");
+
+        ChatMessage m2 = new ChatMessage();
+        m2.setId(2L);
+        m2.setConversationId(10L);
+        m2.setSenderStaffId(8L);
+        m2.setSenderCompanyId(200);
+        m2.setMessage("Yes, truck is at Bhiwandi naka.");
+
+        when(messageRepository.findByConversationIdOrderBySentAtAsc(10L))
+                .thenReturn(java.util.List.of(m1, m2));
+
+        com.cargosetu.model.Staff s1 = new com.cargosetu.model.Staff();
+        s1.setStaffId(5L);
+        s1.setFirstName("Amit");
+        s1.setLastName("Sharma");
+        com.cargosetu.model.Staff s2 = new com.cargosetu.model.Staff();
+        s2.setStaffId(8L);
+        s2.setFirstName("Rajesh");
+        s2.setLastName("Patil");
+        when(staffRepository.findAllById(any())).thenReturn(java.util.List.of(s1, s2));
+
+        Company c1 = new Company();
+        c1.setCompanyId(100);
+        c1.setCompanyName("Apex Shippers");
+        Company c2 = new Company();
+        c2.setCompanyId(200);
+        c2.setCompanyName("Patil Roadlines");
+        when(companyRepository.findAllById(any())).thenReturn(java.util.List.of(c1, c2));
+
+        GenericDataDTO res = chatService.getMessages(currentUser, 10L);
+        assertThat(res.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(res.getDataList()).hasSize(2);
+
+        com.cargosetu.marketplace.dto.ChatMessageResponse r1 =
+                (com.cargosetu.marketplace.dto.ChatMessageResponse) res.getDataList().get(0);
+        com.cargosetu.marketplace.dto.ChatMessageResponse r2 =
+                (com.cargosetu.marketplace.dto.ChatMessageResponse) res.getDataList().get(1);
+
+        assertThat(r1.getSenderStaffId()).isEqualTo(5L);
+        assertThat(r1.getSenderStaffName()).isEqualTo("Amit Sharma");
+        assertThat(r1.getSenderCompanyName()).isEqualTo("Apex Shippers");
+
+        assertThat(r2.getSenderStaffId()).isEqualTo(8L);
+        assertThat(r2.getSenderStaffName()).isEqualTo("Rajesh Patil");
+        assertThat(r2.getSenderCompanyName()).isEqualTo("Patil Roadlines");
+    }
 }

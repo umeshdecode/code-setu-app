@@ -57,10 +57,13 @@ public class MarketplaceBookingController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_READ + "')")
-    public ResponseEntity<?> getMyBookings(@AuthenticationPrincipal LoggedInUser user, @RequestParam(required = false) String status) {
-        log.info("API entry for getMyBookings user: {}", user.getStaffId());
+    public ResponseEntity<?> getMyBookings(
+            @AuthenticationPrincipal LoggedInUser user,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String role) {
+        log.info("API entry for getMyBookings user: {}, status: {}, role: {}", user != null ? user.getStaffId() : null, status, role);
         try {
-            GenericDataDTO response = bookingService.getMyBookings(user, status);
+            GenericDataDTO response = bookingService.getMyBookings(user, status, role);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("Exception in getMyBookings", e);
@@ -83,9 +86,60 @@ public class MarketplaceBookingController {
         }
     }
 
+    @PostMapping("/{id}/accept")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
+    public ResponseEntity<?> acceptBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id) {
+        log.info("API entry for acceptBooking id: {}", id);
+        try {
+            GenericDataDTO response = bookingService.acceptBooking(user, id);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
+        } catch (Exception e) {
+            log.error("Exception in acceptBooking", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to accept booking", null, new Object[]{e.getMessage()}));
+        }
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
+    public ResponseEntity<?> rejectBooking(
+            @AuthenticationPrincipal LoggedInUser user,
+            @PathVariable Long id,
+            @RequestBody(required = false) RejectBookingRequest request) {
+        log.info("API entry for rejectBooking id: {}", id);
+        try {
+            GenericDataDTO response = bookingService.rejectBooking(user, id, request);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
+        } catch (Exception e) {
+            log.error("Exception in rejectBooking", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to reject booking", null, new Object[]{e.getMessage()}));
+        }
+    }
+
+    @PostMapping("/{id}/counter")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
+    public ResponseEntity<?> counterBooking(
+            @AuthenticationPrincipal LoggedInUser user,
+            @PathVariable Long id,
+            @RequestBody CounterBookingRequest request) {
+        log.info("API entry for counterBooking id: {}", id);
+        try {
+            GenericDataDTO response = bookingService.counterBooking(user, id, request);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
+        } catch (Exception e) {
+            log.error("Exception in counterBooking", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to counter booking", null, new Object[]{e.getMessage()}));
+        }
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CANCEL + "')")
-    public ResponseEntity<?> cancelBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody CancellationRequest request) {
+    public ResponseEntity<?> cancelBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody(required = false) CancellationRequest request) {
         log.info("API entry for cancelBooking id: {}", id);
         try {
             GenericDataDTO response = bookingService.cancelBooking(user, id, request);

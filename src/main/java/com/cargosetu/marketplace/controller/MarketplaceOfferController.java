@@ -68,6 +68,21 @@ public class MarketplaceOfferController {
         }
     }
 
+    @GetMapping({MarketplaceUrlConstants.OFFERS + "/my", MarketplaceUrlConstants.OFFERS})
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_READ + "')")
+    public ResponseEntity<?> getMyOffers(@AuthenticationPrincipal LoggedInUser user) {
+        log.info("API entry for getMyOffers user: {}", user != null ? user.getStaffId() : null);
+        try {
+            GenericDataDTO response = offerService.getMyOffers(user);
+            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
+            return ResponseEntity.status(status).body(response);
+        } catch (Exception e) {
+            log.error("Exception in getMyOffers", e);
+            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
+                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get my offers", null, new Object[]{e.getMessage()}));
+        }
+    }
+
     @GetMapping(MarketplaceUrlConstants.OFFERS + "/listing/{listingId}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_OFFER_READ + "')")
     public ResponseEntity<?> getOffersForListingLegacy(@PathVariable Long listingId) {

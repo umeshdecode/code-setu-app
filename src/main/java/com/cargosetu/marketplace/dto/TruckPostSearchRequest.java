@@ -16,7 +16,11 @@ import com.cargosetu.marketplace.enums.*;
 @Builder
 public class TruckPostSearchRequest {
     private String originCity;
+    private Double originLat;
+    private Double originLng;
     private String destinationCity;
+    private Double destinationLat;
+    private Double destinationLng;
     private String currentCity;
     private String routeTo;
     private String truckType;
@@ -26,6 +30,7 @@ public class TruckPostSearchRequest {
     private CapacityUnit capacityUnit;
     private CargoType cargoType;
     private TruckAvailabilityStatus truckStatus;
+    private Double radiusKm;
     private Double maxDetourKm;
     private Boolean verifiedOnly;
     private Double minRating;

@@ -55,6 +55,24 @@ public class MarketplaceTruckController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_READ + "')")
+    public ResponseEntity<?> getMyTrucks(
+            @AuthenticationPrincipal LoggedInUser user,
+            @RequestParam(required = false) String status) {
+        log.info("API: Get My Truck Posts by company: {}", user != null ? user.getCompanyId() : null);
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            response = listingService.getMyTruckPosts(user, status);
+        } catch (Exception e) {
+            log.error("Error fetching my trucks: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError().body(response);
+        }
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_READ + "')")
     public ResponseEntity<?> getTruck(@PathVariable Long id) {

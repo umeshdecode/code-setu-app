@@ -19,7 +19,9 @@ public class ChatMessageResponse {
     private Long conversationId;
     private Long senderStaffId;
     private String senderName;
+    private String senderStaffName;
     private Integer senderCompanyId;
+    private String senderCompanyName;
     private String messageType;
     private String message;
     private String attachmentRef;

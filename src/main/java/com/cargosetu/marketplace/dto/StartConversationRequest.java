@@ -18,6 +18,6 @@ public class StartConversationRequest {
     private Long listingId;
     private Long bookingId;
     @NotNull private Integer participantCompanyId;
-    @NotNull private Long participantStaffId;
+    private Long participantStaffId;
     private String initialMessage;
 }

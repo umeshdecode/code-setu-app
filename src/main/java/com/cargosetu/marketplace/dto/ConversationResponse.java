@@ -19,8 +19,10 @@ public class ConversationResponse {
     private Long listingId;
     private Long bookingId;
     private Integer participant1CompanyId;
+    private Long participant1StaffId;
     private String participant1Name;
     private Integer participant2CompanyId;
+    private Long participant2StaffId;
     private String participant2Name;
     private String status;
     private LocalDateTime lastMessageAt;

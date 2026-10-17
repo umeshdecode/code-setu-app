@@ -392,4 +392,170 @@ class BookingServiceTest {
         assertThat(truckListing.getStatus()).isEqualTo(ListingStatus.PUBLISHED);
         verify(bookingRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("acceptBooking succeeds for listing owner on PENDING_APPROVAL request and fails for requester or unrelated company")
+    void acceptBooking_authorizationAndTransition() {
+        MarketplaceBooking booking = new MarketplaceBooking();
+        booking.setId(301L);
+        booking.setListing(truckListing); // owned by company 200
+        booking.setShipperCompanyId(500);
+        booking.setTransporterCompanyId(200);
+        booking.setRequestedByCompanyId(500);
+        booking.setAgreedFreight(BigDecimal.valueOf(35000));
+        booking.setStatus(BookingStatus.PENDING_APPROVAL);
+
+        when(bookingRepository.findById(301L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(MarketplaceBooking.class))).thenAnswer(i -> i.getArgument(0));
+
+        // Requester (shipperUser, company 500) cannot self-approve their own booking request
+        GenericDataDTO selfApproveRes = bookingService.acceptBooking(shipperUser, 301L);
+        assertThat(selfApproveRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.PENDING_APPROVAL);
+
+        // Unrelated company (company 999) cannot approve
+        LoggedInUser unrelated = new LoggedInUser();
+        unrelated.setCompanyId(999);
+        unrelated.setStaffId(99L);
+        GenericDataDTO unrelatedRes = bookingService.acceptBooking(unrelated, 301L);
+        assertThat(unrelatedRes.getResponseCode()).isEqualTo(CommonStatusCode.FORBIDDEN);
+
+        // Listing owner (transporter, company 200) approves
+        LoggedInUser transporterOwner = new LoggedInUser();
+        transporterOwner.setCompanyId(200);
+        transporterOwner.setStaffId(3L);
+        GenericDataDTO ownerRes = bookingService.acceptBooking(transporterOwner, 301L);
+        assertThat(ownerRes.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        verify(tripService).createTripFromBooking(booking);
+    }
+
+    @Test
+    @DisplayName("rejectBooking sets REJECTED, restores reserved truck capacity, and prevents later acceptance")
+    void rejectBooking_restoresCapacityAndBlocksLaterAccept() {
+        com.cargosetu.marketplace.entity.TruckPost truckPost = new com.cargosetu.marketplace.entity.TruckPost();
+        truckPost.setId(10L);
+        truckPost.setListing(truckListing);
+        truckPost.setTotalCapacity(20.0);
+        truckPost.setAvailableCapacity(0.0);
+        truckPost.setOccupiedCapacity(20.0);
+        truckPost.setTruckStatus(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.BOOKED);
+        truckListing.setStatus(ListingStatus.BOOKED);
+
+        MarketplaceBooking booking = new MarketplaceBooking();
+        booking.setId(302L);
+        booking.setListing(truckListing);
+        booking.setShipperCompanyId(500);
+        booking.setTransporterCompanyId(200);
+        booking.setRequestedByCompanyId(500);
+        booking.setRequestedCapacity(20.0);
+        booking.setStatus(BookingStatus.PENDING_APPROVAL);
+
+        when(bookingRepository.findById(302L)).thenReturn(Optional.of(booking));
+        when(truckPostRepository.findByListingId(99L)).thenReturn(Optional.of(truckPost));
+        when(bookingRepository.save(any(MarketplaceBooking.class))).thenAnswer(i -> i.getArgument(0));
+
+        LoggedInUser transporterOwner = new LoggedInUser();
+        transporterOwner.setCompanyId(200);
+        transporterOwner.setStaffId(3L);
+
+        com.cargosetu.marketplace.dto.RejectBookingRequest rejectReq = com.cargosetu.marketplace.dto.RejectBookingRequest.builder()
+                .reason("Route changed due to highway maintenance")
+                .build();
+
+        GenericDataDTO rejectRes = bookingService.rejectBooking(transporterOwner, 302L, rejectReq);
+        assertThat(rejectRes.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.REJECTED);
+        assertThat(booking.getRejectionReason()).isEqualTo("Route changed due to highway maintenance");
+        assertThat(truckPost.getAvailableCapacity()).isEqualTo(20.0);
+        assertThat(truckPost.getOccupiedCapacity()).isEqualTo(0.0);
+        assertThat(truckPost.getTruckStatus()).isEqualTo(com.cargosetu.marketplace.enums.TruckAvailabilityStatus.EMPTY_STANDING);
+        assertThat(truckListing.getStatus()).isEqualTo(ListingStatus.PUBLISHED);
+
+        // Attempting to accept a REJECTED booking later must fail
+        GenericDataDTO acceptAfterReject = bookingService.acceptBooking(transporterOwner, 302L);
+        assertThat(acceptAfterReject.getResponseCode()).isEqualTo(CommonStatusCode.FAIL);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.REJECTED);
+    }
+
+    @Test
+    @DisplayName("counterBooking sets COUNTERED without confirming, and allows original requester to accept")
+    void counterBooking_workflow() {
+        MarketplaceBooking booking = new MarketplaceBooking();
+        booking.setId(303L);
+        booking.setListing(truckListing);
+        booking.setShipperCompanyId(500);
+        booking.setTransporterCompanyId(200);
+        booking.setRequestedByCompanyId(500);
+        booking.setProposedFreight(BigDecimal.valueOf(32000));
+        booking.setAgreedFreight(BigDecimal.valueOf(32000));
+        booking.setStatus(BookingStatus.PENDING_APPROVAL);
+
+        when(bookingRepository.findById(303L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(MarketplaceBooking.class))).thenAnswer(i -> i.getArgument(0));
+
+        LoggedInUser transporterOwner = new LoggedInUser();
+        transporterOwner.setCompanyId(200);
+        transporterOwner.setStaffId(3L);
+
+        com.cargosetu.marketplace.dto.CounterBookingRequest counterReq = com.cargosetu.marketplace.dto.CounterBookingRequest.builder()
+                .proposedFreight(BigDecimal.valueOf(36000))
+                .remarks("Includes toll and tarpaulin charges")
+                .build();
+
+        GenericDataDTO counterRes = bookingService.counterBooking(transporterOwner, 303L, counterReq);
+        assertThat(counterRes.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.COUNTERED);
+        assertThat(booking.getCounterFreight()).isEqualByComparingTo(BigDecimal.valueOf(36000));
+
+        // Transporter cannot accept their own counter-offer
+        GenericDataDTO selfAcceptCounter = bookingService.acceptBooking(transporterOwner, 303L);
+        assertThat(selfAcceptAcceptCode(selfAcceptCounter)).isEqualTo(CommonStatusCode.FORBIDDEN);
+
+        // Original requester (shipperUser, company 500) can accept the counter-offer
+        GenericDataDTO shipperAcceptRes = bookingService.acceptBooking(shipperUser, 303L);
+        assertThat(shipperAcceptRes.getResponseCode()).isEqualTo(CommonStatusCode.SUCCESS);
+        assertThat(booking.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        assertThat(booking.getAgreedFreight()).isEqualByComparingTo(BigDecimal.valueOf(36000));
+    }
+
+    private Integer selfAcceptAcceptCode(GenericDataDTO dto) {
+        return dto.getResponseCode();
+    }
+
+    @Test
+    @DisplayName("getMyBookings separates OUTGOING and INCOMING requests accurately")
+    void getMyBookings_filtersByRole() {
+        MarketplaceBooking outgoing = new MarketplaceBooking();
+        outgoing.setId(401L);
+        outgoing.setListing(truckListing); // owner = 200
+        outgoing.setShipperCompanyId(500);
+        outgoing.setTransporterCompanyId(200);
+        outgoing.setRequestedByCompanyId(500);
+        outgoing.setStatus(BookingStatus.PENDING_APPROVAL);
+
+        MarketplaceListing myLoadListing = new MarketplaceListing();
+        myLoadListing.setId(88L);
+        myLoadListing.setCompanyId(500); // owned by shipperUser
+        myLoadListing.setType(ListingType.LOAD_POST);
+
+        MarketplaceBooking incoming = new MarketplaceBooking();
+        incoming.setId(402L);
+        incoming.setListing(myLoadListing);
+        incoming.setShipperCompanyId(500);
+        incoming.setTransporterCompanyId(300);
+        incoming.setRequestedByCompanyId(300);
+        incoming.setStatus(BookingStatus.PENDING_APPROVAL);
+
+        when(bookingRepository.findByShipperCompanyIdOrTransporterCompanyId(500, 500))
+                .thenReturn(java.util.List.of(outgoing, incoming));
+
+        GenericDataDTO outgoingRes = bookingService.getMyBookings(shipperUser, null, "OUTGOING");
+        assertThat(outgoingRes.getDataList()).hasSize(1);
+        assertThat(((BookingResponse) outgoingRes.getDataList().get(0)).getId()).isEqualTo(401L);
+
+        GenericDataDTO incomingRes = bookingService.getMyBookings(shipperUser, null, "INCOMING");
+        assertThat(incomingRes.getDataList()).hasSize(1);
+        assertThat(((BookingResponse) incomingRes.getDataList().get(0)).getId()).isEqualTo(402L);
+    }
 }

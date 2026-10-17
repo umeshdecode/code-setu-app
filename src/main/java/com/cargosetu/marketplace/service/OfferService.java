@@ -93,9 +93,16 @@ public class OfferService {
                 return response;
             }
 
-            if (!user.getCompanyId().equals(offer.getListing().getCompanyId())) {
+            boolean isListingOwner = user.getCompanyId().equals(offer.getListing().getCompanyId());
+            Integer resolvedBidderId = resolveBidderCompanyId(offer);
+            boolean isBidderRespondingToCounter = offer.getParentOfferId() != null
+                    && resolvedBidderId != null
+                    && resolvedBidderId.equals(user.getCompanyId())
+                    && !isOfferCreatedByCompany(offer, user.getCompanyId());
+
+            if (!isListingOwner && !isBidderRespondingToCounter) {
                 response.setResponseCode(CommonStatusCode.FORBIDDEN);
-                response.setResponseMessege("Unauthorized: only the listing owner can accept offers");
+                response.setResponseMessege("Unauthorized: only the listing owner (or counter-offer recipient) can accept offers");
                 return response;
             }
 
@@ -159,9 +166,16 @@ public class OfferService {
                 return response;
             }
 
-            if (!user.getCompanyId().equals(offer.getListing().getCompanyId())) {
+            boolean isListingOwner = user.getCompanyId().equals(offer.getListing().getCompanyId());
+            Integer resolvedBidderId = resolveBidderCompanyId(offer);
+            boolean isBidderRespondingToCounter = offer.getParentOfferId() != null
+                    && resolvedBidderId != null
+                    && resolvedBidderId.equals(user.getCompanyId())
+                    && !isOfferCreatedByCompany(offer, user.getCompanyId());
+
+            if (!isListingOwner && !isBidderRespondingToCounter) {
                 response.setResponseCode(CommonStatusCode.FORBIDDEN);
-                response.setResponseMessege("Unauthorized: only the listing owner can reject offers");
+                response.setResponseMessege("Unauthorized: only the listing owner (or counter-offer recipient) can reject offers");
                 return response;
             }
 
@@ -185,6 +199,20 @@ public class OfferService {
             response.setResponseMessege("Failed to reject offer: " + e.getMessage());
         }
         return response;
+    }
+
+    private boolean isOfferCreatedByCompany(MarketplaceOffer offer, Integer companyId) {
+        if (offer == null || companyId == null) return false;
+        if (offer.getOfferedByStaffId() != null) {
+            com.cargosetu.model.Staff staff = staffRepository.findById(offer.getOfferedByStaffId()).orElse(null);
+            if (staff != null && staff.getCompanyId() != null) {
+                return companyId.equals(staff.getCompanyId());
+            }
+        }
+        if (offer.getParentOfferId() == null) {
+            return companyId.equals(offer.getBidderCompanyId());
+        }
+        return false;
     }
 
     @Transactional
@@ -301,14 +329,31 @@ public class OfferService {
     public GenericDataDTO getMyOffers(LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            java.util.List<com.cargosetu.marketplace.dto.OfferResponse> list = offerRepository.findByBidderCompanyId(user.getCompanyId()).stream()
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            java.util.List<MarketplaceOffer> offers = offerRepository.findByBidderCompanyId(user.getCompanyId());
+            java.util.List<com.cargosetu.marketplace.dto.OfferResponse> list = (offers != null ? offers : java.util.Collections.<MarketplaceOffer>emptyList())
+                    .stream()
+                    .sorted((a, b) -> {
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                            if (cmp != 0) return cmp;
+                        }
+                        if (a.getId() != null && b.getId() != null) {
+                            return b.getId().compareTo(a.getId());
+                        }
+                        return 0;
+                    })
                     .map(this::enrichOfferResponse)
                     .toList();
             response.setDataList(list);
             response.setResponseCode(CommonStatusCode.SUCCESS);
             response.setResponseMessege("My offers retrieved successfully");
         } catch (Exception e) {
-            log.error("Error fetching offers for company {}", user.getCompanyId(), e);
+            log.error("Error fetching offers for company {}", user != null ? user.getCompanyId() : null, e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("Failed to get my offers: " + e.getMessage());
         }
@@ -319,9 +364,62 @@ public class OfferService {
         if (offer == null) return null;
         com.cargosetu.marketplace.dto.OfferResponse mapped = offerMapper.toDto(offer);
         final com.cargosetu.marketplace.dto.OfferResponse dto = mapped != null ? mapped : new com.cargosetu.marketplace.dto.OfferResponse();
+        dto.setId(offer.getId());
+        dto.setBidderCompanyId(offer.getBidderCompanyId());
+        dto.setOfferedByStaffId(offer.getOfferedByStaffId());
+        dto.setAmount(offer.getAmount());
+        dto.setPaymentTerms(offer.getPaymentTerms());
+        dto.setValidUntil(offer.getValidUntil());
+        dto.setStatus(offer.getStatus());
+        dto.setMessage(offer.getMessage());
+        dto.setParentOfferId(offer.getParentOfferId());
+        dto.setCreatedAt(offer.getCreatedAt());
+        dto.setUpdatedAt(offer.getUpdatedAt());
+
         if (offer.getListing() != null) {
-            dto.setListingId(offer.getListing().getId());
-            dto.setListingNumber(offer.getListing().getListingNumber());
+            MarketplaceListing listing = offer.getListing();
+            dto.setListingId(listing.getId());
+            dto.setListingNumber(listing.getListingNumber());
+            dto.setListingType(listing.getType());
+            dto.setListingStatus(listing.getStatus());
+            dto.setListingOwnerCompanyId(listing.getCompanyId());
+            dto.setListingPostedByStaffId(listing.getPostedByStaffId());
+            if (listing.getCompanyId() != null) {
+                companyRepository.findById(listing.getCompanyId())
+                        .ifPresent(c -> dto.setListingOwnerCompanyName(c.getCompanyName()));
+            }
+            if (listing.getLoadPost() != null) {
+                com.cargosetu.marketplace.entity.LoadPost lp = listing.getLoadPost();
+                dto.setOriginCity(lp.getOriginCity());
+                dto.setOriginState(lp.getOriginState());
+                dto.setDestinationCity(lp.getDestinationCity());
+                dto.setDestinationState(lp.getDestinationState());
+                dto.setListingAskingPrice(lp.getAskingPrice());
+                dto.setCargoType(lp.getCargoType());
+                dto.setWeight(lp.getWeight());
+                dto.setWeightUnit(lp.getWeightUnit());
+            } else if (listing.getTruckPost() != null) {
+                com.cargosetu.marketplace.entity.TruckPost tp = listing.getTruckPost();
+                dto.setOriginCity(tp.getRouteFrom() != null && !tp.getRouteFrom().isBlank() ? tp.getRouteFrom() : tp.getCurrentCity());
+                dto.setOriginState(tp.getRouteFromState() != null ? tp.getRouteFromState() : tp.getCurrentState());
+                dto.setDestinationCity(tp.getRouteTo());
+                dto.setDestinationState(tp.getRouteToState());
+                dto.setWeight(tp.getAvailableCapacity());
+                dto.setWeightUnit(tp.getCapacityUnit());
+            }
+            if (offer.getStatus() == com.cargosetu.marketplace.enums.OfferStatus.COUNTERED && offer.getId() != null && listing.getId() != null) {
+                List<MarketplaceOffer> allForListing = offerRepository.findByListingId(listing.getId());
+                if (allForListing != null) {
+                    allForListing.stream()
+                            .filter(o -> offer.getId().equals(o.getParentOfferId()))
+                            .findFirst()
+                            .ifPresent(child -> {
+                                dto.setLatestCounterOfferId(child.getId());
+                                dto.setLatestCounterAmount(child.getAmount());
+                                dto.setLatestCounterStatus(child.getStatus());
+                            });
+                }
+            }
         }
         if (offer.getBidderCompanyId() != null) {
             companyRepository.findById(offer.getBidderCompanyId())
