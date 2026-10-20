@@ -135,6 +135,14 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 "Your CargoSetu OTP is {{otpCode}}. Please do not share it with anyone."
         ));
 
+        // 15. TRIP_ASSIGNED_STAFF - PUSH (subject doubles as the push notification title)
+        defaultTemplates.add(createTemplate(
+                "TRIP_ASSIGNED_STAFF",
+                NotificationChannel.PUSH,
+                "Trip {{tripNumber}} assigned",
+                "{{driverName}} is assigned to trip {{tripNumber}}: {{sourceCity}} -> {{destinationCity}}"
+        ));
+
         // Save templates if not already present
         for (NotificationTemplate t : defaultTemplates) {
             templateRepository.findByTemplateCodeAndChannel(t.getTemplateCode(), t.getChannel())

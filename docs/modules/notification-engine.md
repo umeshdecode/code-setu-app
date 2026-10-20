@@ -485,10 +485,63 @@ API) at all — it is a pure log-and-sleep mock. There is a `com.twilio` depende
 `Message.creator(...)` API with `whatsapp:`-prefixed `PhoneNumber`s, but that code path is not implemented
 in this module as it stands.
 
-### 9.4 Push — no external integration, no sender
+### 9.4 Push — Firebase Cloud Messaging (added 2026-10-20)
 
-No FCM/APNs/web-push client, config, or sender class exists anywhere under `notification/**` for the `PUSH`
-channel.
+Implements `FCM_Push_Notification_Design_and_Implementation_Plan.docx`, after a gap audit found none of it
+existed. See `com.cargosetu.push` (new package, sibling to `notification`) and
+[fleet-trip.md §14](fleet-trip.md) for the business-event side. Everything here plugs into the *existing*
+pipeline described in §2-§7 above without changing it: `PushChannelSender` is just another
+`NotificationChannelSender`, selected by `NotificationProcessingServiceImpl` exactly like Email/SMS.
+
+**Recipient encoding.** PUSH reuses `GenericNotificationEvent.recipients: List<String>` by packing
+`"STAFF:<id>"` / `"CUSTOMER:<id>"` instead of an email or phone string (`push.util.PrincipalRef`). This was
+necessary because Staff logins and OTP Customer logins (§7 of this doc, and `OtpService` line ~237) both
+populate `LoggedInUser.staffId` with their own table's primary key — a push token keyed on a bare id would
+let the two collide.
+
+**Token storage** (`push.model.UserPushToken` → `tblm_user_push_token`, Liquibase
+`Changelog/fcm-push.changelog.xml`): one row per `(principalType, principalId, deviceId)` — a unique
+constraint enforces "same device registers twice → one row, not two". `AbstractModel.isActive` doubles as
+"eligible for sending" (deactivated, not deleted, e.g. when FCM reports a token unregistered). Self-service
+endpoints under `/api/v2/cargosetu/push-tokens` (`push.controller.PushTokenController`) let any authenticated
+Staff or Customer register/list/remove only their own rows — the owner always comes from the principal,
+never a client-supplied id.
+
+**Delivery is Kafka-backed** (`spring-kafka` was already a `build.gradle` dependency, unused until this
+feature). `PushChannelSender`'s job ends at resolving a principal's active tokens and publishing one
+`PushDeliveryMessage` per token to the `cargosetu.push.delivery` topic (`push.config.KafkaTopicConfig`). A
+separate `push.kafka.PushDeliveryConsumer` does the actual `FirebaseMessaging` call per token, writes one
+`push_delivery_attempt` row (the per-device granularity `NotificationAudit` can't represent on its own — it's
+one row per recipient per channel, not per device), deactivates a token on a terminal FCM error
+(`UNREGISTERED`/`INVALID_ARGUMENT`/`SENDER_ID_MISMATCH`), and bounded-retries (`app.push.max-delivery-attempts`,
+default 3) a transient one by republishing with an incremented attempt count — never an unbounded loop.
+
+This is **throughput decoupling, not a transactional outbox**: the Kafka publish happens inside the existing
+`@TransactionalEventListener(AFTER_COMMIT)` async listener (§3), not in the same DB transaction as the
+business change. A crash between the DB commit and the Kafka publish still loses that one notification —
+the same risk the Email/SMS pipeline already accepts.
+
+**Firebase Admin SDK** (`push.config.FirebaseConfig`) initializes from `FIREBASE_SERVICE_ACCOUNT_B64` (env
+var only, base64-encoded service-account JSON, never committed) — separate from the Angular app's public
+Firebase web config (`src/assets/env.js`'s `FIREBASE_*` keys) and from the browser Maps key. If the env var
+is blank, Firebase is left uninitialized and every delivery attempt is recorded as `NOT_CONFIGURED` instead
+of the app failing to boot.
+
+**First wired event: `TRIP_ASSIGNED_STAFF`** (`TripService.createTrip`/`updateTrip`, fires when a trip
+newly gets both a driver and a vehicle). It notifies the trip's **company staff, not the driver** — `Driver`
+(`model/Driver.java`) has no link to a `Staff` login account, so it cannot own a push token; this is a
+deliberate scope decision, not an oversight. Recipients resolve via `trip.getShifting().getCompanyId()`
+(`Trip.companyId` itself is not populated by this branch's create/update flow).
+
+**Logout.** `UrlConstants.LOGOUT_URL` (`/logout`, under `/auth`) was declared but never mapped before this
+change — `AuthController` now maps `POST /auth/logout`, which deactivates the caller's current device's push
+token if a `deviceId` is supplied. On the frontend, `LoginService.logout()` (in `code-setu-app-ui`) is now the
+single place a session actually ends — it calls this endpoint and unregisters the push token before clearing
+`localStorage`, and `auth.interceptor.ts`'s separate 403-triggered logout now delegates to it instead of
+clearing storage on its own. See `code-setu-app-ui/docs/modules/frontend-angular.md` for that module's doc.
+
+**Not built in this pass** (stated, not hidden): the in-app notification inbox (`tblm_app_notification`),
+"logout all devices", and stale-device cleanup.
 
 ---
 

@@ -4,15 +4,20 @@ import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.TripDTO;
 import com.cargosetu.mapper.TripMapper;
 import com.cargosetu.model.*;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.repo.*;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -26,18 +31,60 @@ public class TripService {
     private final DriverRepository driverRepository;
     private final VehicleRepository vehicleRepository;
     private final TripStatusHistoryRepository tripStatusHistoryRepository;
+    private final StaffRepository staffRepository;
+    private final ApplicationEventPublisher eventPublisher;
     public TripService(TripRepository tripRepository,
                        TripMapper tripMapper,
                        ShiftingRepository shiftingRepository,
                        DriverRepository driverRepository,
                        VehicleRepository vehicleRepository,
-                       TripStatusHistoryRepository tripStatusHistoryRepository) {
+                       TripStatusHistoryRepository tripStatusHistoryRepository,
+                       StaffRepository staffRepository,
+                       ApplicationEventPublisher eventPublisher) {
         this.tripRepository = tripRepository;
         this.tripMapper = tripMapper;
         this.shiftingRepository = shiftingRepository;
         this.driverRepository = driverRepository;
         this.vehicleRepository = vehicleRepository;
         this.tripStatusHistoryRepository = tripStatusHistoryRepository;
+        this.staffRepository = staffRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    /**
+     * Pushes a "trip assigned" notification to the trip's company staff.
+     *
+     * Drivers cannot be notified directly: Driver (model/Driver.java) is pure
+     * operational master data (name/phone/email/license) with no link to a
+     * Staff login account, so it cannot own a push token. Until a driver-login
+     * feature exists, this notifies the company's staff/dispatchers instead.
+     */
+    private void publishTripAssignedNotification(Trip trip) {
+        // Trip.companyId is not populated by this branch's create/update flow yet;
+        // the Shifting a trip is linked to always carries the real company.
+        Integer companyId = trip.getCompanyId() != null
+                ? trip.getCompanyId()
+                : (trip.getShifting() != null ? trip.getShifting().getCompanyId() : null);
+        if (companyId == null) {
+            return;
+        }
+        List<Staff> staff = staffRepository.findAllByCompanyIdAndIsDeletedFalse(companyId);
+        if (staff.isEmpty()) {
+            return;
+        }
+        List<String> recipients = staff.stream()
+                .map(s -> "STAFF:" + s.getStaffId())
+                .toList();
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("tripNumber", trip.getTripNumber());
+        variables.put("driverName", trip.getDriver() != null ? trip.getDriver().getName() : "");
+        variables.put("vehicleId", trip.getVehicle() != null ? trip.getVehicle().getId() : "");
+        variables.put("sourceCity", trip.getShifting() != null ? trip.getShifting().getShiftFromCity() : "");
+        variables.put("destinationCity", trip.getShifting() != null ? trip.getShifting().getShiftToCity() : "");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                "TRIP_ASSIGNED_STAFF", recipients, NotificationChannel.PUSH, variables));
     }
 
     @Transactional
@@ -73,6 +120,11 @@ public class TripService {
             tripStatusHistory.setChangedBy(user.getUsername());
             tripStatusHistory.setChangedAt(LocalDateTime.now());
             tripStatusHistoryRepository.save(tripStatusHistory);
+
+            if (savedTrip.getDriver() != null && savedTrip.getVehicle() != null) {
+                publishTripAssignedNotification(savedTrip);
+            }
+
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Trip created successfully!");
             response.setData(tripMapper.toDto(savedTrip));
@@ -136,6 +188,8 @@ public class TripService {
             }
 
             Trip existingTrip = existingTripOptional.get();
+            Long oldDriverId = existingTrip.getDriver() != null ? existingTrip.getDriver().getId() : null;
+            Long oldVehicleId = existingTrip.getVehicle() != null ? existingTrip.getVehicle().getId() : null;
 
             if (tripDTO.getTripNumber() != null) {
                 existingTrip.setTripNumber(tripDTO.getTripNumber());
@@ -197,6 +251,15 @@ public class TripService {
             }
 
             Trip savedTrip = tripRepository.save(existingTrip);
+
+            Long newDriverId = savedTrip.getDriver() != null ? savedTrip.getDriver().getId() : null;
+            Long newVehicleId = savedTrip.getVehicle() != null ? savedTrip.getVehicle().getId() : null;
+            boolean becameAssigned = newDriverId != null && newVehicleId != null
+                    && (!Objects.equals(oldDriverId, newDriverId) || !Objects.equals(oldVehicleId, newVehicleId));
+            if (becameAssigned) {
+                publishTripAssignedNotification(savedTrip);
+            }
+
             response.setResponseCode(CommonStatusCode.SUCCESS);
             response.setResponseMessege("Trip updated successfully!");
             response.setData(tripMapper.toDto(savedTrip));

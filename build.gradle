@@ -101,6 +101,9 @@ dependencies {
 
     // Image compression before S3 upload (JPG / PNG)
     implementation 'net.coobird:thumbnailator:0.4.20'
+
+    // Firebase Admin SDK (server-side FCM push sending)
+    implementation 'com.google.firebase:firebase-admin:9.3.0'
 }
 
 tasks.named('test') {

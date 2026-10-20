@@ -18,5 +18,6 @@
     <include file="classpath:Changelog/marketplace-tables.changelog.xml"/>
     <include file="classpath:Changelog/marketplace-permissions.changelog.xml"/>
     <include file="classpath:Changelog/marketplace-master-data.changelog.xml"/>
+    <include file="classpath:Changelog/fcm-push.changelog.xml"/>
 
 </databaseChangeLog>

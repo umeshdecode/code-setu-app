@@ -9,19 +9,92 @@
     <!-- ===================================================== -->
     <!-- 1. Add Load Posting Columns to Vehicles               -->
     <!-- ===================================================== -->
-    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_01" author="CargoSetu">
+    <!--
+        Originally a single changeSet gated only on "truck_type" missing, then adding all 8
+        columns in one ALTER TABLE. Where spring.jpa.hibernate.ddl-auto=update had already
+        auto-created some (but not all) of these columns from the Vehicle entity's fields
+        before this changeset ran, the gate passed (truck_type was missing) but the batch
+        ALTER then failed outright on whichever column already existed (e.g. "Duplicate
+        column name 'body_type'") - one column's drift blocked the rest from ever being added.
+        Split per column, each independently gated, so partial drift in any environment no
+        longer blocks the others.
+    -->
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_TRUCK_TYPE_01" author="CargoSetu">
         <preConditions onFail="MARK_RAN" onError="MARK_RAN">
             <tableExists tableName="vehicles"/>
             <not><columnExists tableName="vehicles" columnName="truck_type"/></not>
         </preConditions>
         <addColumn tableName="vehicles">
             <column name="truck_type" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_BODY_TYPE_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="body_type"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="body_type" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_TRUCK_LENGTH_FEET_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="truck_length_feet"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="truck_length_feet" type="DOUBLE"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_LENGTH_OPTION_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="length_option"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="length_option" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_WHEELER_COUNT_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="wheeler_count"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="wheeler_count" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_WHEELER_OPTION_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="wheeler_option"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="wheeler_option" type="VARCHAR(50)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_PASSING_CAPACITY_TONS_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="passing_capacity_tons"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="passing_capacity_tons" type="DOUBLE"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="ADD_LOAD_POSTING_OPTIONS_TO_VEHICLES_PASSING_CAPACITY_OPTION_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="vehicles"/>
+            <not><columnExists tableName="vehicles" columnName="passing_capacity_option"/></not>
+        </preConditions>
+        <addColumn tableName="vehicles">
             <column name="passing_capacity_option" type="VARCHAR(50)"/>
         </addColumn>
     </changeSet>

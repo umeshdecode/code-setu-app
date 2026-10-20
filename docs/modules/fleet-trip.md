@@ -180,6 +180,13 @@ File: `src/main/java/com/cargosetu/service/TripService.java`
    `savedTrip.getStatus().toString()`) — i.e. on creation, "history" is really just recording the initial
    status, not a transition.
 6. Returns the saved trip via `TripMapper.toDto`.
+7. **(Added 2026-10-20)** If the saved trip now has both a driver and a vehicle, publishes a
+   `GenericNotificationEvent("TRIP_ASSIGNED_STAFF", ..., NotificationChannel.PUSH, ...)` — see
+   `notification-engine.md` §9.4. `updateTrip` (§3.2) does the same when a pairing *changes* to a fully
+   assigned state (comparing old vs. new driver/vehicle ids), not on every update. Recipients are the trip's
+   company staff, resolved via `trip.getShifting().getCompanyId()` — not `Trip.companyId`, which this
+   branch's create/update flow does not populate. Notified staff, not the driver, because `Driver`
+   (`model/Driver.java`) has no link to a `Staff` login account and so cannot own a push token.
 
 > **Known bug — NPE + silent partial commit on missing status.** `TripDTO.status` has no `@NotNull`/
 > validation, and `Trip.status` has no default. If a caller POSTs a trip without a `status`, step 5 calls
