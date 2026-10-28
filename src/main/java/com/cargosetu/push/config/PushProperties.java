@@ -21,6 +21,7 @@ public class PushProperties {
 
     @Data
     public static class Kafka {
+        private boolean enabled = true;
         private String deliveryTopic = "cargosetu.push.delivery";
         private int deliveryTopicPartitions = 3;
     }

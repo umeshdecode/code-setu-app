@@ -8,14 +8,20 @@ import com.cargosetu.marketplace.entity.ChatMessage;
 import com.cargosetu.marketplace.mapper.ChatMessageMapper;
 import com.cargosetu.marketplace.repository.ChatConversationRepository;
 import com.cargosetu.marketplace.repository.ChatMessageRepository;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -30,6 +36,7 @@ public class ChatService {
     private final com.cargosetu.repo.StaffRepository staffRepository;
     private final com.cargosetu.marketplace.repository.MarketplaceListingRepository listingRepository;
     private final com.cargosetu.marketplace.repository.MarketplaceBookingRepository bookingRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public GenericDataDTO startConversation(LoggedInUser user, StartConversationRequest request) {
@@ -247,6 +254,8 @@ public class ChatService {
             convo.setLastMessageAt(LocalDateTime.now());
             conversationRepository.save(convo);
 
+            publishChatMessagePush(user, convo, msg);
+
             com.cargosetu.marketplace.dto.ChatMessageResponse respDto = toChatMessageResponse(msg);
             response.setData(respDto);
             response.setResponseCode(CommonStatusCode.CREATED);
@@ -397,6 +406,53 @@ public class ChatService {
             response.setResponseMessege("Failed to mark messages as read: " + e.getMessage());
         }
         return response;
+    }
+
+    /**
+     * Notifies the OTHER participant of a chat message, since chat delivery is
+     * REST-only (no WebSocket broadcast) - a push is the only way the recipient
+     * learns about it without polling. If the conversation has no specific staff
+     * pinned on that side (participantXStaffId null), falls back to all staff of
+     * that company, same pattern as TripService's trip-assigned notification.
+     */
+    private void publishChatMessagePush(LoggedInUser sender, ChatConversation convo, ChatMessage msg) {
+        boolean senderIsParticipant1 = sender.getCompanyId().equals(convo.getParticipant1CompanyId());
+        Integer recipientCompanyId = senderIsParticipant1 ? convo.getParticipant2CompanyId() : convo.getParticipant1CompanyId();
+        Long recipientStaffId = senderIsParticipant1 ? convo.getParticipant2StaffId() : convo.getParticipant1StaffId();
+        if (recipientCompanyId == null) {
+            return;
+        }
+
+        List<String> recipients;
+        if (recipientStaffId != null) {
+            recipients = List.of("STAFF:" + recipientStaffId);
+        } else {
+            recipients = staffRepository.findAllByCompanyIdAndIsDeletedFalse(recipientCompanyId).stream()
+                    .map(s -> "STAFF:" + s.getStaffId())
+                    .toList();
+        }
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        String senderName = formatStaffName(sender.getFirstName(), sender.getLastName(), sender.getUserName());
+        String message = msg.getMessage() == null ? "" : msg.getMessage();
+        String preview = message.length() > 120 ? message.substring(0, 120) + "..." : message;
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("senderName", senderName);
+        variables.put("messagePreview", preview);
+        variables.put("conversationId", convo.getId());
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                "CHAT_MESSAGE_RECEIVED", recipients, NotificationChannel.PUSH, variables));
+    }
+
+    private String formatStaffName(String firstName, String lastName, String userName) {
+        if (firstName != null && !firstName.isBlank()) {
+            return (firstName.trim() + (lastName != null && !lastName.isBlank() ? " " + lastName.trim() : "")).trim();
+        }
+        return userName;
     }
 
     private boolean isParticipant(Integer companyId, ChatConversation convo) {

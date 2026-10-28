@@ -38,6 +38,10 @@ public class LoggedInUser implements UserDetails {
         return email;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
     private Long staffId;
 
     private String uuid;

@@ -143,6 +143,14 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 "{{driverName}} is assigned to trip {{tripNumber}}: {{sourceCity}} -> {{destinationCity}}"
         ));
 
+        // 16. CHAT_MESSAGE_RECEIVED - PUSH (subject doubles as the push notification title)
+        defaultTemplates.add(createTemplate(
+                "CHAT_MESSAGE_RECEIVED",
+                NotificationChannel.PUSH,
+                "New message from {{senderName}}",
+                "{{messagePreview}}"
+        ));
+
         // Save templates if not already present
         for (NotificationTemplate t : defaultTemplates) {
             templateRepository.findByTemplateCodeAndChannel(t.getTemplateCode(), t.getChannel())
