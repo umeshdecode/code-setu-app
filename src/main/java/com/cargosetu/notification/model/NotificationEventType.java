@@ -19,5 +19,21 @@ public enum NotificationEventType {
     TRIP_START,
     TRIP_END,
     DRIVER_AVAILABLE,
-    LOAD_AVAILABLE
+    LOAD_AVAILABLE;
+
+    /**
+     * Human-readable form of this event, e.g. {@code STAFF_CREATED} -> {@code "Staff Created"}.
+     * Used for generic fallback subjects/messages when no template exists for an event.
+     */
+    public String humanize() {
+        String[] words = name().split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(word.charAt(0)).append(word.substring(1).toLowerCase());
+        }
+        return sb.toString();
+    }
 }

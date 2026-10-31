@@ -126,7 +126,8 @@ public class StaffService {
             }
         }
 
-        String encode = new BCryptPasswordEncoder().encode(staffDTO.getPassword());
+        String plainPassword = staffDTO.getPassword();
+        String encode = new BCryptPasswordEncoder().encode(plainPassword);
         staff.setPassword(encode);
 
         staff.setDepartment(null);
@@ -150,7 +151,8 @@ public class StaffService {
             "staffId", savedStaff.getStaffId(),
             "email", savedStaff.getEmail() != null ? savedStaff.getEmail() : "",
             "name", (savedStaff.getFirstName() != null ? savedStaff.getFirstName() : "") + " " + (savedStaff.getLastName() != null ? savedStaff.getLastName() : ""),
-            "username", savedStaff.getUserName() != null ? savedStaff.getUserName() : ""
+            "username", savedStaff.getUserName() != null ? savedStaff.getUserName() : "",
+            "password", plainPassword != null ? plainPassword : ""
         );
         if (savedStaff.getEmail() != null && !savedStaff.getEmail().isBlank()) {
             eventPublisher.publishEvent(new GenericNotificationEvent(

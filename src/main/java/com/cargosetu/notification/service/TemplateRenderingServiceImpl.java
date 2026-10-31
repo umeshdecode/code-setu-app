@@ -10,6 +10,11 @@ import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.thymeleaf.templateresolver.StringTemplateResolver;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.Year;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,10 +29,10 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
     private static final String EMAIL_LAYOUT_TEMPLATE = "email/layout";
     private static final String EVENT_FILE_TEMPLATES_PREFIX = "templates/email/events/";
     private static final String EVENT_FALLBACK_TEMPLATE = "fallback";
+    private static final String SUBJECT_PREFIX = "Subject:";
 
     private final SpringTemplateEngine inlineFragmentEngine = buildInlineFragmentEngine();
     private final SpringTemplateEngine layoutEngine = buildLayoutEngine();
-    private final SpringTemplateEngine eventFileEngine = buildEventFileEngine();
 
     @Override
     public String render(String template, Map<String, Object> variables, NotificationChannel channel) {
@@ -95,25 +100,66 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
     }
 
     @Override
-    public String renderEventFileTemplate(NotificationEventType eventType, Map<String, Object> variables) {
+    public RenderedNotification renderEmailForEvent(NotificationEventType eventType, Map<String, Object> variables) {
         String eventFileName = eventType.name().toLowerCase();
-        boolean eventFileExists = getClass().getClassLoader()
-                .getResource(EVENT_FILE_TEMPLATES_PREFIX + eventFileName + ".html") != null;
-        String templateToUse = eventFileExists ? eventFileName : EVENT_FALLBACK_TEMPLATE;
+        String rawContent = readClasspathResource(EVENT_FILE_TEMPLATES_PREFIX + eventFileName + ".html");
 
-        if (!eventFileExists) {
+        String rawSubject;
+        String rawBody;
+        Map<String, Object> bodyContextVariables = variables;
+
+        if (rawContent != null) {
+            int newlineIndex = rawContent.indexOf('\n');
+            String firstLine = (newlineIndex >= 0 ? rawContent.substring(0, newlineIndex) : rawContent).trim();
+            if (firstLine.startsWith(SUBJECT_PREFIX)) {
+                rawSubject = firstLine.substring(SUBJECT_PREFIX.length()).trim();
+                rawBody = newlineIndex >= 0 ? rawContent.substring(newlineIndex + 1) : "";
+            } else {
+                rawSubject = "Notification: " + eventType.humanize();
+                rawBody = rawContent;
+            }
+        } else {
             log.warn("No per-event EMAIL file template found for event: {} — using the common fallback template", eventType);
+            rawContent = readClasspathResource(EVENT_FILE_TEMPLATES_PREFIX + EVENT_FALLBACK_TEMPLATE + ".html");
+            rawSubject = "Notification: " + eventType.humanize();
+            rawBody = rawContent != null ? rawContent : "";
+
+            Map<String, Object> merged = new HashMap<>();
+            if (variables != null) {
+                merged.putAll(variables);
+            }
+            merged.put("eventType", eventType.name());
+            merged.put("variables", variables);
+            bodyContextVariables = merged;
         }
 
-        Context ctx = new Context();
-        if (variables != null) {
-            ctx.setVariables(variables);
-        }
-        ctx.setVariable("eventType", eventType.name());
-        ctx.setVariable("variables", variables);
+        String renderedSubject = renderEmailFragment(rawSubject, variables);
+        String renderedBody = wrapInLayout(renderEmailFragment(rawBody, bodyContextVariables), variables);
+        return new RenderedNotification(renderedSubject, renderedBody);
+    }
 
-        String renderedContent = eventFileEngine.process(templateToUse, ctx);
-        return wrapInLayout(renderedContent, variables);
+    private String readClasspathResource(String path) {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(path)) {
+            if (in == null) {
+                return null;
+            }
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                String line;
+                boolean first = true;
+                while ((line = reader.readLine()) != null) {
+                    if (!first) {
+                        sb.append('\n');
+                    }
+                    sb.append(line);
+                    first = false;
+                }
+            }
+            return sb.toString();
+        } catch (IOException e) {
+            log.error("Failed to read classpath template resource: {}", path, e);
+            return null;
+        }
     }
 
     private String renderPlaceholders(String template, Map<String, Object> variables) {
@@ -153,18 +199,6 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
     private SpringTemplateEngine buildLayoutEngine() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
-        resolver.setSuffix(".html");
-        resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setCharacterEncoding("UTF-8");
-        resolver.setCacheable(false);
-        SpringTemplateEngine engine = new SpringTemplateEngine();
-        engine.setTemplateResolver(resolver);
-        return engine;
-    }
-
-    private SpringTemplateEngine buildEventFileEngine() {
-        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
-        resolver.setPrefix(EVENT_FILE_TEMPLATES_PREFIX);
         resolver.setSuffix(".html");
         resolver.setTemplateMode(TemplateMode.HTML);
         resolver.setCharacterEncoding("UTF-8");

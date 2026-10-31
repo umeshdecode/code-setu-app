@@ -42,16 +42,23 @@ public interface TemplateRenderingService {
     String render(String template, Map<String, Object> variables);
 
     /**
-     * Renders an EMAIL body for an event that has no active DB template, using an on-disk
-     * fallback template under {@code classpath:templates/email/events/}. Tries
-     * {@code <eventType-lowercase>.html} first; if that file doesn't exist, falls back to
-     * the common {@code fallback.html} (which displays the event name and the supplied
-     * variables generically). The result is wrapped in the same shared branded layout
-     * used by {@link #render(String, Map, NotificationChannel)} for EMAIL.
-     *
-     * @param eventType the event that has no DB template
-     * @param variables the event's variables
-     * @return the rendered, layout-wrapped HTML body
+     * A fully-rendered EMAIL subject + body pair, ready to send.
      */
-    String renderEventFileTemplate(NotificationEventType eventType, Map<String, Object> variables);
+    record RenderedNotification(String subject, String body) {
+    }
+
+    /**
+     * Renders the EMAIL subject and body for an event from its on-disk template under
+     * {@code classpath:templates/email/events/<event-lowercase>.html}. The file's first
+     * line, if it starts with {@code Subject:}, is used as the subject template; the rest
+     * is the body template. If no file exists for the event, falls back to the common
+     * {@code fallback.html} (which displays the event name and supplied variables
+     * generically) with a generic humanized subject. The body is wrapped in the shared
+     * branded layout; the subject never is.
+     *
+     * @param eventType the event to render a template for
+     * @param variables the event's variables
+     * @return the rendered subject and layout-wrapped HTML body
+     */
+    RenderedNotification renderEmailForEvent(NotificationEventType eventType, Map<String, Object> variables);
 }

@@ -1,13 +1,12 @@
 package com.cargosetu.notification.service;
 
+import com.cargosetu.notification.config.StaticNotificationTemplates;
+import com.cargosetu.notification.config.StaticNotificationTemplates.TemplateText;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.infrastructure.channel.NotificationChannelSender;
 import com.cargosetu.notification.model.NotificationChannel;
-import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.notification.model.NotificationStatus;
-import com.cargosetu.notification.model.NotificationTemplate;
 import com.cargosetu.notification.model.NotificationAudit;
-import com.cargosetu.notification.repository.NotificationTemplateRepository;
 import com.cargosetu.notification.repository.NotificationAuditRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationProcessingServiceImpl implements NotificationProcessingService {
 
-    private final NotificationTemplateRepository templateRepository;
     private final NotificationAuditRepository auditRepository;
     private final TemplateRenderingService renderingService;
     private final List<NotificationChannelSender> channelSenders;
@@ -29,46 +27,48 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
     public void processEvent(GenericNotificationEvent event) {
         log.info("Processing generic notification event: {} (ID: {})", event.templateCode(), event.eventId());
 
-        // 1. Fetch template from DB for this templateCode and channel
-        NotificationTemplate template = templateRepository
-                .findByTemplateCodeAndChannelAndIsActiveTrue(event.templateCode(), event.channel())
-                .orElse(null);
-
         String renderedSubject;
         String renderedBody;
 
-        if (template != null) {
-            // 2a. Normal path: render the DB-stored subject/body for this event+channel.
-            //     Fall back to plain {{var}} substitution if real rendering throws, so a
-            //     bad Thymeleaf expression never drops the notification entirely.
+        if (event.channel() == NotificationChannel.EMAIL) {
+            // EMAIL templates live on disk under templates/email/events/ (falls back to
+            // fallback.html internally if the event has no file of its own).
             try {
-                renderedSubject = renderingService.renderSubject(template.getSubjectTemplate(), event.variables(), event.channel());
-                renderedBody = renderingService.render(template.getBodyTemplate(), event.variables(), event.channel());
+                TemplateRenderingService.RenderedNotification rendered =
+                        renderingService.renderEmailForEvent(event.templateCode(), event.variables());
+                renderedSubject = rendered.subject();
+                renderedBody = rendered.body();
             } catch (Exception e) {
-                log.warn("Failed to render template for {} ({}): {} — falling back to plain placeholder substitution",
-                        event.templateCode(), event.channel(), e.getMessage());
-                renderedSubject = renderingService.render(template.getSubjectTemplate(), event.variables());
-                renderedBody = renderingService.render(template.getBodyTemplate(), event.variables());
+                log.warn("Failed to render EMAIL template for {}: {} — using a generic fallback message",
+                        event.templateCode(), e.getMessage());
+                renderedSubject = "Notification: " + event.templateCode().humanize();
+                renderedBody = "You have a new notification regarding " + event.templateCode().humanize() + ".";
             }
         } else {
-            // 2b. No active DB template for this event+channel: don't silently drop the
-            //     notification — fall back to a generic rendering so it still gets sent
-            //     and audited.
-            log.warn("No active notification template found for code: {} and channel: {} — using fallback template",
-                    event.templateCode(), event.channel());
-            if (event.channel() == NotificationChannel.EMAIL) {
-                renderedSubject = "Notification: " + humanize(event.templateCode());
-                renderedBody = renderingService.renderEventFileTemplate(event.templateCode(), event.variables());
+            // SMS/PUSH/WHATSAPP templates are short, static plain-text entries.
+            TemplateText template = StaticNotificationTemplates.find(event.templateCode(), event.channel()).orElse(null);
+            if (template != null) {
+                try {
+                    renderedSubject = renderingService.renderSubject(template.subject(), event.variables(), event.channel());
+                    renderedBody = renderingService.render(template.body(), event.variables(), event.channel());
+                } catch (Exception e) {
+                    log.warn("Failed to render template for {} ({}): {} — falling back to plain placeholder substitution",
+                            event.templateCode(), event.channel(), e.getMessage());
+                    renderedSubject = renderingService.render(template.subject(), event.variables());
+                    renderedBody = renderingService.render(template.body(), event.variables());
+                }
             } else {
+                log.warn("No static template found for {} ({}) — using a generic fallback message",
+                        event.templateCode(), event.channel());
                 renderedSubject = null;
-                renderedBody = "You have a new notification regarding " + humanize(event.templateCode()) + ".";
+                renderedBody = "You have a new notification regarding " + event.templateCode().humanize() + ".";
             }
         }
 
         log.info("Final rendered template for {} ({}) before send:\nSubject: {}\nBody:\n{}",
                 event.templateCode(), event.channel(), renderedSubject, renderedBody);
 
-        // 3. For each recipient, create a PENDING audit record and send
+        // For each recipient, create a PENDING audit record and send
         for (String recipient : event.recipients()) {
             if (recipient == null || recipient.isBlank()) {
                 continue;
@@ -94,7 +94,7 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
 
             audit = auditRepository.save(audit);
 
-            // 4. Find the strategy sender
+            // Find the strategy sender
             NotificationChannelSender sender = channelSenders.stream()
                     .filter(s -> s.supports(event.channel()))
                     .findFirst()
@@ -109,7 +109,7 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
                 continue;
             }
 
-            // 5. Send with retry delegate
+            // Send with retry delegate
             try {
                 sender.send(audit);
 
@@ -122,17 +122,5 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
                 log.error("Failed to send notification to {} after retries: {}", cleanRecipient, e.getMessage());
             }
         }
-    }
-
-    private String humanize(NotificationEventType eventType) {
-        String[] words = eventType.name().split("_");
-        StringBuilder sb = new StringBuilder();
-        for (String word : words) {
-            if (sb.length() > 0) {
-                sb.append(' ');
-            }
-            sb.append(word.charAt(0)).append(word.substring(1).toLowerCase());
-        }
-        return sb.toString();
     }
 }
