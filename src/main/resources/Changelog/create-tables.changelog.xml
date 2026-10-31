@@ -536,4 +536,10 @@
             <column name="is_active" type="BIT" defaultValueBoolean="true"/>
         </createTable>
     </changeSet>
+    <changeSet id="SKP_NOTIF_SUBJECT_WIDEN_001" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <columnExists tableName="notification_audit" columnName="subject"/>
+        </preConditions>
+        <modifyDataType tableName="notification_audit" columnName="subject" newDataType="VARCHAR(1000)"/>
+    </changeSet>
 </databaseChangeLog>

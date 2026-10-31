@@ -8,7 +8,6 @@ import com.cargosetu.notification.repository.NotificationAuditRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
@@ -68,13 +67,15 @@ public class EmailChannelSender implements NotificationChannelSender {
         } else {
             try {
                 log.info("[REAL EMAIL] Dispatching physical SMTP email to: {} via JavaMailSender", recipient);
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromEmail);
-                message.setTo(recipient);
-                message.setSubject(audit.getSubject());
-                message.setText(audit.getMessageBody());
-                
-                mailSender.send(message);
+                var mimeMessage = mailSender.createMimeMessage();
+                org.springframework.mail.javamail.MimeMessageHelper helper =
+                        new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, false);
+                helper.setFrom(fromEmail);
+                helper.setTo(recipient);
+                helper.setSubject(audit.getSubject());
+                helper.setText(audit.getMessageBody(), true);
+
+                mailSender.send(mimeMessage);
             } catch (Exception e) {
                 log.error("Failed to send SMTP email to: {}", recipient, e);
                 throw new NotificationDeliveryException("SMTP client error: " + e.getMessage(), e);

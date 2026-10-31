@@ -7,17 +7,24 @@ import com.cargosetu.config.JwtUtils;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.StaffRepository;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -35,10 +42,12 @@ public class AuthService {
     private JwtUtils jwtUtils;
 
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AuthService(StaffRepository staffRepository, BCryptPasswordEncoder bCryptPasswordEncoder, JwtUtils jwtUtils) {
+    public AuthService(StaffRepository staffRepository, BCryptPasswordEncoder bCryptPasswordEncoder, JwtUtils jwtUtils, ApplicationEventPublisher eventPublisher) {
         this.staffRepository = staffRepository;
         this.passwordEncoder = bCryptPasswordEncoder;
+        this.eventPublisher = eventPublisher;
     }
 
     public static boolean isValidEmail(String email) {
@@ -111,7 +120,24 @@ public class AuthService {
         tokenResponse.setEmail(staff.getEmail());
         tokenResponse.setRoles(staffRoles);
         tokenResponse.setPermissions(staffPermissions);
+
+        publishLoginNotification(staff);
+
         return tokenResponse;
+    }
+
+    private void publishLoginNotification(Staff staff) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", staff.getFirstName() != null ? staff.getFirstName() : staff.getUserName());
+        variables.put("loginTime", LocalDateTime.now().toString());
+        variables.put("device", "web");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                NotificationEventType.LOGIN,
+                List.of("STAFF:" + staff.getStaffId()),
+                NotificationChannel.PUSH,
+                variables
+        ));
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){

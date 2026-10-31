@@ -31,6 +31,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import com.cargosetu.dto.S3UploadResult;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import java.util.Map;
 import java.util.List;
 
@@ -153,7 +154,7 @@ public class StaffService {
         );
         if (savedStaff.getEmail() != null && !savedStaff.getEmail().isBlank()) {
             eventPublisher.publishEvent(new GenericNotificationEvent(
-                "STAFF_CREATED",
+                NotificationEventType.STAFF_CREATED,
                 List.of(savedStaff.getEmail()),
                 NotificationChannel.EMAIL,
                 variables
@@ -161,7 +162,7 @@ public class StaffService {
         }
         if (savedStaff.getMobileNumber() != null && !savedStaff.getMobileNumber().isBlank()) {
             eventPublisher.publishEvent(new GenericNotificationEvent(
-                "STAFF_CREATED",
+                NotificationEventType.STAFF_CREATED,
                 List.of(savedStaff.getMobileNumber()),
                 NotificationChannel.SMS,
                 variables

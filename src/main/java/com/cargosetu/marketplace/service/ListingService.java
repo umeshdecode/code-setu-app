@@ -6,8 +6,14 @@ import com.cargosetu.marketplace.entity.*;
 import com.cargosetu.marketplace.enums.*;
 import com.cargosetu.marketplace.repository.*;
 import com.cargosetu.marketplace.mapper.*;
+import com.cargosetu.model.Staff;
+import com.cargosetu.model.Vehicle;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.CompanyRepository;
 import com.cargosetu.repo.DriverRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.repo.VehicleRepository;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
@@ -18,6 +24,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,9 +33,13 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -46,6 +57,8 @@ public class ListingService {
     private final TruckPostMapper truckPostMapper;
     private final MarketplaceAuditService auditService;
     private final ObjectMapper objectMapper;
+    private final StaffRepository staffRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public GenericDataDTO createLoadPost(LoggedInUser user, CreateLoadPostRequest request) {
@@ -87,6 +100,8 @@ public class ListingService {
             response.setData(loadResponse);
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Load post created successfully");
+
+            notifyLoadAvailable(loadPost, listing);
         } catch (Exception e) {
             log.error("Error creating load post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
@@ -157,12 +172,86 @@ public class ListingService {
             response.setData(truckResponse);
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Truck post created successfully");
+
+            notifyDriverAvailable(truckPost, listing);
         } catch (Exception e) {
             log.error("Error creating truck post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("Failed to create truck post");
         }
         return response;
+    }
+
+    /**
+     * Notifies companies with a currently PUBLISHED truck post (the matching counterpart)
+     * that a new load is available, since their trucks might be interested in carrying it.
+     */
+    private void notifyLoadAvailable(LoadPost loadPost, MarketplaceListing listing) {
+        List<TruckPost> publishedTrucks = truckPostRepository.findByListingStatus(ListingStatus.PUBLISHED);
+        Set<Integer> recipientCompanyIds = new HashSet<>();
+        for (TruckPost truck : publishedTrucks) {
+            if (truck.getListing() != null && !truck.getListing().getCompanyId().equals(listing.getCompanyId())) {
+                recipientCompanyIds.add(truck.getListing().getCompanyId());
+            }
+        }
+        if (recipientCompanyIds.isEmpty()) {
+            return;
+        }
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("sourceCity", loadPost.getOriginCity());
+        variables.put("destinationCity", loadPost.getDestinationCity());
+
+        List<String> recipients = resolveStaffRecipients(recipientCompanyIds);
+        if (!recipients.isEmpty()) {
+            eventPublisher.publishEvent(new GenericNotificationEvent(
+                    NotificationEventType.LOAD_AVAILABLE, recipients, NotificationChannel.PUSH, variables));
+        }
+    }
+
+    /**
+     * Notifies companies with a currently PUBLISHED load post (the matching counterpart)
+     * that a new driver/truck is available, since their loads might need it.
+     */
+    private void notifyDriverAvailable(TruckPost truckPost, MarketplaceListing listing) {
+        List<LoadPost> publishedLoads = loadPostRepository.findByListingStatus(ListingStatus.PUBLISHED);
+        Set<Integer> recipientCompanyIds = new HashSet<>();
+        for (LoadPost load : publishedLoads) {
+            if (load.getListing() != null && !load.getListing().getCompanyId().equals(listing.getCompanyId())) {
+                recipientCompanyIds.add(load.getListing().getCompanyId());
+            }
+        }
+        if (recipientCompanyIds.isEmpty()) {
+            return;
+        }
+
+        String vehicleNumber = "";
+        if (truckPost.getVehicleId() != null) {
+            vehicleNumber = vehicleRepository.findById(truckPost.getVehicleId())
+                    .map(Vehicle::getRegistrationNumber)
+                    .orElse("");
+        }
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("vehicleNumber", vehicleNumber);
+        variables.put("location", truckPost.getCurrentCity());
+
+        List<String> recipients = resolveStaffRecipients(recipientCompanyIds);
+        if (!recipients.isEmpty()) {
+            eventPublisher.publishEvent(new GenericNotificationEvent(
+                    NotificationEventType.DRIVER_AVAILABLE, recipients, NotificationChannel.PUSH, variables));
+        }
+    }
+
+    private List<String> resolveStaffRecipients(Set<Integer> companyIds) {
+        List<String> recipients = new ArrayList<>();
+        for (Integer companyId : companyIds) {
+            List<Staff> staff = staffRepository.findAllByCompanyIdAndIsDeletedFalse(companyId);
+            for (Staff s : staff) {
+                recipients.add("STAFF:" + s.getStaffId());
+            }
+        }
+        return recipients;
     }
 
     @Transactional

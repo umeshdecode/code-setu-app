@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>CargoSetu Notification</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f5f7; font-family:Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7; padding:24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden;">
+                    <tr>
+                        <td style="background-color:#0b5fff; padding:20px 32px;">
+                            <span style="color:#ffffff; font-size:20px; font-weight:bold;" th:text="${companyName} ?: 'CargoSetu'">CargoSetu</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:32px; color:#1f2430; font-size:14px; line-height:1.6;">
+                            <div th:utext="${content}"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:16px 32px 4px 32px; background-color:#f0f1f3; text-align:center;">
+                            <a th:href="${contactUsUrl} ?: 'https://cargosetu.com/contact'" style="color:#0b5fff; font-size:12px; text-decoration:none; margin:0 8px;">Contact Us</a>
+                            <span style="color:#c4c7cc; font-size:12px;">|</span>
+                            <a th:href="${privacyPolicyUrl} ?: 'https://cargosetu.com/privacy'" style="color:#0b5fff; font-size:12px; text-decoration:none; margin:0 8px;">Privacy Policy</a>
+                            <span style="color:#c4c7cc; font-size:12px;">|</span>
+                            <a th:href="${termsUrl} ?: 'https://cargosetu.com/terms'" style="color:#0b5fff; font-size:12px; text-decoration:none; margin:0 8px;">Terms &amp; Conditions</a>
+                            <span style="color:#c4c7cc; font-size:12px;">|</span>
+                            <a th:href="${faqUrl} ?: 'https://cargosetu.com/faqs'" style="color:#0b5fff; font-size:12px; text-decoration:none; margin:0 8px;">FAQs</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:4px 32px 16px 32px; background-color:#f0f1f3; color:#8a8f98; font-size:12px; text-align:center;">
+                            <span th:text="'© ' + ${currentYear} + ' ' + (${companyName} ?: 'CargoSetu') + '. All rights reserved.'">&#169; CargoSetu</span>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

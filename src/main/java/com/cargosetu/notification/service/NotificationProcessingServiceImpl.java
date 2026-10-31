@@ -39,9 +39,10 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
             return;
         }
 
-        // 2. Render template subject and body
-        String renderedSubject = renderingService.render(template.getSubjectTemplate(), event.variables());
-        String renderedBody = renderingService.render(template.getBodyTemplate(), event.variables());
+        // 2. Render template subject (plain text, never wraps in the branded layout) and
+        //    body (HTML+Thymeleaf wrapped in the shared layout for EMAIL, {{var}} substitution otherwise)
+        String renderedSubject = renderingService.renderSubject(template.getSubjectTemplate(), event.variables(), event.channel());
+        String renderedBody = renderingService.render(template.getBodyTemplate(), event.variables(), event.channel());
 
         // 3. For each recipient, create a PENDING audit record and send
         for (String recipient : event.recipients()) {
@@ -61,7 +62,7 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
             audit.setEventId(event.eventId());
             audit.setRecipient(cleanRecipient);
             audit.setChannel(event.channel());
-            audit.setTemplateCode(event.templateCode());
+            audit.setTemplateCode(event.templateCode().name());
             audit.setSubject(renderedSubject);
             audit.setMessageBody(renderedBody);
             audit.setStatus(NotificationStatus.PENDING);
@@ -86,7 +87,17 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
 
             // 5. Send with retry delegate
             try {
+
+                log.info("Final rendered template for {} ({}) before send:\nSubject: {}\nBody:\n{}",
+                        event.templateCode(), event.channel(), renderedSubject, renderedBody);
+
+                if (audit.getStatus() == NotificationStatus.SENT) {
+                    log.info("Successfully sent {} ({}) to {}. Final template sent:\nSubject: {}\nBody:\n{}",
+                            event.templateCode(), event.channel(), cleanRecipient,
+                            audit.getSubject(), audit.getMessageBody());
+                }
                 sender.send(audit);
+
             } catch (Exception e) {
                 log.error("Failed to send notification to {} after retries: {}", cleanRecipient, e.getMessage());
             }

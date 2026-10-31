@@ -30,7 +30,7 @@ public class NotificationAudit extends AbstractModel {
     @Column(name = "template_code", nullable = false)
     private String templateCode;
 
-    @Column(name = "subject")
+    @Column(name = "subject", length = 1000)
     private String subject;
 
     @Lob

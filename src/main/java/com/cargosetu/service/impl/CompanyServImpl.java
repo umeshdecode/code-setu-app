@@ -7,6 +7,9 @@ import com.cargosetu.model.Clientservice;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
 import com.cargosetu.model.Staff;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.ClientServiceRepo;
 import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
@@ -22,6 +25,7 @@ import org.apache.kafka.common.errors.ResourceNotFoundException;
 import com.cargosetu.service.S3StorageService;
 import com.cargosetu.dto.S3UploadResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +50,8 @@ public class CompanyServImpl implements CompanyService {
     private StaffRepository staffRepository;
     @Autowired
     private S3StorageService s3StorageService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     public GenericDataDTO createCompany(CompanyDTO companyDto, Long staffId) {
@@ -79,6 +85,7 @@ public class CompanyServImpl implements CompanyService {
             response.setResponseCode(200);
             response.setData(saved);
            createCompanyAssets(companyDto.getAssets() ,saved.getCompanyId());
+           publishRegistrationNotification(saved);
 
 
         } catch (Exception e) {
@@ -256,6 +263,22 @@ public class CompanyServImpl implements CompanyService {
         return response;
     }
 
+
+    private void publishRegistrationNotification(Company company) {
+        if (company.getCompanyEmail() == null || company.getCompanyEmail().isBlank()) {
+            return;
+        }
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("companyName", company.getCompanyName() != null ? company.getCompanyName() : "");
+        variables.put("contactName", company.getCompanyName() != null ? company.getCompanyName() : "there");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                NotificationEventType.REGISTRATION,
+                List.of(company.getCompanyEmail()),
+                NotificationChannel.EMAIL,
+                variables
+        ));
+    }
 
     private void validateCompanyAssetFiles(MultipartFile[] files) {
         if (files == null || files.length == 0) {

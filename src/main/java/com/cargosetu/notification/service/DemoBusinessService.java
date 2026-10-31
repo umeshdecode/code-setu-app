@@ -2,6 +2,7 @@ package com.cargosetu.notification.service;
 
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,7 +35,7 @@ public class DemoBusinessService {
             "email", email != null ? email : "",
             "mobileNo", "+19999999999"
         );
-        GenericNotificationEvent event = new GenericNotificationEvent("CUSTOMER_CREATED", List.of(email), NotificationChannel.EMAIL, variables);
+        GenericNotificationEvent event = new GenericNotificationEvent(NotificationEventType.CUSTOMER_CREATED, List.of(email), NotificationChannel.EMAIL, variables);
         eventPublisher.publishEvent(event);
         log.info("Published GenericNotificationEvent for CUSTOMER_CREATED. Transaction still active.");
 
@@ -62,10 +63,10 @@ public class DemoBusinessService {
         );
 
         if (customerEmail != null && !customerEmail.isBlank()) {
-            eventPublisher.publishEvent(new GenericNotificationEvent("BOOKING_CREATED", List.of(customerEmail), NotificationChannel.EMAIL, variables));
+            eventPublisher.publishEvent(new GenericNotificationEvent(NotificationEventType.BOOKING_CREATED, List.of(customerEmail), NotificationChannel.EMAIL, variables));
         }
         if (customerPhone != null && !customerPhone.isBlank()) {
-            eventPublisher.publishEvent(new GenericNotificationEvent("BOOKING_CREATED", List.of(customerPhone), NotificationChannel.SMS, variables));
+            eventPublisher.publishEvent(new GenericNotificationEvent(NotificationEventType.BOOKING_CREATED, List.of(customerPhone), NotificationChannel.SMS, variables));
         }
         log.info("Published GenericNotificationEvent for BOOKING_CREATED. Transaction still active.");
     }

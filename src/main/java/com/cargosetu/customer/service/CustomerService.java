@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.context.ApplicationEventPublisher;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import java.util.Map;
 
 import java.util.ArrayList;
@@ -131,7 +132,7 @@ public class CustomerService {
             if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
                 log.debug("Publishing EMAIL notification for customer creation, email={}", customer.getEmail());
                 eventPublisher.publishEvent(new GenericNotificationEvent(
-                    "CUSTOMER_CREATED",
+                    NotificationEventType.CUSTOMER_CREATED,
                     List.of(customer.getEmail()),
                     NotificationChannel.EMAIL,
                     variables
@@ -140,7 +141,7 @@ public class CustomerService {
             if (customer.getMobileNo() != null && !customer.getMobileNo().isBlank()) {
                 log.debug("Publishing SMS notification for customer creation, mobileNo={}", customer.getMobileNo());
                 eventPublisher.publishEvent(new GenericNotificationEvent(
-                    "CUSTOMER_CREATED",
+                    NotificationEventType.CUSTOMER_CREATED,
                     List.of(customer.getMobileNo()),
                     NotificationChannel.SMS,
                     variables
@@ -247,7 +248,7 @@ public class CustomerService {
                 if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
                     log.debug("Publishing EMAIL notification for customer update, email={}", customer.getEmail());
                     eventPublisher.publishEvent(new GenericNotificationEvent(
-                        "CUSTOMER_UPDATED",
+                        NotificationEventType.CUSTOMER_UPDATED,
                         List.of(customer.getEmail()),
                         NotificationChannel.EMAIL,
                         variables

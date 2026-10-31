@@ -17,8 +17,9 @@ public class NotificationTemplate extends AbstractModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "template_code", nullable = false)
-    private String templateCode;
+    private NotificationEventType templateCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)

@@ -10,6 +10,7 @@ import com.cargosetu.marketplace.repository.ChatConversationRepository;
 import com.cargosetu.marketplace.repository.ChatMessageRepository;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.RequiredArgsConstructor;
@@ -445,7 +446,7 @@ public class ChatService {
         variables.put("conversationId", convo.getId());
 
         eventPublisher.publishEvent(new GenericNotificationEvent(
-                "CHAT_MESSAGE_RECEIVED", recipients, NotificationChannel.PUSH, variables));
+                NotificationEventType.CHAT_MESSAGE_RECEIVED, recipients, NotificationChannel.PUSH, variables));
     }
 
     private String formatStaffName(String firstName, String lastName, String userName) {

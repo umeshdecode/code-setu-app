@@ -6,6 +6,7 @@ import com.cargosetu.model.CustomerInquiry;
 import com.cargosetu.model.InquiryStatus;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.InquiryRepository;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.List;
@@ -77,7 +78,7 @@ public class InquiryService {
             // 1. Customer Acknowledgment
             if (request.getEmail() != null && !request.getEmail().isBlank()) {
                 eventPublisher.publishEvent(new GenericNotificationEvent(
-                    "INQUIRY_CREATED",
+                    NotificationEventType.INQUIRY_CREATED,
                     List.of(request.getEmail()),
                     NotificationChannel.EMAIL,
                     variables
@@ -87,7 +88,7 @@ public class InquiryService {
             // 2. Support Alert
             if (supportEmail != null && !supportEmail.isBlank()) {
                 eventPublisher.publishEvent(new GenericNotificationEvent(
-                    "INQUIRY_CREATED_SUPPORT",
+                    NotificationEventType.INQUIRY_CREATED_SUPPORT,
                     List.of(supportEmail),
                     NotificationChannel.EMAIL,
                     variables

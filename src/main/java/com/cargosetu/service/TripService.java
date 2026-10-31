@@ -1,11 +1,13 @@
 package com.cargosetu.service;
 
 import com.cargosetu.config.dto.LoggedInUser;
+import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.dto.TripDTO;
 import com.cargosetu.mapper.TripMapper;
 import com.cargosetu.model.*;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.*;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
@@ -84,7 +86,45 @@ public class TripService {
         variables.put("destinationCity", trip.getShifting() != null ? trip.getShifting().getShiftToCity() : "");
 
         eventPublisher.publishEvent(new GenericNotificationEvent(
-                "TRIP_ASSIGNED_STAFF", recipients, NotificationChannel.PUSH, variables));
+                NotificationEventType.TRIP_ASSIGNED_STAFF, recipients, NotificationChannel.PUSH, variables));
+    }
+
+    /**
+     * Pushes a TRIP_START/TRIP_END notification to the trip's company staff (PUSH)
+     * and to the trip's customer (EMAIL), when their contact info is available.
+     */
+    private void publishTripLifecycleNotification(Trip trip, NotificationEventType eventType) {
+        Integer companyId = trip.getCompanyId() != null
+                ? trip.getCompanyId()
+                : (trip.getShifting() != null ? trip.getShifting().getCompanyId() : null);
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("tripNumber", trip.getTripNumber());
+        variables.put("driverName", trip.getDriver() != null ? trip.getDriver().getName() : "");
+        variables.put("driverPhone", trip.getDriver() != null ? trip.getDriver().getPhoneNumber() : "");
+        variables.put("sourceCity", trip.getShifting() != null ? trip.getShifting().getShiftFromCity() : "");
+        variables.put("destinationCity", trip.getShifting() != null ? trip.getShifting().getShiftToCity() : "");
+
+        if (companyId != null) {
+            List<Staff> staff = staffRepository.findAllByCompanyIdAndIsDeletedFalse(companyId);
+            if (!staff.isEmpty()) {
+                List<String> staffRecipients = staff.stream()
+                        .map(s -> "STAFF:" + s.getStaffId())
+                        .toList();
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                        eventType, staffRecipients, NotificationChannel.PUSH, variables));
+            }
+        }
+
+        if (trip.getShifting() != null && trip.getShifting().getCustomer() != null) {
+            Customer customer = trip.getShifting().getCustomer();
+            if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+                Map<String, Object> customerVariables = new HashMap<>(variables);
+                customerVariables.put("name", customer.getFirstName() != null ? customer.getFirstName() : "");
+                eventPublisher.publishEvent(new GenericNotificationEvent(
+                        eventType, List.of(customer.getEmail()), NotificationChannel.EMAIL, customerVariables));
+            }
+        }
     }
 
     @Transactional
@@ -190,6 +230,7 @@ public class TripService {
             Trip existingTrip = existingTripOptional.get();
             Long oldDriverId = existingTrip.getDriver() != null ? existingTrip.getDriver().getId() : null;
             Long oldVehicleId = existingTrip.getVehicle() != null ? existingTrip.getVehicle().getId() : null;
+            TripStatus oldStatus = existingTrip.getStatus();
 
             if (tripDTO.getTripNumber() != null) {
                 existingTrip.setTripNumber(tripDTO.getTripNumber());
@@ -218,10 +259,14 @@ public class TripService {
             if (tripDTO.getActive() != null) {
                 existingTrip.setActive(tripDTO.getActive());
             }
-            if (tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.STARTED) ) {
+            boolean becameStarted = tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.STARTED)
+                    && !TripStatus.STARTED.equals(oldStatus);
+            boolean becameCompleted = tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.COMPLETED)
+                    && !TripStatus.COMPLETED.equals(oldStatus);
+            if (becameStarted) {
                 existingTrip.setActualStartTime(LocalDateTime.now());
             }
-            if (tripDTO.getStatus() != null && tripDTO.getStatus().equals(TripStatus.COMPLETED) ) {
+            if (becameCompleted) {
                 existingTrip.setActualEndTime(LocalDateTime.now());
             }
 
@@ -258,6 +303,12 @@ public class TripService {
                     && (!Objects.equals(oldDriverId, newDriverId) || !Objects.equals(oldVehicleId, newVehicleId));
             if (becameAssigned) {
                 publishTripAssignedNotification(savedTrip);
+            }
+            if (becameStarted) {
+                publishTripLifecycleNotification(savedTrip, NotificationEventType.TRIP_START);
+            }
+            if (becameCompleted) {
+                publishTripLifecycleNotification(savedTrip, NotificationEventType.TRIP_END);
             }
 
             response.setResponseCode(CommonStatusCode.SUCCESS);

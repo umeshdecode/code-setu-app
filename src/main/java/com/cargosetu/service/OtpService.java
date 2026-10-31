@@ -11,6 +11,7 @@ import com.cargosetu.model.Staff;
 import com.cargosetu.model.OtpVerification;
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.repo.OtpVerificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -119,7 +120,7 @@ public class OtpService {
         );
         
         eventPublisher.publishEvent(new GenericNotificationEvent(
-                "OTP_SMS",
+                NotificationEventType.OTP_SMS,
                 List.of(cleanNumber),
                 NotificationChannel.SMS,
                 variables
@@ -212,6 +213,7 @@ public class OtpService {
             loggedInUser.setPermissions(permissions);
 
             String token = jwtUtils.generateToken(loggedInUser);
+            publishLoginNotification("STAFF:" + staff.getStaffId(), staff.getFirstName() != null ? staff.getFirstName() : staff.getUserName());
             return new TokenResponse(token, jwtUtils.getTokenExpirationTime());
         }
 
@@ -238,9 +240,24 @@ public class OtpService {
             loggedInUser.setPermissions(new HashSet<>());
 
             String token = jwtUtils.generateToken(loggedInUser);
+            publishLoginNotification("CUSTOMER:" + customer.getCustomerId(), customer.getFirstName());
             return new TokenResponse(token, jwtUtils.getTokenExpirationTime());
         }
 
         throw new CustomValidationException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to log in: user record disappeared!");
+    }
+
+    private void publishLoginNotification(String recipient, String name) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name != null ? name : "");
+        variables.put("loginTime", LocalDateTime.now().toString());
+        variables.put("device", "mobile-otp");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                NotificationEventType.LOGIN,
+                List.of(recipient),
+                NotificationChannel.PUSH,
+                variables
+        ));
     }
 }

@@ -1,6 +1,7 @@
 package com.cargosetu.notification.event;
 
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 
 import java.time.Instant;
 import java.util.List;
@@ -9,14 +10,14 @@ import java.util.UUID;
 
 public record GenericNotificationEvent(
     UUID eventId,
-    String templateCode,
+    NotificationEventType templateCode,
     List<String> recipients,
     NotificationChannel channel,
     Map<String, Object> variables,
     Instant timestamp
 ) implements NotificationEvent {
 
-    public GenericNotificationEvent(String templateCode, List<String> recipients, NotificationChannel channel, Map<String, Object> variables) {
+    public GenericNotificationEvent(NotificationEventType templateCode, List<String> recipients, NotificationChannel channel, Map<String, Object> variables) {
         this(UUID.randomUUID(), templateCode, recipients, channel, variables, Instant.now());
     }
 
@@ -32,6 +33,6 @@ public record GenericNotificationEvent(
 
     @Override
     public String getEventName() {
-        return templateCode;
+        return templateCode.name();
     }
 }

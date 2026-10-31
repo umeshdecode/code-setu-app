@@ -2,6 +2,7 @@ package com.cargosetu.notification.controller;
 
 import com.cargosetu.notification.event.GenericNotificationEvent;
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.notification.model.NotificationTemplate;
 import com.cargosetu.notification.model.NotificationAudit;
 import com.cargosetu.notification.repository.NotificationTemplateRepository;
@@ -64,7 +65,7 @@ public class NotificationAdminController {
 
     @PostMapping("/send-test")
     public ResponseEntity<String> sendTestNotification(
-            @RequestParam String templateCode,
+            @RequestParam NotificationEventType templateCode,
             @RequestParam String recipient,
             @RequestParam NotificationChannel channel,
             @RequestBody Map<String, Object> variables) {
