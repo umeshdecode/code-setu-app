@@ -4,6 +4,8 @@ import com.cargosetu.notification.model.NotificationChannel;
 import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.notification.model.NotificationTemplate;
 import com.cargosetu.notification.repository.NotificationTemplateRepository;
+import com.cargosetu.notification.util.EmailTemplateFragments;
+import com.cargosetu.notification.util.EmailTemplateFragments.DetailRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -77,7 +79,16 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 NotificationEventType.STAFF_CREATED,
                 NotificationChannel.EMAIL,
                 "Welcome to the Team, {{name}}!",
-                "Dear {{name}},\n\nYour staff account has been successfully created with username: {{username}} and staff ID: {{staffId}}.\n\nBest regards,\nCargoSetu Team"
+                EmailTemplateFragments.successCard(
+                        "Account created successfully",
+                        "Hi <strong style=\"color:#1e293b;\">{{name}}</strong>, your staff account has been created. Use the credentials below to sign in.",
+                        List.of(
+                                DetailRow.plain("Full Name", "{{name}}"),
+                                DetailRow.emphasized("Username", "{{username}}"),
+                                DetailRow.emphasized("Staff ID", "{{staffId}}")
+                        ),
+                        "Sign in to your account"
+                )
         ));
 
         // 8. STAFF_CREATED - SMS
@@ -165,7 +176,12 @@ public class NotificationDatabaseInitializer implements CommandLineRunner {
                 NotificationEventType.REGISTRATION,
                 NotificationChannel.EMAIL,
                 "Welcome to CargoSetu, {{companyName}}!",
-                "<p>Dear {{contactName}},</p><p>Your CargoSetu account for <strong>{{companyName}}</strong> has been successfully registered.</p><p th:if=\"${loginUrl}\">You can sign in here: <a th:href=\"${loginUrl}\" th:text=\"${loginUrl}\">link</a></p><p>Best regards,<br/>CargoSetu Team</p>"
+                EmailTemplateFragments.successCard(
+                        "Registration successful",
+                        "Hi <strong style=\"color:#1e293b;\">{{contactName}}</strong>, your CargoSetu account for <strong style=\"color:#1e293b;\">{{companyName}}</strong> has been successfully registered.",
+                        null,
+                        "Sign in to your account"
+                )
         ));
 
         // 19. TRIP_START - Email

@@ -1,6 +1,7 @@
 package com.cargosetu.notification.service;
 
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 
 import java.util.Map;
 
@@ -39,4 +40,18 @@ public interface TemplateRenderingService {
      */
     @Deprecated
     String render(String template, Map<String, Object> variables);
+
+    /**
+     * Renders an EMAIL body for an event that has no active DB template, using an on-disk
+     * fallback template under {@code classpath:templates/email/events/}. Tries
+     * {@code <eventType-lowercase>.html} first; if that file doesn't exist, falls back to
+     * the common {@code fallback.html} (which displays the event name and the supplied
+     * variables generically). The result is wrapped in the same shared branded layout
+     * used by {@link #render(String, Map, NotificationChannel)} for EMAIL.
+     *
+     * @param eventType the event that has no DB template
+     * @param variables the event's variables
+     * @return the rendered, layout-wrapped HTML body
+     */
+    String renderEventFileTemplate(NotificationEventType eventType, Map<String, Object> variables);
 }

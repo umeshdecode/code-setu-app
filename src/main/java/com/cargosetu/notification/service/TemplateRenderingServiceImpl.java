@@ -1,6 +1,7 @@
 package com.cargosetu.notification.service;
 
 import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
@@ -21,9 +22,12 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{([^}]+)\\}\\}");
     private static final String EMAIL_LAYOUT_TEMPLATE = "email/layout";
+    private static final String EVENT_FILE_TEMPLATES_PREFIX = "templates/email/events/";
+    private static final String EVENT_FALLBACK_TEMPLATE = "fallback";
 
     private final SpringTemplateEngine inlineFragmentEngine = buildInlineFragmentEngine();
     private final SpringTemplateEngine layoutEngine = buildLayoutEngine();
+    private final SpringTemplateEngine eventFileEngine = buildEventFileEngine();
 
     @Override
     public String render(String template, Map<String, Object> variables, NotificationChannel channel) {
@@ -73,7 +77,10 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
         // EMAIL template keeps working unchanged. Templates authored with real Thymeleaf
         // syntax (${...}, th:if, th:each, ...) are then processed normally below.
         String renderedContent = renderEmailFragment(template, variables);
+        return wrapInLayout(renderedContent, variables);
+    }
 
+    private String wrapInLayout(String renderedContent, Map<String, Object> variables) {
         Context layoutContext = new Context();
         layoutContext.setVariable("content", renderedContent);
         layoutContext.setVariable("companyName", "CargoSetu");
@@ -85,6 +92,28 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
         layoutContext.setVariable("content", renderedContent);
 
         return layoutEngine.process(EMAIL_LAYOUT_TEMPLATE, layoutContext);
+    }
+
+    @Override
+    public String renderEventFileTemplate(NotificationEventType eventType, Map<String, Object> variables) {
+        String eventFileName = eventType.name().toLowerCase();
+        boolean eventFileExists = getClass().getClassLoader()
+                .getResource(EVENT_FILE_TEMPLATES_PREFIX + eventFileName + ".html") != null;
+        String templateToUse = eventFileExists ? eventFileName : EVENT_FALLBACK_TEMPLATE;
+
+        if (!eventFileExists) {
+            log.warn("No per-event EMAIL file template found for event: {} — using the common fallback template", eventType);
+        }
+
+        Context ctx = new Context();
+        if (variables != null) {
+            ctx.setVariables(variables);
+        }
+        ctx.setVariable("eventType", eventType.name());
+        ctx.setVariable("variables", variables);
+
+        String renderedContent = eventFileEngine.process(templateToUse, ctx);
+        return wrapInLayout(renderedContent, variables);
     }
 
     private String renderPlaceholders(String template, Map<String, Object> variables) {
@@ -124,6 +153,18 @@ public class TemplateRenderingServiceImpl implements TemplateRenderingService {
     private SpringTemplateEngine buildLayoutEngine() {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        resolver.setTemplateMode(TemplateMode.HTML);
+        resolver.setCharacterEncoding("UTF-8");
+        resolver.setCacheable(false);
+        SpringTemplateEngine engine = new SpringTemplateEngine();
+        engine.setTemplateResolver(resolver);
+        return engine;
+    }
+
+    private SpringTemplateEngine buildEventFileEngine() {
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix(EVENT_FILE_TEMPLATES_PREFIX);
         resolver.setSuffix(".html");
         resolver.setTemplateMode(TemplateMode.HTML);
         resolver.setCharacterEncoding("UTF-8");
