@@ -88,9 +88,6 @@ public class NotificationProcessingServiceImpl implements NotificationProcessing
             // 5. Send with retry delegate
             try {
 
-                log.info("Final rendered template for {} ({}) before send:\nSubject: {}\nBody:\n{}",
-                        event.templateCode(), event.channel(), renderedSubject, renderedBody);
-
                 if (audit.getStatus() == NotificationStatus.SENT) {
                     log.info("Successfully sent {} ({}) to {}. Final template sent:\nSubject: {}\nBody:\n{}",
                             event.templateCode(), event.channel(), cleanRecipient,
