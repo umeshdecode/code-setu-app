@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
@@ -81,16 +82,7 @@ public class TemplateService {
                 .build();
 
         Template tmpl = templateRepository.findByType("QUOTATION").orElseThrow(() -> new RuntimeException("No active QUOTATION template in DB"));
-        String htmlContent;
-        try {
-            if(tmpl.getFilePath() != null &&  !tmpl.getFilePath().isEmpty()) {
-                htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
-            }else{
-                htmlContent = tmpl.getHtmlContent();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
-        }
+        String htmlContent = loadTemplateHtml(tmpl);
         String filledHtml = renderHtml(htmlContent, companyDTO, shifting, customer, charges, quotationDTO);
 
 //        return htmlToPdfConverter(filledHtml);
@@ -181,13 +173,50 @@ public class TemplateService {
         return customerMap;
     }
 
-    private SpringTemplateEngine buildStringEngine() {
+    /**
+     * Building a SpringTemplateEngine is expensive (dialect + SpEL setup), so it is created
+     * once and reused. The StringTemplateResolver is cacheable, so a template string that was
+     * already parsed is not parsed again (the cache key is the template content itself, so an
+     * edited template is simply a new cache entry).
+     */
+    private static final SpringTemplateEngine STRING_ENGINE = createStringEngine();
+
+    private static SpringTemplateEngine createStringEngine() {
         StringTemplateResolver resolver = new StringTemplateResolver();
         resolver.setTemplateMode(TemplateMode.HTML);
-        resolver.setCacheable(false);
+        resolver.setCacheable(true);
+        resolver.setCacheTTLMs(60 * 60 * 1000L);
         SpringTemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(resolver);
         return engine;
+    }
+
+    private SpringTemplateEngine buildStringEngine() {
+        return STRING_ENGINE;
+    }
+
+    /** Cache of template file contents, keyed by path and invalidated when the file's mtime changes. */
+    private static final Map<Path, CachedFile> TEMPLATE_FILE_CACHE = new ConcurrentHashMap<>();
+
+    private record CachedFile(long lastModified, String content) {}
+
+    private String loadTemplateHtml(Template tmpl) {
+        if (tmpl.getFilePath() == null || tmpl.getFilePath().isEmpty()) {
+            return tmpl.getHtmlContent();
+        }
+        Path path = Path.of(tmpl.getFilePath());
+        try {
+            long mtime = Files.getLastModifiedTime(path).toMillis();
+            CachedFile cached = TEMPLATE_FILE_CACHE.get(path);
+            if (cached != null && cached.lastModified() == mtime) {
+                return cached.content();
+            }
+            String content = Files.readString(path);
+            TEMPLATE_FILE_CACHE.put(path, new CachedFile(mtime, content));
+            return content;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
+        }
     }
 
     @Deprecated
@@ -261,16 +290,7 @@ public class TemplateService {
             Context ctx = new Context();
 
             Template tmpl = templateRepository.findByType("INVOICE").orElseThrow(() -> new RuntimeException("No active Invoice template "));
-            String htmlContent;
-            try {
-                if(tmpl.getFilePath() != null &&  !tmpl.getFilePath().isEmpty()) {
-                    htmlContent = Files.readString(Path.of(tmpl.getFilePath()));
-                }else{
-                    htmlContent = tmpl.getHtmlContent();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to read template file at: " + tmpl.getFilePath(), e);
-            }
+            String htmlContent = loadTemplateHtml(tmpl);
 
             Map<String,Object> variableMap = new HashMap<>();
             variableMap.put("invoiceNo","INV-" + shiftingId + "-2026");

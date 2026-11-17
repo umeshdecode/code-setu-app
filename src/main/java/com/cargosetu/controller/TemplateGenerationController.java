@@ -72,9 +72,10 @@ public class TemplateGenerationController {
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
     @GetMapping(value = "/quotation/{shiftingId}/pdf")
     public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-        String pdf = templateService.generateQuotationPdf(shiftingId);
+        // Returns rendered HTML (not a PDF); the UI opens it in the print dialog ("Save as PDF").
+        String html = templateService.generateQuotationPdf(shiftingId);
         try {
-            return ResponseEntity.ok().body(pdf);
+            return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);
         } catch (Exception e) {
             GenericDataDTO errorResponse = new GenericDataDTO();
             errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);

@@ -315,16 +315,33 @@ public class CompanyServImpl implements CompanyService {
         }
 
         try {
-            byte[] bytes = Files.readAllBytes(Path.of(filePath));
+            Path path = Path.of(filePath);
+            long mtime = Files.getLastModifiedTime(path).toMillis();
+            CachedAsset cached = ASSET_B64_CACHE.get(path);
+            if (cached != null && cached.lastModified() == mtime) {
+                return cached.dataUri();
+            }
+            byte[] bytes = Files.readAllBytes(path);
+            if (bytes.length > 500 * 1024) {
+                log.warn("Asset {} is {} KB; large images make template/PDF generation slow. "
+                        + "Consider resizing it.", filePath, bytes.length / 1024);
+            }
             String b64    = Base64.getEncoder().encodeToString(bytes);
             String mime   = detectMimeType(filePath);
-            return "data:" + mime + ";base64," + b64;
+            String dataUri = "data:" + mime + ";base64," + b64;
+            ASSET_B64_CACHE.put(path, new CachedAsset(mtime, dataUri));
+            return dataUri;
 
         } catch (Exception e) {
             log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
             return null;   // template handles null → shows placeholder box
         }
     }
+
+    /** Base64 data URIs of asset files, invalidated when the file's mtime changes. */
+    private static final Map<Path, CachedAsset> ASSET_B64_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private record CachedAsset(long lastModified, String dataUri) {}
 
     /** Infer MIME type from file extension. */
     private String detectMimeType(String path) {
