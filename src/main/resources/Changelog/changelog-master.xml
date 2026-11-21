@@ -1,87 +1,516 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <databaseChangeLog
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
+    <!-- ===================================================== -->
+    <!-- Create tblmclientservice                              -->
+    <!-- ===================================================== -->
 
-    <changeSet id="NB20260001" author="Nishit" runOnChange="true">
+    <changeSet id="NB20260001" author="Nishit">
+
         <preConditions onFail="MARK_RAN">
             <not>
                 <tableExists tableName="tblmclientservice"/>
             </not>
         </preConditions>
+
         <createTable tableName="tblmclientservice">
+
             <column name="serviceid" type="INT" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false"/>
+                <constraints primaryKey="true"
+                             nullable="false"/>
             </column>
+
             <column name="name" type="VARCHAR(40)">
                 <constraints nullable="false"/>
             </column>
-            <column name="value" type="VARCHAR(40)">
+
+            <column name="value" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
+
             <column name="STAFFID" type="INT">
                 <constraints nullable="false"/>
             </column>
+
             <column name="module" type="VARCHAR(40)">
                 <constraints nullable="false"/>
             </column>
+
+            <column name="status" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+
+            <!-- AbstractModel Fields -->
+
+            <column name="is_active"
+                    type="BIT"
+                    defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="is_deleted"
+                    type="BIT"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="created_by"
+                    type="BIGINT"/>
+
+            <column name="created_by_name"
+                    type="VARCHAR(255)"/>
+
+            <column name="created_at"
+                    type="DATETIME"/>
+
+            <column name="updated_by_name"
+                    type="VARCHAR(255)"/>
+
+            <column name="updated_by_id"
+                    type="BIGINT"/>
+
+            <column name="updated_at"
+                    type="DATETIME"/>
+
         </createTable>
+
     </changeSet>
 
 
+    <!-- ===================================================== -->
+    <!-- Default Records                                       -->
+    <!-- ===================================================== -->
 
-    <!--   Insert Default Data in Client Service Master Table  -->
-    <changeSet id="NB0001" author="Nishit" runOnChange="true">
-                <preConditions onFail="MARK_RAN">
-                    <sqlCheck expectedResult="0">
-                        select count(*) from tblmclientservice Where NAME ='Staff Document' and STAFFID="1";
-                    </sqlCheck>
-                </preConditions>
+    <changeSet id="NB0001" author="Nishit">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME = 'Staff Document'
+                  AND STAFFID = 1
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Staff Document -->
+
         <insert tableName="tblmclientservice">
-            <column name="serviceid" value="1"/>
+
             <column name="name" value="Staff Document"/>
-            <column name="value" value="D:\"/>
-            <column name="STAFFID" value="1"/>
+            <column name="value" value="D:\\"/>
+            <column name="STAFFID" valueNumeric="1"/>
             <column name="module" value="xyz"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+
         </insert>
 
+
+        <!-- Login Attempt -->
+
         <insert tableName="tblmclientservice">
-            <column name="serviceid" value="2"></column>
+
             <column name="name" value="Login Attempt"/>
             <column name="value" value="5"/>
-            <column name="STAFFID" value="1"/>
+            <column name="STAFFID" valueNumeric="1"/>
             <column name="module" value="xyz"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+
         </insert>
 
     </changeSet>
 
 
+    <!-- ===================================================== -->
+    <!-- QUOTATION                                              -->
+    <!-- ===================================================== -->
+
+    <changeSet id="SKP0002" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='QUOTATION'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
+
+            <column name="name" value="QUOTATION"/>
+            <column name="value"
+                    value="D:\\cargo project\\document"/>
+
+            <column name="STAFFID" valueNumeric="1"/>
+
+            <column name="module" value="QUOTATION"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+
+        </insert>
+
+    </changeSet>
 
 
+    <!-- ===================================================== -->
+    <!-- TEMPLATE                                               -->
+    <!-- ===================================================== -->
+
+    <changeSet id="SKP0003" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='Template'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
+
+            <column name="name" value="Template"/>
+            <column name="value"
+                    value="D:\\cargo project\\document"/>
+
+            <column name="STAFFID" valueNumeric="1"/>
+
+            <column name="module" value="Template"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+
+        </insert>
+
+    </changeSet>
 
 
+    <!-- ===================================================== -->
+    <!-- USER LOGO                                              -->
+    <!-- ===================================================== -->
+
+    <changeSet id="SKP0004" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='User_Logo'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
+            <column name="name" value="User_Logo"/>
+            <column name="value"
+                    value="D:\\cargo project\\document"/>
+            <column name="STAFFID" valueNumeric="1"/>
+            <column name="module" value="User_Logo"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+        </insert>
+
+    </changeSet>
+
+    <changeSet id="SKP0005" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME = 'COMPANY_ASSET'
+                  AND STAFFID = 1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
 
 
+            <column name="name" value="COMPANY_ASSET"/>
+
+            <column name="value"
+                    value="D:\\cargo project\\document"/>
+
+            <column name="STAFFID" valueNumeric="1"/>
+
+            <column name="module" value="COMPANY_ASSET"/>
+
+            <column name="status" value="ACTIVE"/>
+
+            <column name="is_active" valueBoolean="true"/>
+
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+
+            <column name="created_by_name" value="super admin"/>
+
+            <column name="created_at"
+                    valueDate="2026-06-06T16:42:03"/>
+
+            <!-- Optional nullable fields -->
+            <column name="updated_by_name"
+                    valueComputed="NULL"/>
+
+            <column name="updated_by_id"
+                    valueComputed="NULL"/>
+
+            <column name="updated_at"
+                    valueComputed="NULL"/>
+
+        </insert>
+
+    </changeSet>
+    <changeSet id="SKP0006" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME = 'Company_Asset_Doc_size'
+                  AND STAFFID = 1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmclientservice">
 
 
+            <column name="name" value="Company_Asset_Doc_size"/>
 
+            <column name="value"
+                    value="5"/>
 
+            <column name="STAFFID" valueNumeric="1"/>
 
-<!--    <changeSet id="NB0001" author="Nishit" runOnChange="true">-->
-<!--        <preConditions onFail="MARK_RAN">-->
-<!--            <sqlCheck expectedResult="0">-->
-<!--                select count(*) from tblmclientservice Where NAME ='';-->
-<!--            </sqlCheck>-->
-<!--        </preConditions>-->
-<!--        <insert tableName="tblmclientservice">-->
-<!--            <column name="serviceid" value="1"></column>-->
-<!--            <column name="NAME" value=""/>-->
-<!--            <column name="VALUE" value=""/>-->
-<!--        </insert>-->
-<!--    </changeSet>-->
+            <column name="module" value="Company_Asset_Doc_size"/>
 
+            <column name="status" value="ACTIVE"/>
 
+            <column name="is_active" valueBoolean="true"/>
+
+            <column name="is_deleted" valueBoolean="false"/>
+
+            <column name="created_by" valueNumeric="1"/>
+
+            <column name="created_by_name" value="super admin"/>
+
+            <column name="created_at"
+                    valueDate="2026-06-06T16:42:03"/>
+
+            <!-- Optional nullable fields -->
+            <column name="updated_by_name"
+                    valueComputed="NULL"/>
+
+            <column name="updated_by_id"
+                    valueComputed="NULL"/>
+
+            <column name="updated_at"
+                    valueComputed="NULL"/>
+
+        </insert>
+
+    </changeSet>
+    <changeSet id="SKP0008" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="tblmcompany"/>
+            </not>
+        </preConditions>
+        <createTable tableName="tblmcompany">
+            <column name="company_id" type="INT" autoIncrement="true">
+                <constraints primaryKey="true"
+                             primaryKeyName="pk_tblmcompany"
+                             nullable="false"/>
+            </column>
+            <column name="company_name" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="company_email" type="VARCHAR(150)">
+                <constraints nullable="false"
+                             unique="true"
+                             uniqueConstraintName="uk_tblmcompany_email"/>
+            </column>
+            <column name="whatsapp_number" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contact_no_1" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="contact_no_2" type="BIGINT"/>
+            <column name="landline_no" type="VARCHAR(50)"/>
+            <column name="toll_free_number" type="VARCHAR(50)"/>
+            <column name="pan_number" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="gst_number" type="VARCHAR(15)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="address" type="VARCHAR(300)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="country" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="state" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="city" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="branch" type="VARCHAR(100)"/>
+            <column name="main_branch" type="VARCHAR(100)"/>
+            <column name="company_uuid" type="VARCHAR(100)"/>
+
+            <column name="created_by_id" type="BIGINT"/>
+            <!-- AbstractModel Fields -->
+            <column name="is_active" type="BOOLEAN"
+                    defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_deleted" type="BOOLEAN"
+                    defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="BIGINT"/>
+            <column name="created_by_name" type="VARCHAR(255)"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="updated_by_id" type="BIGINT"/>
+            <column name="updated_by_name" type="VARCHAR(255)"/>
+        </createTable>
+
+        <createIndex tableName="tblmcompany"
+                     indexName="idx_tblmcompany_uuid">
+            <column name="company_uuid"/>
+        </createIndex>
+
+        <createIndex tableName="tblmcompany"
+                     indexName="idx_tblmcompany_contact_no_1">
+            <column name="contact_no_1"/>
+        </createIndex>
+
+    </changeSet>
+
+    <changeSet id="SKP0007" author="Subham Kumar Patel">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmcompany
+                WHERE company_id = 1
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="tblmcompany">
+            <column name="company_id" valueNumeric="1"/>
+            <column name="company_name" value="Cargo Setu Pvt. Ltd."/>
+            <column name="company_email" value="shubhaampatel2609@gmail.com"/>
+            <column name="company_uuid" value="JAVAUZK0395HM8387"/>
+            <column name="address"
+                    value="H-603 LakshmiNayanan Residency , near devbhumi banglow south bopal"/>
+            <column name="city" value="Ahmedabad"/>
+            <column name="country" value="India"/>
+            <column name="state" value="Gujarat"/>
+            <column name="contact_no_1" valueNumeric="8518737838"/>
+            <column name="contact_no_2" valueNumeric="8518737838"/>
+            <column name="landline_no" value="8518737838"/>
+            <column name="toll_free_number" value="8518737838"/>
+            <column name="whatsapp_number" valueNumeric="8518737838"/>
+            <column name="gst_number" value="24AAAGM0289C1ZP"/>
+            <column name="pan_number" value="KSJDU8373J"/>
+            <!-- Nullable Business Fields -->
+            <column name="branch" valueComputed="NULL"/>
+            <column name="main_branch" valueComputed="NULL"/>
+            <!-- AbstractModel Fields -->
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_at"
+                    valueDate="CURRENT_TIMESTAMP"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" valueComputed="NULL"/>
+            <column name="updated_at" valueComputed="NULL"/>
+            <column name="updated_by_id" valueComputed="NULL"/>
+            <column name="updated_by_name" valueComputed="NULL"/>
+        </insert>
+
+    </changeSet>
+
+    <changeSet id="SKP0009" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='Company_Logo'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tblmclientservice">
+            <column name="name" value="Company_Logo"/>
+            <column name="value" value="D:\\cargo project\\document"/>
+            <column name="STAFFID" valueNumeric="1"/>
+            <column name="module" value="Company_Logo"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+        </insert>
+    </changeSet>
+    <changeSet id="SKP00010" author="Subham Kumar Patel">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*)
+                FROM tblmclientservice
+                WHERE NAME='TRIP_DOCS'
+                  AND STAFFID=1
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="tblmclientservice">
+            <column name="name" value="TRIP_DOCS"/>
+            <column name="value" value="D:\\cargo project\\document"/>
+            <column name="STAFFID" valueNumeric="1"/>
+            <column name="module" value="TRIP_DOCS"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="is_active" valueBoolean="true"/>
+            <column name="is_deleted" valueBoolean="false"/>
+            <column name="created_by" valueNumeric="1"/>
+            <column name="created_by_name" value="super admin"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>

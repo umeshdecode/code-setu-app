@@ -16,8 +16,8 @@ public class DocumentMaster extends AbstractModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "document_id")
-    private Long documentId;
+    @Column(name = "id")
+    private Long id;
 
     @Column(nullable = false, length = 50, unique = true)
     private String code; // AADHAAR, PAN, DL, PASSPORT, RESUME

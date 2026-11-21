@@ -24,7 +24,13 @@ public class StaffDTO {
     private Set<RolesDTO> roles = new HashSet<>();
     private Boolean isActive = false;
     private String staffType;
+    /**
+     * Viewable image URL (public or presigned) resolved from {@link #profileImageKey}.
+     * Read-only for clients — it is regenerated on every read and ignored on writes.
+     */
     private String profileImageUrl;
+    /** Raw S3 object key of the profile photo. This is what is persisted. */
+    private String profileImageKey;
     private String alternateMobile;
     private String address;
     private String city;
@@ -38,5 +44,6 @@ public class StaffDTO {
     private String previousPassword;
     private DepartmentDTO department;
     private Integer companyId;
+    private Integer salary;
     private Set<Long> roleIds = new HashSet<>();
 }

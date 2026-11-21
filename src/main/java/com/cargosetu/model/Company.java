@@ -77,6 +77,11 @@ public class Company extends AbstractModel {
     @Column(name = "company_uuid")
     @JsonProperty("company_uuid")
     private String companyUUID;
+    @Column(name = "created_by_id")
+    private Long createdById;
+
+    private String website;
+
     public Company() {
     }
     public Company(CompanyDTO companyDto) {

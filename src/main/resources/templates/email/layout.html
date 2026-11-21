@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>CargoSetu Notification</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f9; font-family:'Inter', Arial, sans-serif; -webkit-font-smoothing:antialiased;">
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f6f9; table-layout:fixed;">
+        <tr>
+            <td align="center" style="padding:40px 15px;">
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px; background-color:#ffffff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 4px 6px rgba(0,0,0,0.02);">
+
+                    <!-- Header: brand icon + name -->
+                    <tr>
+                        <td align="center" style="padding:40px 40px 20px 40px;">
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="vertical-align:middle; padding-right:10px;">
+                                        <div style="width:38px; height:38px; background-color:#eff6ff; border-radius:8px; text-align:center; line-height:38px;">
+                                            <span style="color:#2563eb; font-size:20px; font-weight:bold;">&#128230;</span>
+                                        </div>
+                                    </td>
+                                    <td align="center" style="vertical-align:middle;">
+                                        <span style="font-size:24px; font-weight:700; color:#1e293b; letter-spacing:-0.5px;" th:text="${companyName} ?: 'CargoSetu'">CargoSetu</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Event-specific body -->
+                    <tr>
+                        <td style="padding:0 40px 30px 40px; color:#334155; font-size:15px; line-height:1.6;">
+                            <div th:utext="${content}"></div>
+                        </td>
+                    </tr>
+
+                    <!-- Support help text -->
+                    <tr>
+                        <td align="center" style="padding:0 40px 35px 40px;">
+                            <p style="margin:0; font-size:13px; color:#64748b;">
+                                Need help? Reply to this email or visit our
+                                <a th:href="${contactUsUrl} ?: 'https://cargosetu.com/contact'" style="color:#2563eb; text-decoration:underline;">support page</a>.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="background-color:#f8fafc; border-top:1px solid #e2e8f0; padding:25px 40px;">
+                            <p style="margin:0 0 10px 0; font-size:12px; color:#64748b;">
+                                <a th:href="${contactUsUrl} ?: 'https://cargosetu.com/contact'" style="color:#2563eb; text-decoration:none;">Contact Us</a>&nbsp;|&nbsp;
+                                <a th:href="${privacyPolicyUrl} ?: 'https://cargosetu.com/privacy'" style="color:#2563eb; text-decoration:none;">Privacy Policy</a>&nbsp;|&nbsp;
+                                <a th:href="${termsUrl} ?: 'https://cargosetu.com/terms'" style="color:#2563eb; text-decoration:none;">Terms &amp; Conditions</a>&nbsp;|&nbsp;
+                                <a th:href="${faqUrl} ?: 'https://cargosetu.com/faqs'" style="color:#2563eb; text-decoration:none;">FAQs</a>
+                            </p>
+                            <p style="margin:0; font-size:12px; color:#94a3b8;">
+                                <span th:text="'© ' + ${currentYear} + ' ' + (${companyName} ?: 'CargoSetu') + '. All rights reserved.'">&#169; CargoSetu</span>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

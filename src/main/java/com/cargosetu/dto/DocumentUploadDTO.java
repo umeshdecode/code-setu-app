@@ -18,6 +18,15 @@ public class DocumentUploadDTO {
 
     private String filePath;
 
+    /** S3 object key returned after upload, e.g. "documents/2024/08/abc-aadhaar.pdf" */
+    private String s3Key;
+
+    /** Logical bucket config key, e.g. "DOCUMENTS" */
+    private String s3ConfigKey;
+
+    /** Viewable URL (public URL or presigned URL) for this file */
+    private String fileUrl;
+
     private String fileType;
 
     private Long fileSize;

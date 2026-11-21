@@ -15,13 +15,13 @@ public interface DocumentUploadMapper extends BaseUpdateMapper<DocumentUploadDTO
 
     @Override
     @Mapping(source = "staff.staffId", target = "staffId")
-    @Mapping(source = "document.documentId", target = "documentId")
+    @Mapping(source = "document.id", target = "documentId")
 //    @Mapping(source = "customer.customerId", target = "customerId")
     DocumentUploadDTO toDto(DocumentUpload entity);
 
     @Override
     @Mapping(source = "staffId", target = "staff.staffId")
-    @Mapping(source = "documentId", target = "document.documentId")
+    @Mapping(source = "documentId", target = "document.id")
 //    @Mapping(source = "customerId", target = "customer.customerId")
     DocumentUpload toEntity(DocumentUploadDTO dto);
 

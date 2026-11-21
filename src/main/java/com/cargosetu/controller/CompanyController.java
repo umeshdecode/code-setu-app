@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.dto.DocumentUploadDTO;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,14 +37,14 @@ public class CompanyController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public GenericDataDTO createCompany(@ModelAttribute CompanyDTO company) {
+    public GenericDataDTO createCompany(@AuthenticationPrincipal LoggedInUser user,@ModelAttribute CompanyDTO company) {
         log.info("API: Create Company");
-        return companyService.createCompany(company);
+        return companyService.createCompany(company,user.getStaffId());
     }
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
-    @PutMapping
+    @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public GenericDataDTO updateCompany(
-            @Valid @RequestBody CompanyDTO company) {
+            @Valid @ModelAttribute CompanyDTO company) {
 
         log.info("API: Update Company {}", company.getCompanyId());
         return companyService.updateCompany(company.getCompanyId(), company);
@@ -57,9 +59,9 @@ public class CompanyController {
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")
     @GetMapping
-    public GenericDataDTO getAllCompanies() {
+    public GenericDataDTO getAllCompanies(@AuthenticationPrincipal LoggedInUser user) {
         log.info("API: Get All Companies");
-        return companyService.getAllCompanies();
+        return companyService.getAllCompanies(user);
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_UPDATE_DELETE)")
@@ -68,6 +70,23 @@ public class CompanyController {
         log.info("API: Delete Company {}", id);
         return companyService.deleteCompany(id);
 
+    }
+
+    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_READ)")
+    @GetMapping("/currentCompany")
+    public GenericDataDTO getCurrentCompany(@AuthenticationPrincipal LoggedInUser user) {
+        GenericDataDTO response = new GenericDataDTO();
+        if(Objects.nonNull(user) && user.getCompanyId() != null){
+            return companyService.getCompany(user.getCompanyId());
+        }
+        if(Objects.nonNull(user) && user.getStaffId() !=null){{
+            return companyService.getCompanyByStaffId(user.getStaffId());
+        }
+
+        }
+        response.setResponseCode(404);
+        response.setResponseMessege("Company not found");
+        return response;
     }
 
     @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")

@@ -1,22 +1,31 @@
 package com.cargosetu.service.impl;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.dto.CompanyAssetDTO;
 import com.cargosetu.dto.CompanyDTO;
 import com.cargosetu.model.Clientservice;
 import com.cargosetu.model.Company;
 import com.cargosetu.model.CompanyAsset;
+import com.cargosetu.model.Staff;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.ClientServiceRepo;
 import com.cargosetu.repo.CompanyAssetRepository;
 import com.cargosetu.repo.CompanyRepository;
+import com.cargosetu.repo.StaffRepository;
 import com.cargosetu.service.CompanyService;
 import com.cargosetu.utils.GenericDataDTO;
 import com.cargosetu.utils.UUIDGenerator;
 import com.cargosetu.utils.utillity.FileUtility;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.common.errors.ResourceNotFoundException;
+import com.cargosetu.service.S3StorageService;
+import com.cargosetu.dto.S3UploadResult;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,9 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.cargosetu.document.service.DocumentUploadService.BASE_FILE_URL;
 
 @Service
 @Slf4j
@@ -40,8 +46,15 @@ public class CompanyServImpl implements CompanyService {
     private ClientServiceRepo clientServiceRepo;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private StaffRepository staffRepository;
+    @Autowired
+    private S3StorageService s3StorageService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     @Override
-    public GenericDataDTO createCompany(CompanyDTO companyDto) {
+    public GenericDataDTO createCompany(CompanyDTO companyDto, Long staffId) {
         GenericDataDTO response = new GenericDataDTO();
         String prefix = "COPTIC";
         String suffix = "6293";
@@ -63,11 +76,16 @@ public class CompanyServImpl implements CompanyService {
             Company company = new Company(companyDto);
             company.setCompanyUUID(UUIDGenerator.generate(prefix,suffix));
             Company saved = companyRepository.save(company);
-
+            Optional<Staff> staff = staffRepository.findById(staffId);
+            if(staff.isPresent()){
+                staff.get().setCompanyId(saved.getCompanyId());
+                staffRepository.save(staff.get());
+            }
             response.setResponseMessege("Company created successfully");
             response.setResponseCode(200);
             response.setData(saved);
            createCompanyAssets(companyDto.getAssets() ,saved.getCompanyId());
+           publishRegistrationNotification(saved);
 
 
         } catch (Exception e) {
@@ -126,10 +144,18 @@ public class CompanyServImpl implements CompanyService {
             if (company.getCountry() != null) {
                 existing.setCountry(company.getCountry());
             }
+            if(company.getWebsite() != null){
+                existing.setWebsite(company.getWebsite());
+            }
 
             existing.setUpdatedAt(LocalDateTime.now());
 
             Company updated = companyRepository.save(existing);
+
+            // Handle updating of company assets (logos, seals, stamps)
+            if (company.getAssets() != null && !company.getAssets().isEmpty()) {
+                createCompanyAssets(company.getAssets(), id);
+            }
 
             response.setResponseMessege("Company updated successfully");
             response.setResponseCode(200);
@@ -158,7 +184,7 @@ public class CompanyServImpl implements CompanyService {
 
             response.setResponseMessege("Company fetched successfully");
             response.setResponseCode(200);
-            response.setData(company);
+            response.setData(mapToCompanyDTOWithAssets(company));
 
         } catch (Exception e) {
             log.error("Error fetching company {}", id, e);
@@ -169,16 +195,36 @@ public class CompanyServImpl implements CompanyService {
     }
 
     @Override
-    public GenericDataDTO getAllCompanies() {
+    public GenericDataDTO getAllCompanies(LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             log.info("Fetching all companies");
 
-            List<Company> list = companyRepository.findAll();
+            if(user.getStaffId() == 1){
+                List<Company> list = companyRepository.findAll();
+                response.setResponseMessege("Companies fetched successfully");
+                response.setResponseCode(200);
+                response.setDataList(list);
+            }else {
+                if(user.getCompanyId() != null){
+                    Company company = companyRepository.findById(user.getCompanyId()).orElse(null);
+                    if (company == null) {
+                        response.setResponseMessege("Company not found");
+                        response.setResponseCode(404);
+                        return response;
+                    }
 
-            response.setResponseMessege("Companies fetched successfully");
-            response.setResponseCode(200);
-            response.setDataList(list);
+                    response.setResponseMessege("Company fetched successfully");
+                    response.setResponseCode(200);
+                    response.setDataList(List.of(company));
+                }else{
+                    response.setResponseMessege("Company not found");
+                    response.setResponseCode(404);
+                    return response;
+                }
+            }
+
+            return response;
 
         } catch (Exception e) {
             log.error("Error fetching companies", e);
@@ -217,6 +263,22 @@ public class CompanyServImpl implements CompanyService {
         return response;
     }
 
+
+    private void publishRegistrationNotification(Company company) {
+        if (company.getCompanyEmail() == null || company.getCompanyEmail().isBlank()) {
+            return;
+        }
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("companyName", company.getCompanyName() != null ? company.getCompanyName() : "");
+        variables.put("contactName", company.getCompanyName() != null ? company.getCompanyName() : "there");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                NotificationEventType.REGISTRATION,
+                List.of(company.getCompanyEmail()),
+                NotificationChannel.EMAIL,
+                variables
+        ));
+    }
 
     private void validateCompanyAssetFiles(MultipartFile[] files) {
         if (files == null || files.length == 0) {
@@ -258,44 +320,72 @@ public class CompanyServImpl implements CompanyService {
 
     @Override
     @Transactional
-    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets,Integer companyId) {
-
+    public void createCompanyAssets(List<CompanyAssetDTO> companyAssets, Integer companyId) {
         if (companyAssets == null || companyAssets.isEmpty()) {
             return;
         }
 
-        List<CompanyAsset> assets = new ArrayList<>();
-
         for (CompanyAssetDTO dto : companyAssets) {
-
-            MultipartFile[] file = dto.getFile();
-
-            if (file == null || file.length==0) {
+            if (dto == null) {
+                continue;
+            }
+            MultipartFile[] files = dto.getFile();
+            if (files == null || files.length == 0) {
+                continue;
+            }
+            MultipartFile file = files[0];
+            if (file == null || file.isEmpty() || file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
                 continue;
             }
 
-            validateCompanyAssetFiles(file);
-            Clientservice clientservice = clientServiceRepo.findByName("COMPANY_ASSET").orElse(null);
+            validateCompanyAssetFiles(files);
 
-            String filePath = FileUtility.saveMultipartFile(file, clientservice.getName()).toString();
+            try {
+                // Upload asset to S3 (using "COMPANY_ASSETS" bucket config)
+                S3UploadResult uploadResult = s3StorageService.uploadFile(file, "COMPANY_ASSETS");
+                String s3Key = uploadResult.getS3Key();
 
-            dto.setFilePath(filePath);
-            dto.setCompanyId(companyId);
-            assets.add(convertCompanyAssetDtoToEntity(dto));
+                // Check if asset already exists for this company and asset type
+                CompanyAsset existingAsset = companyAssetRepository.findByCompanyIdAndAssetType(companyId, dto.getAssetType());
+                if (existingAsset != null) {
+                    String oldFilePath = existingAsset.getFilePath();
+                    if (oldFilePath != null && !oldFilePath.isBlank()) {
+                        try {
+                            s3StorageService.deleteFile(oldFilePath, "COMPANY_ASSETS");
+                            log.info("Deleted old company asset from S3: {}", oldFilePath);
+                        } catch (Exception ex) {
+                            log.warn("Failed to delete old company asset from S3: {}", oldFilePath, ex);
+                        }
+                    }
+                    existingAsset.setFilePath(s3Key);
+                    companyAssetRepository.save(existingAsset);
+                    log.info("Updated company asset {} for companyId={}", dto.getAssetType(), companyId);
+                } else {
+                    CompanyAsset newAsset = new CompanyAsset();
+                    newAsset.setCompanyId(companyId);
+                    newAsset.setAssetType(dto.getAssetType());
+                    newAsset.setFilePath(s3Key);
+                    companyAssetRepository.save(newAsset);
+                    log.info("Created new company asset {} for companyId={}", dto.getAssetType(), companyId);
+                }
+            } catch (Exception e) {
+                log.error("Failed to upload company asset {} to S3", dto.getAssetType(), e);
+                throw new RuntimeException("Asset upload to S3 failed: " + e.getMessage(), e);
+            }
         }
+    }
 
-        companyAssetRepository.saveAll(assets);
-    }    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto){
+    public CompanyAsset convertCompanyAssetDtoToEntity(CompanyAssetDTO dto) {
         CompanyAsset companyAsset = new CompanyAsset();
         companyAsset.setAssetType(dto.getAssetType());
         companyAsset.setFilePath(dto.getFilePath());
         companyAsset.setCompanyId(dto.getCompanyId());
         companyAsset.setId(dto.getId());
-        return  companyAsset;
+        return companyAsset;
     }
 
     /**
-     * Fetches the asset record, reads the file from disk,
+     * Fetches the asset record, reads the file from local disk or downloads from S3,
      * and returns a ready-to-use base64 data URI.
      * Returns null if no asset found or file cannot be read.
      */
@@ -315,15 +405,151 @@ public class CompanyServImpl implements CompanyService {
         }
 
         try {
-            byte[] bytes = Files.readAllBytes(Path.of(filePath));
-            String b64    = Base64.getEncoder().encodeToString(bytes);
-            String mime   = detectMimeType(filePath);
-            return "data:" + mime + ";base64," + b64;
+            byte[] bytes;
+            // Check if it's a local file path
+            Path localPath = Path.of(filePath);
+            if (Files.exists(localPath)) {
+                bytes = Files.readAllBytes(localPath);
+            } else {
+                // Otherwise retrieve from S3
+                bytes = s3StorageService.downloadFile(filePath, "COMPANY_ASSETS");
+            }
+
+            return Base64.getEncoder().encodeToString(bytes);
 
         } catch (Exception e) {
-            log.error("Failed to read asset file at path={} : {}", filePath, e.getMessage());
+            log.error("Failed to read asset from local disk or S3 path={}: {}", filePath, e.getMessage());
             return null;   // template handles null → shows placeholder box
         }
+    }
+
+
+    @Override
+    public GenericDataDTO getCompany(Integer companyId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+
+            Company company = companyRepository.findById(companyId).orElse(null);
+            if (company == null) {
+                response.setResponseMessege("Company not found");
+                response.setResponseCode(404);
+                return response;
+            }
+
+            response.setResponseMessege("Company fetched successfully");
+            response.setResponseCode(200);
+            response.setData(mapToCompanyDTOWithAssets(company));
+
+        } catch (Exception e) {
+            response.setResponseMessege("Failed to fetch company");
+            response.setResponseCode(500);
+        }
+        return response;
+    }
+
+    @Override
+    public GenericDataDTO getCompanyByStaffId(Long staffId) {
+
+        log.info("Fetching company details for staffId: {}", staffId);
+
+        GenericDataDTO response = new GenericDataDTO();
+
+        try {
+            Company company = companyRepository.findCompanyByStaffId(staffId).orElseThrow(() -> {
+                        log.warn("Company not found for staffId: {}", staffId);
+
+                        return new ResourceNotFoundException(
+                                "Company",
+                                "staffId",
+                                new Exception()
+                        );
+                    });
+
+            response.setData(mapToCompanyDTOWithAssets(company));
+            response.setResponseCode(HttpStatus.OK.value());
+            response.setResponseMessege("Company details fetched successfully.");
+
+            log.info("Company details fetched successfully. CompanyId: {}, staffId: {}",
+                    company.getCompanyId(),
+                    staffId);
+
+        } catch (ResourceNotFoundException ex) {
+
+            response.setResponseCode(HttpStatus.NO_CONTENT.value());
+            response.setResponseMessege(ex.getMessage());
+
+            log.warn("No company found for staffId: {}", staffId);
+
+        } catch (Exception ex) {
+
+            response.setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setResponseMessege("Failed to fetch company details.");
+
+            log.error("Unexpected error while fetching company details for staffId: {}",
+                    staffId,
+                    ex);
+        }
+
+        return response;
+    }
+
+    private CompanyDTO mapToCompanyDTOWithAssets(Company company) {
+        String name = company.getCompanyName() != null ? company.getCompanyName().trim() : "";
+        int spaceIdx = name.indexOf(' ');
+        String first = spaceIdx > 0 ? name.substring(0, spaceIdx) : name;
+        String rest  = spaceIdx > 0 ? name.substring(spaceIdx)    : "";
+
+        CompanyDTO dto = CompanyDTO.builder()
+                .companyId(company.getCompanyId())
+                .companyName(name)
+                .companyNameFirst(first)
+                .companyNameRest(rest)
+                .companyEmail(company.getCompanyEmail())
+                .whatsappNumber(company.getWhatsappNumber())
+                .contactNo1(company.getContactNo1())
+                .contactNo2(company.getContactNo2())
+                .landlineNo(company.getLandlineNo())
+                .tollFreeNumber(company.getTollFreeNumber())
+                .panNumber(company.getPanNumber())
+                .gstNumber(company.getGstNumber())
+                .address(company.getAddress())
+                .country(company.getCountry())
+                .state(company.getState())
+                .city(company.getCity())
+                .branch(company.getBranch())
+                .mainBranch(company.getMainBranch())
+                .companyUUID(company.getCompanyUUID())
+                .website(company.getWebsite())
+                .isActive(company.getIsActive())
+                .build();
+                dto.setActive(company.getIsActive());
+        List<CompanyAsset> assets = companyAssetRepository.findByCompanyId(company.getCompanyId());
+        if (assets != null && !assets.isEmpty()) {
+            List<CompanyAssetDTO> assetDTOs = new ArrayList<>();
+            for (CompanyAsset asset : assets) {
+                CompanyAssetDTO aDto = new CompanyAssetDTO();
+                aDto.setId(asset.getId());
+                aDto.setCompanyId(asset.getCompanyId());
+                aDto.setAssetType(asset.getAssetType());
+                aDto.setFilePath(asset.getFilePath());
+                
+                String filePath = asset.getFilePath();
+                if (filePath != null && !filePath.isBlank()) {
+                    try {
+                        Path localPath = Path.of(filePath);
+                        if (!Files.exists(localPath)) {
+                            String url = s3StorageService.getViewableUrl(filePath, "COMPANY_ASSETS");
+                            aDto.setFileUrl(url);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Could not generate URL for asset: {}", e.getMessage());
+                    }
+                }
+                assetDTOs.add(aDto);
+            }
+            dto.setAssets(assetDTOs);
+        }
+        return dto;
     }
 
     /** Infer MIME type from file extension. */

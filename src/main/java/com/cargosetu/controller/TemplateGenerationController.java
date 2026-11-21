@@ -9,6 +9,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,46 +52,167 @@ public class TemplateGenerationController {
         return ResponseEntity.ok(response);
     }
 
-
-    //    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
-//    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-//    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-//        byte[] pdf = templateService.generateQuotationPdf(shiftingId);
-//        try {
-//            return ResponseEntity.ok()
-//                    .header(HttpHeaders.CONTENT_DISPOSITION,
-//                            "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
-//                    .contentType(MediaType.APPLICATION_PDF)
-//                    .body(pdf);
-//        } catch (Exception e) {
-//            GenericDataDTO errorResponse = new GenericDataDTO();
-//            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-//            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
-//            errorResponse.setErrors(new Object[]{e.getMessage()});
-//            return ResponseEntity.internalServerError().body(errorResponse);
-//        }
-//    }
-    @PreAuthorize("hasAuthority(T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE)")
-    @GetMapping(value = "/quotation/{shiftingId}/pdf")
-    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId) throws Exception {
-        String pdf = templateService.generateQuotationPdf(shiftingId);
+    @GetMapping("/by-type")
+    public ResponseEntity<?> getTemplatesByType(
+            @RequestParam String type,
+            @RequestParam(defaultValue = "0") int pageNumber,
+            @RequestParam(defaultValue = "5") int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
         try {
-            return ResponseEntity.ok().body(pdf);
+            Page<com.cargosetu.model.Template> templates = templateService.getTemplatesByType(type, pageNumber, pageSize);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Templates fetched successfully");
+            response.setData(templates);
         } catch (Exception e) {
+            log.error("Error fetching templates by type: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/default")
+    public ResponseEntity<?> setDefaultTemplate(@PathVariable Long id) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.setDefaultTemplate(id);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Default template set successfully");
+        } catch (Exception e) {
+            log.error("Error setting default template: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+        }
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping(value = "/{id}/preview-html", produces = {MediaType.TEXT_HTML_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> getTemplateHtml(@PathVariable Long id) {
+        try {
+            String html = templateService.getTemplateHtml(id);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
+        } catch (Exception e) {
+            log.error("Error fetching template HTML for preview: {}", e.getMessage(), e);
             GenericDataDTO errorResponse = new GenericDataDTO();
             errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            errorResponse.setResponseMessege(CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
             errorResponse.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
         }
     }
 
-    @GetMapping(value = "/{shiftingId}/invoice", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> getInvoiceHtml(@PathVariable Long shiftingId) throws Exception {
-        String filledInvoiceHtml = templateService.generateInvoiceHtml(shiftingId);
+    @PreAuthorize("hasAnyAuthority(" +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE, " +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_READ, " +
+            "T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW, " +
+            "T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
+    @GetMapping(value = "/quotation/{shiftingId}/pdf", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> quotationPdf(@PathVariable Long shiftingId,
+                                          @RequestParam(required = false) Long templateId) {
+        try {
+            byte[] pdf = templateService.generateQuotationPdf(shiftingId, templateId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Error generating quotation PDF: {}", e.getMessage(), e);
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
+        }
+    }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_HTML)
-                .body(filledInvoiceHtml);
+    @PostMapping(value = "/quotation/{shiftingId}/send")
+    public ResponseEntity<?> sendQuotation(@PathVariable Long shiftingId,
+                                           @RequestParam(required = false) Long templateId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.generateAndSendQuotationPdf(shiftingId, templateId);
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Quotation generated and sent to customer successfully.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error generating or sending quotation: ", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @PreAuthorize("hasAnyAuthority(" +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_CREATE, " +
+            "T(com.cargosetu.utils.PermissionConstants).COMPANY_READ, " +
+            "T(com.cargosetu.utils.PermissionConstants).CUSTOMER_VIEW, " +
+            "T(com.cargosetu.utils.PermissionConstants).SHIFT_READ)")
+    @GetMapping(value = "/packing-list/{shiftingId}/pdf", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> packingListPdf(@PathVariable Long shiftingId,
+                                            @RequestParam(required = false) Long templateId) {
+        try {
+            byte[] pdf = templateService.generatePackingListPdf(shiftingId, templateId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"packing-list-" + shiftingId + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Error generating packing list PDF: {}", e.getMessage(), e);
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
+        }
+    }
+
+    @PostMapping(value = "/packing-list/{shiftingId}/send")
+    public ResponseEntity<?> sendPackingList(@PathVariable Long shiftingId,
+                                             @RequestParam(required = false) Long templateId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            templateService.generateAndSendPackingListPdf(shiftingId, templateId);
+
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Packaging inventory list generated and sent to customer successfully.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error generating or sending packing list: ", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege(e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @GetMapping(value = "/{shiftingId}/invoice", produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE, MediaType.ALL_VALUE})
+    public ResponseEntity<?> getInvoiceHtml(@PathVariable Long shiftingId) {
+        try {
+            byte[] pdf = templateService.generateInvoiceHtml(shiftingId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"quotation-" + shiftingId + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Error generating invoice PDF: {}", e.getMessage(), e);
+            GenericDataDTO errorResponse = new GenericDataDTO();
+            errorResponse.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            errorResponse.setResponseMessege(e.getMessage() != null ? e.getMessage() : CommonStatusCode.MSG_INTERNAL_SERVER_ERROR);
+            errorResponse.setErrors(new Object[]{e.getMessage()});
+            return ResponseEntity.internalServerError()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(errorResponse);
+        }
     }
 }

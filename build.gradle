@@ -28,6 +28,8 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
     compileOnly 'org.projectlombok:lombok'
 //    developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
@@ -36,6 +38,7 @@ dependencies {
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     // JWT
@@ -50,18 +53,19 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     //  Jackson
-//    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
-//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-//    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    // Align dataformat xml with databind to avoid NoSuchMethodError
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.15.2'
+// Remove the hibernate5 line and add this:
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-hibernate6'
     // CSV utility
     implementation 'org.apache.commons:commons-csv:1.10.0'
     implementation 'com.opencsv:opencsv:5.9'
 
     implementation 'commons-io:commons-io:2.15.1'
-
+    implementation 'com.microsoft.playwright:playwright:1.49.0'
 
     //Liquibase
     implementation 'org.liquibase:liquibase-core:4.23.2'
@@ -87,6 +91,19 @@ dependencies {
     // Real-time Email & SMS integration
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'com.twilio.sdk:twilio:10.1.0'
+
+    // Google ID token verification (Sign in with Google)
+    implementation 'com.google.api-client:google-api-client:2.7.0'
+
+    // AWS SDK v2 - S3 Storage
+    implementation 'software.amazon.awssdk:s3:2.26.25'
+    implementation 'software.amazon.awssdk:s3-transfer-manager:2.26.25'
+
+    // Image compression before S3 upload (JPG / PNG)
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
+    // Firebase Admin SDK (server-side FCM push sending)
+    implementation 'com.google.firebase:firebase-admin:9.3.0'
 }
 
 tasks.named('test') {

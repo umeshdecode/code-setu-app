@@ -19,4 +19,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Page<Customer> findByIsDelete(boolean isDelete, Pageable pageable);
 
     Page<Customer> findByIsDeleteOrderByCustomerIdDesc(Boolean isDelete, Pageable pageable);
+    Page<Customer> findByCompanyIdAndIsDeleteOrderByCustomerIdDesc(Integer customerId, Boolean isDelete, Pageable pageable);
+    Optional<Customer> findByMobileNoAndIsDelete(String mobileNo, boolean isDelete);
 }

@@ -1,16 +1,17 @@
 package com.cargosetu.config.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-@Data
+@Getter
+@Setter
 public class LoggedInUser implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -37,6 +38,10 @@ public class LoggedInUser implements UserDetails {
         return email;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
     private Long staffId;
 
     private String uuid;
@@ -58,6 +63,8 @@ public class LoggedInUser implements UserDetails {
     private Set<String> permissions;
 
     private String password;
+
+    private Integer companyId;
 
 
 }

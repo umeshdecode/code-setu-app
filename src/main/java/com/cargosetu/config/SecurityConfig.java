@@ -1,6 +1,5 @@
 package com.cargosetu.config;
 
-import com.cargosetu.utils.GoogleRoleMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
-    private final GoogleRoleMapper googleRoleMapper;
 
 //    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
 //        this.jwtFilter = jwtFilter;
@@ -66,19 +64,24 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers(
-                                "/auth/login",
-                                "/auth/user/register",
-                                "/auth/google",
-                                "/auth/refresh",
+                                "/auth/**",
                                 "/login.html",
                                 "/css/**",
+                                "/resources/static/assests**",
                                 "/js/**",
                                 "/images/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/api/demo-notifications/**"
+                                "/api/demo-notifications/**",
+                                "/public/plan/public/**",
+                                "/public/**",
+                                "/api/v2/cargosetu/refreshtoken",
+                                "/refreshtoken",
+                                "/api/v2/cargosetu/vehicles/**",
+                                "/api/v2/cargosetu/marketplace/payments/webhook"
                         ).permitAll()
+                        .requestMatchers("/api/admin/vehicle-catalogue/**").hasAnyRole("SUPERADMIN", "COMPANY_ADMIN")
                         .requestMatchers("/ws/**").permitAll()   // ✅ allow websocket
                         .requestMatchers("/topic/**").permitAll() // optional
                         .anyRequest().authenticated()
@@ -93,7 +96,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of("http://127.0.0.1:31201","http://localhost:4200"));
+        configuration.setAllowedOrigins(List.of("http://127.0.0.1:31201","http://localhost:4200","https://code-setu-app.onrender.com","https://code-setu-app-ui.umeshsharma-code.workers.dev","https://code-setu-app-ui.onrender.com"));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE"));
         configuration.setAllowedHeaders(List.of("Authorization","Content-Type"));
         configuration.setAllowCredentials(true);

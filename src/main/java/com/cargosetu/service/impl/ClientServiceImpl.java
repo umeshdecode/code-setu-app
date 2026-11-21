@@ -77,7 +77,7 @@ public class ClientServiceImpl implements ClientServices {
             clientservice.setValue(pojo.getValue());
             clientservice.setStaffId(getStaffIdFromCurrentStaff().intValue());
             clientservice.setModule(pojo.getModule());
-            clientservice.setIsActive(pojo.getIsActive());
+            clientservice.setStatus(pojo.getIsActive());
             clientservice.setCreatedByName(getLoggedInUSer().getFirstName());
             clientservice.setCreatedBy(Long.parseLong(Objects.requireNonNull(ApplicationUtils.getCurrentUser()).getStaffId().toString()));
             clientservice = clientServiceRepo.save(clientservice);

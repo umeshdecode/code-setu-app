@@ -1,5 +1,6 @@
 package com.cargosetu.controller;
 
+import com.cargosetu.dto.TruckOptionsDto;
 import com.cargosetu.dto.VehicleDto;
 import com.cargosetu.model.Vehicle;
 import com.cargosetu.service.VehicleService;
@@ -30,6 +31,11 @@ public class VehicleController {
     @GetMapping
     public ResponseEntity<List<Vehicle>> getAll() {
         return ResponseEntity.ok(vehicleService.getAllVehicles());
+    }
+
+    @GetMapping("/options")
+    public ResponseEntity<List<TruckOptionsDto>> getOptions(@RequestParam(required = false) String truckType) {
+        return ResponseEntity.ok(vehicleService.getTruckOptions(truckType));
     }
 
     @PutMapping("/{id}")

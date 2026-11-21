@@ -10,6 +10,7 @@ public class ShiftPackage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long packageId;
 
     private String packageNumber;

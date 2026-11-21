@@ -15,6 +15,8 @@ public interface BaseURL {
     final String ASSIGNMENTS ="/assignments";
     final String TEMPLATES ="/templates";
     final String BRANCHES ="/branches";
+    final String PUBLIC_PLAN= "public";
+    final String INQUERY = "/api/inquiries";
 
 
 }

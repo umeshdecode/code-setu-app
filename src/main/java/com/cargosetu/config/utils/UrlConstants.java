@@ -2,6 +2,8 @@ package com.cargosetu.config.utils;
 
 public class UrlConstants {
     public static final String LOGIN_URL = "/login";
+    public static final String OTP = "/otp";
+
     public static final String REGISTER_USER = "/user/register";
     public static final String LOGOUT_URL = "/logout";
     public static final String AUTH = "/auth";
@@ -9,6 +11,8 @@ public class UrlConstants {
     public static final String DOCUMENT_MASTER = "/document-master";
     public static final String UPLOAD_DOCUMENT = "/doc-upload";
     public static final String PLAN = "/plan";
+    public static final String PUBLIC = "/public";
+    public static final String SERVER_ALIVE = "/isAlive";
 
     public interface StaffUrlConstants {
         public static final String STAFF = "/staff";
@@ -21,5 +25,30 @@ public class UrlConstants {
 
     public interface ShiftingUrlConstants {
         public static final String SHIFT_INVENTORY = "/shift-inventory";
+    }
+
+    public interface TripUrlConstants {
+        public static final String TRIP = "/trip";
+        public static final String TRIP_STATUS_HISTORY = "/trip-status-history";
+        public static final String TRIP_EXPENSE = "/trip-expense";
+        public static final String TRIP_DOCUMENT = "/trip-document";
+    }
+
+    public interface MarketplaceUrlConstants {
+        String MARKETPLACE = "/marketplace";
+        String LOADS = "/loads";
+        String TRUCKS = "/trucks";
+        String OFFERS = "/offers";
+        String BOOKINGS = "/bookings";
+        String TRIPS = "/trips";
+        String PAYMENTS = "/payments";
+        String CONVERSATIONS = "/conversations";
+        String MESSAGES = "/messages";
+        String DISPUTES = "/disputes";
+        String RATINGS = "/ratings";
+        String MATCHES = "/matches";
+        String ALERTS = "/alerts";
+        String WALLET = "/wallet";
+        String LISTINGS = "/listings";
     }
 }

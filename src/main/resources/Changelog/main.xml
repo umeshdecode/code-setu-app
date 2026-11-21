@@ -5,6 +5,19 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
+    <include file="classpath:Changelog/create-tables.changelog.xml"/>
+    <include file="classpath:Changelog/s3-config.changelog.xml"/>
     <include file="classpath:Changelog/changelog-master.xml"/>
+    <include file="classpath:Changelog/changelog-templete.xml"/>
+    <include file="classpath:Changelog/permissions-rbac.changelog.xml"/>
+    <include file="classpath:Changelog/company-roles.changelog.xml"/>
+    <include file="classpath:Changelog/shifting-token-money.changelog.xml"/>
+    <include file="classpath:Changelog/company-favourite-templates.changelog.xml"/>
+    <include file="classpath:Changelog/vehicle-catalogue.changelog.xml"/>
+    <include file="classpath:Changelog/vehicle-load-options.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-tables.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-permissions.changelog.xml"/>
+    <include file="classpath:Changelog/marketplace-master-data.changelog.xml"/>
+    <include file="classpath:Changelog/fcm-push.changelog.xml"/>
 
 </databaseChangeLog>

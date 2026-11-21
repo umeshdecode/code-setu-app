@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class DocumentMasterDTO {
 
-    private Long documentId;
+    private Long id;
 
     private String code; // AADHAAR, PAN, DL, PASSPORT, RESUME
 

@@ -1,0 +1,24 @@
+package com.cargosetu.model;
+
+public enum TripStatus {
+
+    CREATED,
+    ASSIGNED,
+    STARTED,
+    IN_PROGRESS,
+    COMPLETED,
+    CANCELLED,
+
+    DRIVER_ASSIGNED,
+    VEHICLE_ASSIGNED,
+    READY_FOR_DISPATCH,
+    REACHED_PICKUP,
+    LOADING,
+    IN_TRANSIT,
+    REACHED_DESTINATION,
+    UNLOADING,
+    CLOSED,
+    ON_HOLD,
+    BREAKDOWN,
+    DELAYED
+}

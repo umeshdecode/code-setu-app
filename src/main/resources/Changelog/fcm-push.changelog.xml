@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!--
+        FCM push notifications: multi-device token storage and per-device delivery audit.
+        principal_type + principal_id together identify the owning account, because Staff and
+        OTP-login Customer both populate LoggedInUser.staffId - a bare user_id would collide.
+        No backfill: these tables start empty and are only ever populated by the new
+        push-token registration API.
+    -->
+    <!--
+        Split into separate changesets (table, then each constraint/index) rather than one
+        changeSet, and each is independently gated. MySQL DDL auto-commits per statement, so an
+        error partway through a single multi-statement changeSet (as happened here: fcm_token
+        was originally VARCHAR(4096), and MySQL's innodb_large_prefix key-length limit is 3072
+        bytes - at utf8mb4's 4 bytes/char that caps an indexable VARCHAR at 768 chars) leaves the
+        table created but the changeset unrecorded, so Liquibase retries createTable next startup
+        and fails with "table already exists". Splitting means a retry only re-attempts whatever
+        didn't already succeed.
+    -->
+    <changeSet id="CREATE_TBLM_USER_PUSH_TOKEN_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="tblm_user_push_token"/></not>
+        </preConditions>
+        <createTable tableName="tblm_user_push_token">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="principal_type" type="VARCHAR(10)"><constraints nullable="false"/></column>
+            <column name="principal_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="device_id" type="VARCHAR(190)"><constraints nullable="false"/></column>
+            <!-- VARCHAR(512): well above any real FCM token's length (~150-250 chars observed),
+                 but small enough to stay under MySQL's 3072-byte max index key length at utf8mb4
+                 (512 * 4 = 2048 bytes) now that this column is uniquely indexed below. -->
+            <column name="fcm_token" type="VARCHAR(512)"><constraints nullable="false"/></column>
+            <column name="platform" type="VARCHAR(10)"><constraints nullable="false"/></column>
+            <column name="device_name" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="last_registered_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="last_seen_at" type="DATETIME"><constraints nullable="true"/></column>
+            <!-- AbstractModel columns (is_active doubles as "eligible for sending") -->
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="true"/></column>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="true"/></column>
+            <column name="created_by" type="BIGINT"><constraints nullable="true"/></column>
+            <column name="created_by_name" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="created_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="updated_by_name" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="updated_by_id" type="BIGINT"><constraints nullable="true"/></column>
+            <column name="updated_at" type="DATETIME"><constraints nullable="true"/></column>
+        </createTable>
+    </changeSet>
+
+    <!--
+        Environments where the table was already created by an earlier (pre-fix) version of this
+        changelog - with fcm_token as VARCHAR(4096) - have the oversized column physically on
+        disk already; the createTable changeset above is then skipped (table exists), so it never
+        shrinks. This runs once, unconditionally once the table exists, to coerce the column down
+        to a size the unique constraint below can actually index. A no-op if the table was created
+        fresh at VARCHAR(512) already.
+    -->
+    <changeSet id="CREATE_TBLM_USER_PUSH_TOKEN_SHRINK_FCM_TOKEN_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_user_push_token"/>
+        </preConditions>
+        <modifyDataType tableName="tblm_user_push_token" columnName="fcm_token" newDataType="VARCHAR(512)"/>
+    </changeSet>
+
+    <changeSet id="CREATE_TBLM_USER_PUSH_TOKEN_UQ_FCM_TOKEN_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_user_push_token"/>
+            <!-- dbchangelog-3.8.xsd (this project's declared schema version) has no
+                 uniqueConstraintExists precondition; MySQL names the backing index after the
+                 constraint, so indexExists detects it too. -->
+            <not><indexExists tableName="tblm_user_push_token" indexName="UQ_PUSH_TOKEN_FCM_TOKEN"/></not>
+        </preConditions>
+        <addUniqueConstraint tableName="tblm_user_push_token" columnNames="fcm_token"
+                              constraintName="UQ_PUSH_TOKEN_FCM_TOKEN"/>
+    </changeSet>
+
+    <changeSet id="CREATE_TBLM_USER_PUSH_TOKEN_UQ_PRINCIPAL_DEVICE_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_user_push_token"/>
+            <not><indexExists tableName="tblm_user_push_token" indexName="UQ_PUSH_TOKEN_PRINCIPAL_DEVICE"/></not>
+        </preConditions>
+        <addUniqueConstraint tableName="tblm_user_push_token"
+                              columnNames="principal_type, principal_id, device_id"
+                              constraintName="UQ_PUSH_TOKEN_PRINCIPAL_DEVICE"/>
+    </changeSet>
+
+    <changeSet id="CREATE_TBLM_USER_PUSH_TOKEN_IDX_PRINCIPAL_ACTIVE_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <tableExists tableName="tblm_user_push_token"/>
+            <not><indexExists tableName="tblm_user_push_token" indexName="IDX_PUSH_TOKEN_PRINCIPAL_ACTIVE"/></not>
+        </preConditions>
+        <createIndex tableName="tblm_user_push_token" indexName="IDX_PUSH_TOKEN_PRINCIPAL_ACTIVE">
+            <column name="principal_type"/>
+            <column name="principal_id"/>
+            <column name="is_active"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="CREATE_PUSH_DELIVERY_ATTEMPT_01" author="CargoSetu">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not><tableExists tableName="push_delivery_attempt"/></not>
+        </preConditions>
+        <createTable tableName="push_delivery_attempt">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="audit_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="token_record_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="provider_message_id" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="error_code" type="VARCHAR(100)"><constraints nullable="true"/></column>
+            <column name="attempt_count" type="INT" defaultValueNumeric="0"><constraints nullable="false"/></column>
+            <column name="attempted_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true"><constraints nullable="true"/></column>
+            <column name="is_deleted" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="true"/></column>
+            <column name="created_by" type="BIGINT"><constraints nullable="true"/></column>
+            <column name="created_by_name" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="created_at" type="DATETIME"><constraints nullable="true"/></column>
+            <column name="updated_by_name" type="VARCHAR(190)"><constraints nullable="true"/></column>
+            <column name="updated_by_id" type="BIGINT"><constraints nullable="true"/></column>
+            <column name="updated_at" type="DATETIME"><constraints nullable="true"/></column>
+        </createTable>
+        <createIndex tableName="push_delivery_attempt" indexName="IDX_PUSH_DELIVERY_AUDIT">
+            <column name="audit_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

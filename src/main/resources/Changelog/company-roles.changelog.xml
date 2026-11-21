@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+        http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="ADD_COMPANY_ID_TO_ROLES_20260822_01" author="Umesh Sharma">
+        <preConditions onFail="MARK_RAN" onError="MARK_RAN">
+            <not>
+                <columnExists tableName="tblm_roles" columnName="company_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="tblm_roles">
+            <column name="company_id" type="int" />
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

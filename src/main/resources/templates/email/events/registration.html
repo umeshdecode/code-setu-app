@@ -1,0 +1,13 @@
+Subject: Welcome to CargoSetu, {{companyName}}!
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr><td align="center" style="padding-bottom:15px;">
+        <div style="display:inline-block; background-color:#dcfce7; color:#16a34a; width:36px; height:36px; border-radius:50%; text-align:center; line-height:36px; font-size:18px; font-weight:bold;">&#10003;</div>
+    </td></tr>
+    <tr><td align="center"><h1 style="margin:0; font-size:22px; font-weight:700; color:#0f172a;">Registration successful</h1></td></tr>
+    <tr><td align="center" style="padding:15px 0 25px 0;">
+        <p style="margin:0; font-size:15px; line-height:1.6; color:#475569;">Hi <strong style="color:#1e293b;">{{contactName}}</strong>, your CargoSetu account for <strong style="color:#1e293b;">{{companyName}}</strong> has been successfully registered.</p>
+    </td></tr>
+    <tr th:if="${loginUrl}"><td align="center" style="padding-bottom:10px;">
+        <a th:href="${loginUrl}" style="background-color:#2563eb; border-radius:8px; color:#ffffff; display:inline-block; font-size:15px; font-weight:600; line-height:50px; text-align:center; text-decoration:none; width:100%;">Sign in to your account</a>
+    </td></tr>
+</table>

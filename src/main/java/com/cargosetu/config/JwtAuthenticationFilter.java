@@ -40,6 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/images") ||path.startsWith("/oauth2/")
                 || path.startsWith("/login/oauth2/")
                 || path.startsWith("/auth/")
+                || path.startsWith("/public/")
+                || path.endsWith("/refreshtoken")
                 || path.equals("/");
     }
 
@@ -153,6 +155,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 user.setUserName(claims.get("userName", String.class));
                 user.setFirstName(claims.get("firstName", String.class));
                 user.setLastName(claims.get("lastName", String.class));
+                user.setCompanyId(claims.get("companyId", Integer.class));
                 user.setRoles(roleSet);
                 user.setPermissions(permissionSet);
 

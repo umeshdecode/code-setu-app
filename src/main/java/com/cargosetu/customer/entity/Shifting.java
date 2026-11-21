@@ -60,4 +60,11 @@ public class Shifting {
 
     @Column(name = "shift_status")
     private String shiftStatus;
+
+    @Column(name = "shift_actual_reach_date")
+    private LocalDate shiftActualReachedDate;
+    private Integer companyId;
+
+    @Column(name = "token_money")
+    private Double tokenMoney;
 }

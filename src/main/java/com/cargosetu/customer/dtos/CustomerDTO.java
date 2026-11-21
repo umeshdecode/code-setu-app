@@ -1,5 +1,6 @@
 package com.cargosetu.customer.dtos;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -18,7 +19,16 @@ public class CustomerDTO {
     private String alternateMobileNo;
     private String email;
     private String workEmail;
+
+    @JsonProperty("isShiftCompleted")
+    @JsonAlias({"shiftCompleted", "isShiftCompleted", "is_shift_completed"})
     private boolean isShiftCompleted;
+
+    @JsonProperty("shiftCompleted")
+    public boolean getShiftCompletedDuplicate() {
+        return isShiftCompleted;
+    }
+
     private String shiftFromCity;
     private String shiftToCity;
     private String toAddress;

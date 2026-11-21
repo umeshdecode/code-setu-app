@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+    <changeSet id="marketplace-config-001" author="cargosetu">
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.route"/>
+            <column name="config_value" value="30"/>
+            <column name="description" value="Weight for route match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.date"/>
+            <column name="config_value" value="20"/>
+            <column name="description" value="Weight for date match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.truck"/>
+            <column name="config_value" value="15"/>
+            <column name="description" value="Weight for truck match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.capacity"/>
+            <column name="config_value" value="15"/>
+            <column name="description" value="Weight for capacity match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.cargo"/>
+            <column name="config_value" value="10"/>
+            <column name="description" value="Weight for cargo match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.location"/>
+            <column name="config_value" value="5"/>
+            <column name="description" value="Weight for location match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="match.weight.trust"/>
+            <column name="config_value" value="5"/>
+            <column name="description" value="Weight for trust match"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="cancellation.penalty.before_pickup"/>
+            <column name="config_value" value="0"/>
+            <column name="description" value="Cancellation penalty percentage before pickup"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="cancellation.penalty.after_booking"/>
+            <column name="config_value" value="10"/>
+            <column name="description" value="Cancellation penalty percentage after booking"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="cancellation.penalty.after_loading"/>
+            <column name="config_value" value="25"/>
+            <column name="description" value="Cancellation penalty percentage after loading"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="cancellation.penalty.in_transit"/>
+            <column name="config_value" value="50"/>
+            <column name="description" value="Cancellation penalty percentage in transit"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="listing.default.validity.hours"/>
+            <column name="config_value" value="72"/>
+            <column name="description" value="Default listing validity in hours"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+        <insert tableName="marketplace_config">
+            <column name="config_key" value="booking.payment.timeout.minutes"/>
+            <column name="config_value" value="30"/>
+            <column name="description" value="Booking payment timeout in minutes"/>
+            <column name="created_at" valueDate="CURRENT_TIMESTAMP"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

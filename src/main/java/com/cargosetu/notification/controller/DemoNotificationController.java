@@ -1,7 +1,8 @@
 package com.cargosetu.notification.controller;
 
-import com.cargosetu.notification.model.NotificationLog;
-import com.cargosetu.notification.repository.NotificationLogRepository;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationAudit;
+import com.cargosetu.notification.repository.NotificationAuditRepository;
 import com.cargosetu.notification.service.DemoBusinessService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +19,7 @@ import java.util.List;
 public class DemoNotificationController {
 
     private final DemoBusinessService businessService;
-    private final NotificationLogRepository repository;
+    private final NotificationAuditRepository auditRepository;
 
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(
@@ -48,11 +49,30 @@ public class DemoNotificationController {
         
         businessService.createOrder(orderId, email, phone, name, BigDecimal.valueOf(amount));
         return ResponseEntity.ok("Order creation business transaction committed successfully! " +
-                "Check background thread logs to verify SMS and Email notifications.");
+                 "Check background thread logs to verify SMS and Email notifications.");
     }
 
-    @GetMapping("/logs")
-    public ResponseEntity<List<NotificationLog>> getLogs() {
-        return ResponseEntity.ok(repository.findAll());
+    @GetMapping("/email-logs")
+    public ResponseEntity<List<NotificationAudit>> getEmailLogs() {
+        List<NotificationAudit> emailLogs = auditRepository.findAll().stream()
+                .filter(a -> a.getChannel() == NotificationChannel.EMAIL)
+                .toList();
+        return ResponseEntity.ok(emailLogs);
+    }
+
+    @GetMapping("/sms-logs")
+    public ResponseEntity<List<NotificationAudit>> getSmsLogs() {
+        List<NotificationAudit> smsLogs = auditRepository.findAll().stream()
+                .filter(a -> a.getChannel() == NotificationChannel.SMS)
+                .toList();
+        return ResponseEntity.ok(smsLogs);
+    }
+
+    @GetMapping("/push-logs")
+    public ResponseEntity<List<NotificationAudit>> getPushLogs() {
+        List<NotificationAudit> pushLogs = auditRepository.findAll().stream()
+                .filter(a -> a.getChannel() == NotificationChannel.PUSH)
+                .toList();
+        return ResponseEntity.ok(pushLogs);
     }
 }

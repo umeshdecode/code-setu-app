@@ -1,0 +1,615 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+    <changeSet id="marketplace-001" author="cargosetu">
+        <createTable tableName="marketplace_listing">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_number" type="VARCHAR(50)"><constraints unique="true" nullable="false"/></column>
+            <column name="type" type="VARCHAR(20)"><constraints nullable="false"/></column>
+            <column name="company_id" type="INT"><constraints nullable="false"/></column>
+            <column name="posted_by_staff_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(30)" defaultValue="DRAFT"><constraints nullable="false"/></column>
+            <column name="visibility" type="VARCHAR(20)" defaultValue="PUBLIC"/>
+            <column name="valid_from" type="DATETIME"/>
+            <column name="valid_until" type="DATETIME"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"/>
+            <column name="created_at" type="DATETIME"><constraints nullable="false"/></column>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_listing" indexName="idx_listing_company_status_type">
+            <column name="company_id"/><column name="status"/><column name="type"/>
+        </createIndex>
+        <createIndex tableName="marketplace_listing" indexName="idx_listing_type_status_valid">
+            <column name="type"/><column name="status"/><column name="valid_until"/>
+        </createIndex>
+        <createIndex tableName="marketplace_listing" indexName="idx_listing_created_at">
+            <column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-002" author="cargosetu">
+        <createTable tableName="load_post">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"><constraints unique="true" nullable="false" foreignKeyName="fk_load_post_listing" referencedTableName="marketplace_listing" referencedColumnNames="id"/></column>
+            <column name="origin_city" type="VARCHAR(100)"/>
+            <column name="origin_address" type="VARCHAR(500)"/>
+            <column name="origin_state" type="VARCHAR(100)"/>
+            <column name="origin_pincode" type="VARCHAR(10)"/>
+            <column name="origin_lat" type="DOUBLE"/>
+            <column name="origin_lng" type="DOUBLE"/>
+            <column name="destination_city" type="VARCHAR(100)"/>
+            <column name="destination_address" type="VARCHAR(500)"/>
+            <column name="destination_state" type="VARCHAR(100)"/>
+            <column name="destination_pincode" type="VARCHAR(10)"/>
+            <column name="destination_lat" type="DOUBLE"/>
+            <column name="destination_lng" type="DOUBLE"/>
+            <column name="pickup_from" type="DATETIME"/>
+            <column name="pickup_to" type="DATETIME"/>
+            <column name="delivery_from" type="DATETIME"/>
+            <column name="delivery_to" type="DATETIME"/>
+            <column name="cargo_type" type="VARCHAR(30)"/>
+            <column name="cargo_description" type="VARCHAR(500)"/>
+            <column name="weight" type="DOUBLE"/>
+            <column name="weight_unit" type="VARCHAR(10)"/>
+            <column name="volume" type="DOUBLE"/>
+            <column name="package_count" type="INT"/>
+            <column name="required_truck_type" type="VARCHAR(50)"/>
+            <column name="required_truck_length" type="DOUBLE"/>
+            <column name="required_body_type" type="VARCHAR(50)"/>
+            <column name="price_type" type="VARCHAR(30)"/>
+            <column name="asking_price" type="DECIMAL(15,2)"/>
+            <column name="payment_terms" type="VARCHAR(30)"/>
+            <column name="special_instructions" type="TEXT"/>
+            <column name="declared_value" type="DECIMAL(15,2)"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="load_post" indexName="idx_load_origin_dest_pickup">
+            <column name="origin_city"/><column name="destination_city"/><column name="pickup_from"/>
+        </createIndex>
+        <createIndex tableName="load_post" indexName="idx_load_cargo">
+            <column name="cargo_type"/>
+        </createIndex>
+        <createIndex tableName="load_post" indexName="idx_load_truck_req">
+            <column name="required_truck_type"/><column name="required_truck_length"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-003" author="cargosetu">
+        <createTable tableName="truck_post">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"><constraints unique="true" nullable="false" foreignKeyName="fk_truck_post_listing" referencedTableName="marketplace_listing" referencedColumnNames="id"/></column>
+            <column name="vehicle_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="driver_id" type="BIGINT"/>
+            <column name="current_city" type="VARCHAR(100)"/>
+            <column name="current_address" type="VARCHAR(500)"/>
+            <column name="current_lat" type="DOUBLE"/>
+            <column name="current_lng" type="DOUBLE"/>
+            <column name="route_from" type="VARCHAR(100)"/>
+            <column name="route_to" type="VARCHAR(100)"/>
+            <column name="waypoints" type="TEXT"/>
+            <column name="expected_location" type="VARCHAR(200)"/>
+            <column name="expected_eta" type="DATETIME"/>
+            <column name="total_capacity" type="DOUBLE"/>
+            <column name="available_capacity" type="DOUBLE"/>
+            <column name="occupied_capacity" type="DOUBLE"/>
+            <column name="capacity_unit" type="VARCHAR(10)"/>
+            <column name="available_volume" type="DOUBLE"/>
+            <column name="available_space_percent" type="INT"/>
+            <column name="accepted_load_types" type="TEXT"/>
+            <column name="truck_status" type="VARCHAR(30)"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="truck_post" indexName="idx_truck_city_route_status">
+            <column name="current_city"/><column name="route_to"/><column name="truck_status"/>
+        </createIndex>
+        <createIndex tableName="truck_post" indexName="idx_truck_vehicle_status">
+            <column name="vehicle_id"/><column name="truck_status"/>
+        </createIndex>
+        <createIndex tableName="truck_post" indexName="idx_truck_eta">
+            <column name="expected_location"/><column name="expected_eta"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-004" author="cargosetu">
+        <createTable tableName="listing_location">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="location_type" type="VARCHAR(30)"/>
+            <column name="address" type="VARCHAR(500)"/>
+            <column name="city" type="VARCHAR(100)"/>
+            <column name="state" type="VARCHAR(100)"/>
+            <column name="pincode" type="VARCHAR(10)"/>
+            <column name="lat" type="DOUBLE"/>
+            <column name="lng" type="DOUBLE"/>
+            <column name="sequence" type="INT"/>
+            <column name="expected_at" type="DATETIME"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-005" author="cargosetu">
+        <createTable tableName="listing_document">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="document_type" type="VARCHAR(50)"/>
+            <column name="file_ref" type="VARCHAR(500)"/>
+            <column name="uploaded_by_staff_id" type="BIGINT"/>
+            <column name="verification_status" type="VARCHAR(20)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-006" author="cargosetu">
+        <createTable tableName="marketplace_offer">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_offer_listing" referencedTableName="marketplace_listing" referencedColumnNames="id"/></column>
+            <column name="bidder_company_id" type="INT"><constraints nullable="false"/></column>
+            <column name="offered_by_staff_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="amount" type="DECIMAL(15,2)"><constraints nullable="false"/></column>
+            <column name="payment_terms" type="VARCHAR(30)"/>
+            <column name="valid_until" type="DATETIME"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING"><constraints nullable="false"/></column>
+            <column name="message" type="TEXT"/>
+            <column name="parent_offer_id" type="BIGINT"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_offer" indexName="idx_offer_listing_status">
+            <column name="listing_id"/><column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-007" author="cargosetu">
+        <createTable tableName="marketplace_booking">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_number" type="VARCHAR(50)"><constraints unique="true" nullable="false"/></column>
+            <column name="listing_id" type="BIGINT"><constraints nullable="false" foreignKeyName="fk_booking_listing" referencedTableName="marketplace_listing" referencedColumnNames="id"/></column>
+            <column name="offer_id" type="BIGINT"/>
+            <column name="shipper_company_id" type="INT"><constraints nullable="false"/></column>
+            <column name="transporter_company_id" type="INT"><constraints nullable="false"/></column>
+            <column name="vehicle_id" type="BIGINT"/>
+            <column name="driver_id" type="BIGINT"/>
+            <column name="agreed_freight" type="DECIMAL(15,2)"><constraints nullable="false"/></column>
+            <column name="payment_terms" type="VARCHAR(30)"/>
+            <column name="advance_percentage" type="INT"/>
+            <column name="status" type="VARCHAR(30)" defaultValue="PENDING_PAYMENT"><constraints nullable="false"/></column>
+            <column name="booked_at" type="DATETIME"/>
+            <column name="cancellation_policy_snapshot" type="TEXT"/>
+            <column name="commercial_snapshot" type="TEXT"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_booking" indexName="idx_booking_shipper_status">
+            <column name="shipper_company_id"/><column name="status"/>
+        </createIndex>
+        <createIndex tableName="marketplace_booking" indexName="idx_booking_transporter_status">
+            <column name="transporter_company_id"/><column name="status"/>
+        </createIndex>
+        <createIndex tableName="marketplace_booking" indexName="idx_booking_vehicle_status">
+            <column name="vehicle_id"/><column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-008" author="cargosetu">
+        <createTable tableName="booking_item">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="load_weight" type="DOUBLE"/>
+            <column name="allocated_capacity" type="DOUBLE"/>
+            <column name="capacity_unit" type="VARCHAR(10)"/>
+            <column name="package_count" type="INT"/>
+            <column name="cargo_type" type="VARCHAR(30)"/>
+            <column name="cargo_description" type="VARCHAR(500)"/>
+            <column name="declared_value" type="DECIMAL(15,2)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-009" author="cargosetu">
+        <createTable tableName="marketplace_trip">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="trip_number" type="VARCHAR(50)"><constraints unique="true" nullable="false"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="existing_trip_id" type="BIGINT"/>
+            <column name="vehicle_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="driver_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="start_city" type="VARCHAR(100)"/>
+            <column name="start_address" type="VARCHAR(500)"/>
+            <column name="start_lat" type="DOUBLE"/>
+            <column name="start_lng" type="DOUBLE"/>
+            <column name="end_city" type="VARCHAR(100)"/>
+            <column name="end_address" type="VARCHAR(500)"/>
+            <column name="end_lat" type="DOUBLE"/>
+            <column name="end_lng" type="DOUBLE"/>
+            <column name="planned_start_time" type="DATETIME"/>
+            <column name="planned_end_time" type="DATETIME"/>
+            <column name="actual_start_time" type="DATETIME"/>
+            <column name="actual_end_time" type="DATETIME"/>
+            <column name="status" type="VARCHAR(30)"><constraints nullable="false"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_trip" indexName="idx_trip_booking">
+            <column name="booking_id"/>
+        </createIndex>
+        <createIndex tableName="marketplace_trip" indexName="idx_trip_vehicle_status">
+            <column name="vehicle_id"/><column name="status"/>
+        </createIndex>
+        <createIndex tableName="marketplace_trip" indexName="idx_trip_driver_status">
+            <column name="driver_id"/><column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-010" author="cargosetu">
+        <createTable tableName="marketplace_trip_event">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="trip_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="event_type" type="VARCHAR(50)"/>
+            <column name="event_time" type="DATETIME"/>
+            <column name="location" type="VARCHAR(300)"/>
+            <column name="lat" type="DOUBLE"/>
+            <column name="lng" type="DOUBLE"/>
+            <column name="actor_staff_id" type="BIGINT"/>
+            <column name="remarks" type="TEXT"/>
+            <column name="evidence_file_ref" type="VARCHAR(500)"/>
+            <column name="previous_status" type="VARCHAR(30)"/>
+            <column name="new_status" type="VARCHAR(30)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_trip_event" indexName="idx_tripevent_trip_created">
+            <column name="trip_id"/><column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-011" author="cargosetu">
+        <createTable tableName="marketplace_trip_location_history">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="trip_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="vehicle_id" type="BIGINT"/>
+            <column name="lat" type="DOUBLE"/>
+            <column name="lng" type="DOUBLE"/>
+            <column name="accuracy" type="FLOAT"/>
+            <column name="source" type="VARCHAR(30)"/>
+            <column name="captured_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_trip_location_history" indexName="idx_triploc_trip_captured">
+            <column name="trip_id"/><column name="captured_at"/>
+        </createIndex>
+        <createIndex tableName="marketplace_trip_location_history" indexName="idx_triploc_veh_captured">
+            <column name="vehicle_id"/><column name="captured_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-012" author="cargosetu">
+        <createTable tableName="marketplace_payment_order">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="payer_company_id" type="INT"/>
+            <column name="payee_company_id" type="INT"/>
+            <column name="amount" type="DECIMAL(15,2)"><constraints nullable="false"/></column>
+            <column name="payment_mode" type="VARCHAR(20)"/>
+            <column name="payment_term" type="VARCHAR(30)"/>
+            <column name="component" type="VARCHAR(30)"/>
+            <column name="due_at" type="DATETIME"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="INITIATED"><constraints nullable="false"/></column>
+            <column name="provider_ref" type="VARCHAR(200)"/>
+            <column name="idempotency_key" type="VARCHAR(100)"><constraints unique="true"/></column>
+            <column name="created_by_staff_id" type="BIGINT"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-013" author="cargosetu">
+        <createTable tableName="marketplace_payment_transaction">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="order_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="transaction_type" type="VARCHAR(20)"/>
+            <column name="amount" type="DECIMAL(15,2)"><constraints nullable="false"/></column>
+            <column name="direction" type="VARCHAR(10)"/>
+            <column name="status" type="VARCHAR(20)"/>
+            <column name="transaction_ref" type="VARCHAR(100)"><constraints unique="true"/></column>
+            <column name="gateway_ref" type="VARCHAR(200)"/>
+            <column name="payment_mode" type="VARCHAR(20)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_payment_transaction" indexName="idx_paytx_order_created">
+            <column name="order_id"/><column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="marketplace_payment_transaction" indexName="idx_paytx_gateway">
+            <column name="gateway_ref"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-014" author="cargosetu">
+        <createTable tableName="marketplace_payment_allocation">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"/>
+            <column name="transaction_id" type="BIGINT"/>
+            <column name="component" type="VARCHAR(30)"/>
+            <column name="allocated_amount" type="DECIMAL(15,2)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-015" author="cargosetu">
+        <createTable tableName="marketplace_ledger_entry">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="company_id" type="INT"><constraints nullable="false"/></column>
+            <column name="booking_id" type="BIGINT"/>
+            <column name="debit" type="DECIMAL(15,2)" defaultValueNumeric="0"/>
+            <column name="credit" type="DECIMAL(15,2)" defaultValueNumeric="0"/>
+            <column name="balance_after" type="DECIMAL(15,2)"/>
+            <column name="reference_type" type="VARCHAR(50)"/>
+            <column name="reference_id" type="BIGINT"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_ledger_entry" indexName="idx_ledger_company_created">
+            <column name="company_id"/><column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-016" author="cargosetu">
+        <createTable tableName="marketplace_company_wallet">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="company_id" type="INT"><constraints unique="true" nullable="false"/></column>
+            <column name="currency" type="VARCHAR(10)" defaultValue="INR"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE"/>
+            <column name="available_balance" type="DECIMAL(15,2)" defaultValueNumeric="0"/>
+            <column name="pending_balance" type="DECIMAL(15,2)" defaultValueNumeric="0"/>
+            <column name="held_balance" type="DECIMAL(15,2)" defaultValueNumeric="0"/>
+            <column name="version" type="BIGINT" defaultValueNumeric="0"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-017" author="cargosetu">
+        <createTable tableName="marketplace_wallet_transaction">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="wallet_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="type" type="VARCHAR(20)"/>
+            <column name="direction" type="VARCHAR(10)"/>
+            <column name="amount" type="DECIMAL(15,2)"/>
+            <column name="balance_after" type="DECIMAL(15,2)"/>
+            <column name="status" type="VARCHAR(20)"/>
+            <column name="reference_type" type="VARCHAR(50)"/>
+            <column name="reference_id" type="BIGINT"/>
+            <column name="payment_mode" type="VARCHAR(20)"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="created_by_staff_id" type="BIGINT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-018" author="cargosetu">
+        <createTable tableName="marketplace_wallet_hold">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="wallet_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="booking_id" type="BIGINT"/>
+            <column name="trip_id" type="BIGINT"/>
+            <column name="amount" type="DECIMAL(15,2)"/>
+            <column name="reason" type="VARCHAR(300)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="released_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-019" author="cargosetu">
+        <createTable tableName="marketplace_cash_collection">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="trip_id" type="BIGINT"/>
+            <column name="payer_company_id" type="INT"/>
+            <column name="receiver_type" type="VARCHAR(20)"/>
+            <column name="receiver_id" type="BIGINT"/>
+            <column name="amount" type="DECIMAL(15,2)"/>
+            <column name="payment_stage" type="VARCHAR(30)"/>
+            <column name="receipt_no" type="VARCHAR(50)"/>
+            <column name="proof_document" type="VARCHAR(500)"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="PENDING"/>
+            <column name="collected_at" type="DATETIME"/>
+            <column name="verified_at" type="DATETIME"/>
+            <column name="verified_by_staff_id" type="BIGINT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-020" author="cargosetu">
+        <createTable tableName="marketplace_cancellation">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="cancelled_by_staff_id" type="BIGINT"/>
+            <column name="cancelled_by_company_id" type="INT"/>
+            <column name="reason_code" type="VARCHAR(50)"/>
+            <column name="reason_text" type="TEXT"/>
+            <column name="stage" type="VARCHAR(30)"/>
+            <column name="refund_amount" type="DECIMAL(15,2)"/>
+            <column name="penalty_amount" type="DECIMAL(15,2)"/>
+            <column name="policy_snapshot" type="TEXT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-021" author="cargosetu">
+        <createTable tableName="marketplace_dispute">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="raised_by_staff_id" type="BIGINT"/>
+            <column name="raised_by_company_id" type="INT"/>
+            <column name="category" type="VARCHAR(30)"/>
+            <column name="description" type="TEXT"/>
+            <column name="priority" type="VARCHAR(20)"/>
+            <column name="status" type="VARCHAR(30)" defaultValue="OPEN"/>
+            <column name="resolution" type="TEXT"/>
+            <column name="resolved_by_staff_id" type="BIGINT"/>
+            <column name="resolved_at" type="DATETIME"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_dispute" indexName="idx_dispute_booking">
+            <column name="booking_id"/>
+        </createIndex>
+        <createIndex tableName="marketplace_dispute" indexName="idx_dispute_status">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-022" author="cargosetu">
+        <createTable tableName="marketplace_dispute_evidence">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="dispute_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="evidence_type" type="VARCHAR(30)"/>
+            <column name="file_ref" type="VARCHAR(500)"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="uploaded_by_staff_id" type="BIGINT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-023" author="cargosetu">
+        <createTable tableName="marketplace_chat_conversation">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"/>
+            <column name="booking_id" type="BIGINT"/>
+            <column name="participant1_company_id" type="INT"/>
+            <column name="participant1_staff_id" type="BIGINT"/>
+            <column name="participant2_company_id" type="INT"/>
+            <column name="participant2_staff_id" type="BIGINT"/>
+            <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE"/>
+            <column name="last_message_at" type="DATETIME"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-024" author="cargosetu">
+        <createTable tableName="marketplace_chat_message">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="conversation_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="sender_staff_id" type="BIGINT"/>
+            <column name="sender_company_id" type="INT"/>
+            <column name="message_type" type="VARCHAR(30)"/>
+            <column name="message" type="TEXT"/>
+            <column name="attachment_ref" type="VARCHAR(500)"/>
+            <column name="sent_at" type="DATETIME"/>
+            <column name="delivered_at" type="DATETIME"/>
+            <column name="read_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_chat_message" indexName="idx_chatmsg_conv_sent">
+            <column name="conversation_id"/><column name="sent_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-025" author="cargosetu">
+        <createTable tableName="marketplace_call_log">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="listing_id" type="BIGINT"/>
+            <column name="booking_id" type="BIGINT"/>
+            <column name="caller_staff_id" type="BIGINT"/>
+            <column name="caller_company_id" type="INT"/>
+            <column name="receiver_staff_id" type="BIGINT"/>
+            <column name="receiver_company_id" type="INT"/>
+            <column name="started_at" type="DATETIME"/>
+            <column name="ended_at" type="DATETIME"/>
+            <column name="duration_seconds" type="INT"/>
+            <column name="status" type="VARCHAR(20)"/>
+            <column name="provider_call_id" type="VARCHAR(200)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-026" author="cargosetu">
+        <createTable tableName="marketplace_rating_review">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="booking_id" type="BIGINT"><constraints nullable="false"/></column>
+            <column name="reviewer_company_id" type="INT"/>
+            <column name="reviewer_staff_id" type="BIGINT"/>
+            <column name="reviewee_company_id" type="INT"/>
+            <column name="overall_rating" type="INT"/>
+            <column name="communication_rating" type="INT"/>
+            <column name="punctuality_rating" type="INT"/>
+            <column name="professionalism_rating" type="INT"/>
+            <column name="payment_rating" type="INT"/>
+            <column name="tags" type="TEXT"/>
+            <column name="comment" type="TEXT"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+        <addUniqueConstraint tableName="marketplace_rating_review" columnNames="booking_id, reviewer_company_id" constraintName="uc_rating_review"/>
+    </changeSet>
+
+    <changeSet id="marketplace-027" author="cargosetu">
+        <createTable tableName="marketplace_audit_event">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="actor_staff_id" type="BIGINT"/>
+            <column name="entity_type" type="VARCHAR(50)"/>
+            <column name="entity_id" type="BIGINT"/>
+            <column name="action" type="VARCHAR(50)"/>
+            <column name="old_value" type="TEXT"/>
+            <column name="new_value" type="TEXT"/>
+            <column name="ip_address" type="VARCHAR(50)"/>
+            <column name="user_agent" type="VARCHAR(500)"/>
+            <column name="created_at" type="DATETIME"/>
+        </createTable>
+        <createIndex tableName="marketplace_audit_event" indexName="idx_audit_entity_created">
+            <column name="entity_type"/><column name="entity_id"/><column name="created_at"/>
+        </createIndex>
+        <createIndex tableName="marketplace_audit_event" indexName="idx_audit_actor_created">
+            <column name="actor_staff_id"/><column name="created_at"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="marketplace-028" author="cargosetu">
+        <createTable tableName="marketplace_saved_search">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="company_id" type="INT"/>
+            <column name="staff_id" type="BIGINT"/>
+            <column name="search_type" type="VARCHAR(10)"/>
+            <column name="origin_city" type="VARCHAR(100)"/>
+            <column name="destination_city" type="VARCHAR(100)"/>
+            <column name="truck_type" type="VARCHAR(50)"/>
+            <column name="truck_length" type="DOUBLE"/>
+            <column name="cargo_type" type="VARCHAR(30)"/>
+            <column name="min_capacity" type="DOUBLE"/>
+            <column name="max_price" type="DECIMAL(15,2)"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-029" author="cargosetu">
+        <createTable tableName="marketplace_config">
+            <column name="id" type="BIGINT" autoIncrement="true"><constraints primaryKey="true"/></column>
+            <column name="config_key" type="VARCHAR(100)"><constraints unique="true" nullable="false"/></column>
+            <column name="config_value" type="TEXT"/>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="created_at" type="DATETIME"/>
+            <column name="updated_at" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="marketplace-030" author="cargosetu">
+        <addColumn tableName="vehicles">
+            <column name="company_id" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="marketplace-031" author="cargosetu">
+        <addColumn tableName="driver">
+            <column name="company_id" type="INT"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

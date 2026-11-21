@@ -13,6 +13,7 @@ public class CompanyAssetDTO {
     private String assetType;   // eg: LOGO , SEAL , SIGNATURE , STAMP
 
     private String filePath;
+    private String fileUrl; // For AWS Presigned or Public URL
     private MultipartFile[] file;
 
 }

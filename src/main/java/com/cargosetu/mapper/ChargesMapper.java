@@ -15,6 +15,7 @@ public interface ChargesMapper extends BaseUpdateMapper<ChargesDTO, Charges> {
 
     @Override
     @Mapping(target = "extraChargesList" ,source = "extraCharges")
+    @Mapping(target = "extraChargesListDuplicate", ignore = true)
     ChargesDTO toDto(Charges entity);
 
 

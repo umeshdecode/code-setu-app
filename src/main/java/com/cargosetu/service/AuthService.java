@@ -7,16 +7,24 @@ import com.cargosetu.config.JwtUtils;
 import com.cargosetu.handler.CustomValidationException;
 import com.cargosetu.model.Permission;
 import com.cargosetu.model.Staff;
+import com.cargosetu.notification.event.GenericNotificationEvent;
+import com.cargosetu.notification.model.NotificationChannel;
+import com.cargosetu.notification.model.NotificationEventType;
 import com.cargosetu.repo.StaffRepository;
 import io.jsonwebtoken.Claims;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -34,10 +42,12 @@ public class AuthService {
     private JwtUtils jwtUtils;
 
     private final BCryptPasswordEncoder passwordEncoder;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public AuthService(StaffRepository staffRepository, BCryptPasswordEncoder bCryptPasswordEncoder, JwtUtils jwtUtils) {
+    public AuthService(StaffRepository staffRepository, BCryptPasswordEncoder bCryptPasswordEncoder, JwtUtils jwtUtils, ApplicationEventPublisher eventPublisher) {
         this.staffRepository = staffRepository;
         this.passwordEncoder = bCryptPasswordEncoder;
+        this.eventPublisher = eventPublisher;
     }
 
     public static boolean isValidEmail(String email) {
@@ -62,6 +72,13 @@ public class AuthService {
 //            }
 //        }
         return true;
+    }
+
+    public boolean userExists(String email) {
+        if (!StringUtils.hasText(email)) {
+            throw new CustomValidationException(HttpStatus.BAD_REQUEST.value(), "please enter valid email!!");
+        }
+        return staffRepository.findByEmailOrUserName(email, email).isPresent();
     }
 
     public TokenResponse loginUser(LoginRequest loginDto) {
@@ -92,11 +109,35 @@ public class AuthService {
         loggedInUser.setStaffId(staff.getStaffId());
         loggedInUser.setFirstName(staff.getFirstName());
         loggedInUser.setLastName(staff.getLastName());
-        
+        loggedInUser.setCompanyId(staff.getCompanyId());
+
         // generating jwt token
         String jwtToken = jwtUtils.generateToken(loggedInUser);
 
-         return new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
+        TokenResponse tokenResponse = new TokenResponse(jwtToken, jwtUtils.getTokenExpirationTime());
+        tokenResponse.setStaffId(staff.getStaffId());
+        tokenResponse.setUserName(staff.getUserName());
+        tokenResponse.setEmail(staff.getEmail());
+        tokenResponse.setRoles(staffRoles);
+        tokenResponse.setPermissions(staffPermissions);
+
+        publishLoginNotification(staff);
+
+        return tokenResponse;
+    }
+
+    private void publishLoginNotification(Staff staff) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", staff.getFirstName() != null ? staff.getFirstName() : staff.getUserName());
+        variables.put("loginTime", LocalDateTime.now().toString());
+        variables.put("device", "web");
+
+        eventPublisher.publishEvent(new GenericNotificationEvent(
+                NotificationEventType.LOGIN,
+                List.of("STAFF:" + staff.getStaffId()),
+                NotificationChannel.PUSH,
+                variables
+        ));
     }
 
     Staff loginWithUserNameAndPassword(String userName,String password){
@@ -124,6 +165,19 @@ public class AuthService {
         try {
             // We parse the claims even if the token is expired to get the user details
             Claims claims = jwtUtils.getClaimsFromExpiredToken(oldToken);
+            if (claims == null || claims.getSubject() == null) {
+                throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Invalid token claims");
+            }
+
+            // Allow refreshing tokens within 30 days of expiration
+            Date expiration = claims.getExpiration();
+            if (expiration != null) {
+                long maxRefreshWindowMs = 1000L * 60 * 60 * 24 * 30; // 30 days
+                long diff = System.currentTimeMillis() - expiration.getTime();
+                if (diff > maxRefreshWindowMs) {
+                    throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Session expired, please login again.");
+                }
+            }
 
             // Reconstruct the LoggedInUser object from claims
             LoggedInUser user = new LoggedInUser();
@@ -133,14 +187,35 @@ public class AuthService {
             user.setFirstName((String) claims.get("firstName"));
             user.setLastName((String) claims.get("lastName"));
             user.setEmail((String) claims.get("email"));
-            user.setRoles(new HashSet<>((List<String>) claims.get("roles")));
-            user.setPermissions(new HashSet<>((List<String>) claims.get("permissions")));
+            List<String> rolesList = claims.get("roles", List.class);
+            user.setRoles(rolesList != null ? new HashSet<>(rolesList) : new HashSet<>());
+            List<String> permsList = claims.get("permissions", List.class);
+            user.setPermissions(permsList != null ? new HashSet<>(permsList) : new HashSet<>());
 
+            if (user.getStaffId() != null) {
+                Optional<Staff> byId = staffRepository.findById(user.getStaffId());
+                if (byId.isPresent()) {
+                    Staff staff = byId.get();
+                    if (Boolean.TRUE.equals(staff.getIsDeleted()) || Boolean.FALSE.equals(staff.getIsActive())) {
+                        throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Account is inactive or deactivated.");
+                    }
+                    user.setCompanyId(staff.getCompanyId());
+                }
+            }
             // Generate a fresh token using your existing method
             String newToken = jwtUtils.generateToken(user);
 
-            return new TokenResponse(newToken, jwtUtils.getTokenExpirationTime());
+            TokenResponse tokenResponse = new TokenResponse(newToken, jwtUtils.getTokenExpirationTime());
+            tokenResponse.setStaffId(user.getStaffId());
+            tokenResponse.setCompanyId(user.getCompanyId());
+            tokenResponse.setUserName(user.getUsername());
+            tokenResponse.setEmail(user.getEmail());
+            tokenResponse.setRoles(user.getRoles());
+            tokenResponse.setPermissions(user.getPermissions());
+            return tokenResponse;
 
+        } catch (CustomValidationException cve) {
+            throw cve;
         } catch (Exception e) {
             throw new CustomValidationException(HttpStatus.UNAUTHORIZED.value(), "Session expired, please login again.");
         }

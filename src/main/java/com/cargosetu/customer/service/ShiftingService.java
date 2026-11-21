@@ -1,5 +1,6 @@
 package com.cargosetu.customer.service;
 
+import com.cargosetu.config.dto.LoggedInUser;
 import com.cargosetu.customer.dtos.ShiftingDTO;
 import com.cargosetu.customer.entity.Customer;
 import com.cargosetu.customer.entity.Shifting;
@@ -9,6 +10,9 @@ import com.cargosetu.repo.ShiftingRepository;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,6 +138,7 @@ public class ShiftingService {
             existingShifting.setShiftCompletedById(updatedShifting.getShiftCompletedById());
             // Assuming charges are handled by ChargesMapper within ShiftingMapper
             existingShifting.setCharge(updatedShifting.getCharge());
+            existingShifting.setTokenMoney(updatedShifting.getTokenMoney());
 
 
             Shifting savedShifting = shiftingRepository.save(existingShifting);
@@ -145,6 +150,90 @@ public class ShiftingService {
             log.error("Error updating shifting with ID {}: {}", shiftingDTO.getShiftingId(), e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("An unexpected error occurred while updating the shifting.");
+        }
+        return response;
+    }
+
+    public GenericDataDTO getAllShiftings(LoggedInUser user, int pageNumber, int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shifting> shiftings = null;
+            if(Objects.equals(user.getStaffId(),1)){
+                shiftings = shiftingRepository.findAllByOrderByShiftingIdDesc(pageable);
+            }else {
+                shiftings = shiftingRepository.findAllByCompanyIdOrderByShiftingIdDesc(user.getCompanyId(),pageable);
+            }
+
+            if (shiftings.isEmpty()) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("No shiftings found");
+                return response;
+            }
+
+            Page<ShiftingDTO> shiftingDTOs = shiftings.map(shiftingMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shiftings fetched successfully!");
+            response.setData(shiftingDTOs);
+
+        } catch (Exception e) {
+            log.error("Error fetching all shiftings: {}", e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while fetching shiftings.");
+        }
+        return response;
+    }
+
+    public GenericDataDTO getShiftingsByCustomerId(Long customerId, int pageNumber, int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shifting> shiftings = shiftingRepository.findByCustomer_CustomerIdOrderByShiftingIdDesc(customerId, pageable);
+
+            if (shiftings.isEmpty()) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("No shiftings found for customer: " + customerId);
+                return response;
+            }
+
+            Page<ShiftingDTO> shiftingDTOs = shiftings.map(shiftingMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shiftings fetched successfully!");
+            response.setData(shiftingDTOs);
+
+        } catch (Exception e) {
+            log.error("Error fetching shiftings for customer {}: {}", customerId, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while fetching shiftings.");
+        }
+        return response;
+    }
+
+    public GenericDataDTO searchShiftings(LoggedInUser user, String query, int pageNumber, int pageSize) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Shifting> shiftings;
+            if (Objects.equals(user.getStaffId(), 1)) {
+                shiftings = shiftingRepository.searchShiftings(query, pageable);
+            } else {
+                if (user.getCompanyId() == null) {
+                    response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                    response.setResponseMessege("Please Create your Company");
+                    return response;
+                }
+                shiftings = shiftingRepository.searchShiftingsByCompanyId(user.getCompanyId(), query, pageable);
+            }
+
+            Page<ShiftingDTO> shiftingDTOs = shiftings.map(shiftingMapper::toDto);
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Shiftings fetched successfully!");
+            response.setData(shiftingDTOs);
+
+        } catch (Exception e) {
+            log.error("Error searching shiftings with query '{}': {}", query, e.getMessage(), e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("An unexpected error occurred while searching shiftings.");
         }
         return response;
     }
