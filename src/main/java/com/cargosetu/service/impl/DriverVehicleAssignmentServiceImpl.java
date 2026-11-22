@@ -42,6 +42,17 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
             Vehicle vehicle = vehicleRepository.findById(vehicleId)
                     .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
+            // Driver.status is the employment status (ACTIVE / INACTIVE / SUSPENDED) and
+            // Vehicle.status is the fleet status (AVAILABLE / ON_TRIP / MAINTENANCE / OUT_OF_SERVICE).
+            // Whether they are assigned is tracked by the active DriverVehicleAssignment row,
+            // so we validate here but never overwrite either status with "Assigned".
+            if ("INACTIVE".equals(driver.getStatus()) || "SUSPENDED".equals(driver.getStatus())) {
+                throw new IllegalStateException("Driver is " + driver.getStatus() + " and cannot be assigned");
+            }
+            if ("MAINTENANCE".equals(vehicle.getStatus()) || "OUT_OF_SERVICE".equals(vehicle.getStatus())) {
+                throw new IllegalStateException("Vehicle is " + vehicle.getStatus() + " and cannot be assigned");
+            }
+
             // 🚨 critical logic: deactivate old assignments
             List<DriverVehicleAssignment> existing =
                     repository.findByDriverIdAndActiveTrue(driverId);
@@ -58,10 +69,6 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
             assignment.setVehicle(vehicle);
             assignment.setAssignedAt(LocalDateTime.now());
             assignment.setActive(true);
-            driver.setStatus("Assigned");
-            vehicle.setStatus("Assigned");
-            driverRepository.save(driver);
-            vehicleRepository.save(vehicle);
             return repository.save(assignment);
 
         } catch (Exception e) {
@@ -111,11 +118,7 @@ public class DriverVehicleAssignmentServiceImpl implements DriverVehicleAssignme
                 assignment.setUnassignedAt(LocalDateTime.now());
 
                 repository.save(assignment);
-
-                driver.setStatus("Available");
-                vehicle.setStatus("Available");
-                driverRepository.save(driver);
-                vehicleRepository.save(vehicle);
+                // Statuses are left untouched: un-assigning ends the assignment row only.
 
             }
 

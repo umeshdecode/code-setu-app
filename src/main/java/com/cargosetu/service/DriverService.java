@@ -10,6 +10,8 @@ DriverService {
     public Driver createDriver(DriverDto driver) ;
     public Driver getDriver(Long id) ;
     public List<Driver> getAllDrivers() ;
+    /** Drivers of one company (newest first). */
+    public List<Driver> getDriversByCompany(Integer companyId);
     public void deleteDriver(Long id) ;
     public Driver updateDriver(Long id, DriverDto updated) ;
     }

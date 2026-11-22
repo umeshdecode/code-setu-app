@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface DriverRepository extends JpaRepository<Driver, Long> {
 
     Optional<Driver> findByLicenseNumber(String licenseNumber);
+    java.util.List<Driver> findByCompanyIdOrderByIdDesc(Integer companyId);
 }

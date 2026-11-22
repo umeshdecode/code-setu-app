@@ -17,5 +17,8 @@ public interface MarketplaceBookingRepository extends JpaRepository<MarketplaceB
     List<MarketplaceBooking> findByVehicleIdAndStatusIn(Long vehicleId, List<BookingStatus> statuses);
     List<MarketplaceBooking> findByShipperCompanyIdOrTransporterCompanyId(Integer shipperId, Integer transporterId);
     long countByShipperCompanyId(Integer companyId);
+    List<MarketplaceBooking> findByListingIdAndStatusIn(Long listingId, java.util.Collection<BookingStatus> statuses);
+    boolean existsByListingIdAndRequestedByCompanyIdAndStatusIn(Long listingId, Integer companyId, java.util.Collection<BookingStatus> statuses);
+    Optional<MarketplaceBooking> findFirstByOfferId(Long offerId);
     long countByTransporterCompanyId(Integer companyId);
 }

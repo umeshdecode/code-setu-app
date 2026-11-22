@@ -29,4 +29,12 @@ public class ConversationResponse {
     private Long unreadCount;
     private String lastMessage;
     private LocalDateTime createdAt;
+    /** The other company in this chat, from the caller's point of view. */
+    private Integer otherPartyCompanyId;
+    private String otherPartyName;
+    /** What the chat is about, e.g. "Load LD-20261121-7KQ2XM" or "Booking BK-...". */
+    private String contextTitle;
+    /** Route of the listing, e.g. "Ahmedabad → Mumbai". */
+    private String contextRoute;
+    private String listingType;
 }

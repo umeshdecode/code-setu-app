@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.ChatService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,14 @@ public class MarketplaceChatController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_CHAT_CREATE + "')")
-    public ResponseEntity<?> startConversation(@AuthenticationPrincipal LoggedInUser user, @RequestBody StartConversationRequest request) {
+    public ResponseEntity<?> startConversation(@AuthenticationPrincipal LoggedInUser user, @Valid @RequestBody StartConversationRequest request) {
         log.info("API entry for startConversation by user: {}", user.getStaffId());
         try {
             GenericDataDTO response = chatService.startConversation(user, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in startConversation", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to start conversation", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -43,11 +44,10 @@ public class MarketplaceChatController {
         log.info("API entry for getConversations user: {}", user.getStaffId());
         try {
             GenericDataDTO response = chatService.getConversations(user);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getConversations", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get conversations", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -57,25 +57,23 @@ public class MarketplaceChatController {
         log.info("API entry for getMessages id: {}", id);
         try {
             GenericDataDTO response = chatService.getMessages(user, id);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getMessages", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get messages", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping("/{id}" + MarketplaceUrlConstants.MESSAGES)
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_CHAT_CREATE + "')")
-    public ResponseEntity<?> sendMessage(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody ChatMessageRequest request) {
+    public ResponseEntity<?> sendMessage(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody ChatMessageRequest request) {
         log.info("API entry for sendMessage id: {}", id);
         try {
             GenericDataDTO response = chatService.sendMessage(user, id, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in sendMessage", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to send message", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -85,11 +83,10 @@ public class MarketplaceChatController {
         log.info("API entry for markAsRead id: {}", id);
         try {
             GenericDataDTO response = chatService.markAsRead(user, id);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in markAsRead", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to mark as read", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 }

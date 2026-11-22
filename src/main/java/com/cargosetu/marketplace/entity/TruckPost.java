@@ -17,7 +17,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "truck_post")
+@Table(name = "truck_post", indexes = {
+        @Index(name = "idx_truck_post_current_geo", columnList = "currentLat,currentLng"),
+        @Index(name = "idx_truck_post_route_from_geo", columnList = "routeFromLat,routeFromLng"),
+        @Index(name = "idx_truck_post_route_to_geo", columnList = "routeToLat,routeToLng"),
+        @Index(name = "idx_truck_post_status", columnList = "truckStatus")
+})
 public class TruckPost {
 
     @Id
@@ -71,6 +76,16 @@ public class TruckPost {
 
     @Column(name = "is_verified")
     private Boolean isVerified;
+
+    private java.math.BigDecimal pricePerKm;
+    private java.math.BigDecimal minimumPrice;
+    /** Lump-sum price for the whole trip on this route (e.g. Ahmedabad → Bangalore for 70,000). */
+    private java.math.BigDecimal fixedFreight;
+    /** Whether the quoted rate / fixed price is open to negotiation. */
+    private Boolean priceNegotiable;
+    private LocalDateTime availableFrom;
+    private LocalDateTime availableTo;
+    private String returnRoute;
 
     private Double rating;
 

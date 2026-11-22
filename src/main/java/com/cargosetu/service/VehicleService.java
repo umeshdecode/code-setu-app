@@ -14,6 +14,8 @@ public interface VehicleService {
     public Vehicle getVehicle(Long id);
 
     public List<Vehicle> getAllVehicles();
+    /** Vehicles owned by one company (newest first). */
+    public List<Vehicle> getVehiclesByCompany(Integer companyId);
 
     public Vehicle updateVehicle(Long id, VehicleDto updatedVehicle);
 

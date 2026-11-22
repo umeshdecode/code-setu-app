@@ -37,6 +37,8 @@ public class TruckPostResponse {
     private LocalDateTime validFrom;
     private LocalDateTime validUntil;
     private LocalDateTime createdAt;
+    /** True when the listing belongs to the caller's company (shown as "Your post"). */
+    private Boolean ownListing;
     private LocalDateTime updatedAt;
     private Long vehicleId;
     private Long driverId;
@@ -68,4 +70,11 @@ public class TruckPostResponse {
     private Integer availableSpacePercent;
     private List<CargoType> acceptedLoadTypes;
     private TruckAvailabilityStatus truckStatus;
+    private BigDecimal pricePerKm;
+    private BigDecimal minimumPrice;
+    private BigDecimal fixedFreight;
+    private Boolean priceNegotiable;
+    private LocalDateTime availableFrom;
+    private LocalDateTime availableTo;
+    private String returnRoute;
 }

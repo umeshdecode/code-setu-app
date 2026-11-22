@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.ListingService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +27,7 @@ public class MarketplaceTruckController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_CREATE + "')")
-    public ResponseEntity<?> createTruck(@AuthenticationPrincipal LoggedInUser user, @RequestBody CreateTruckPostRequest request) {
+    public ResponseEntity<?> createTruck(@AuthenticationPrincipal LoggedInUser user, @Valid @RequestBody CreateTruckPostRequest request) {
         log.info("API: Create Truck Post by staff: {}", user.getStaffId());
         GenericDataDTO response = new GenericDataDTO();
         try {
@@ -33,26 +35,26 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error creating truck post: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_READ + "')")
-    public ResponseEntity<?> searchTrucks(TruckPostSearchRequest searchRequest) {
+    public ResponseEntity<?> searchTrucks(@AuthenticationPrincipal LoggedInUser user, TruckPostSearchRequest searchRequest) {
         log.info("API: Search Trucks");
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = listingService.searchTrucks(searchRequest);
+            response = listingService.searchTrucks(searchRequest, user);
         } catch (Exception e) {
             log.error("Error searching trucks: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping("/my")
@@ -67,10 +69,10 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error fetching my trucks: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping("/{id}")
@@ -83,15 +85,15 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error getting truck post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_UPDATE + "')")
-    public ResponseEntity<?> updateTruck(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody CreateTruckPostRequest request) {
+    public ResponseEntity<?> updateTruck(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody CreateTruckPostRequest request) {
         log.info("API: Update Truck Post ID: {}", id);
         GenericDataDTO response = new GenericDataDTO();
         try {
@@ -99,10 +101,10 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error updating truck post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PostMapping("/{id}/publish")
@@ -115,10 +117,10 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error publishing truck post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PostMapping("/{id}/close")
@@ -131,9 +133,21 @@ public class MarketplaceTruckController {
         } catch (Exception e) {
             log.error("Error closing truck post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
+    }
+
+    @PostMapping("/{id}/renew")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_TRUCK_CREATE + "')")
+    public ResponseEntity<?> renew(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id) {
+        log.info("API: Renew listing ID: {}", id);
+        try {
+            return MarketplaceResponses.of(listingService.renewListing(user, id));
+        } catch (Exception e) {
+            log.error("Error renewing listing {}", id, e);
+            return MarketplaceResponses.error();
+        }
     }
 }

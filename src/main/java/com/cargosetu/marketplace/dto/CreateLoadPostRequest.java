@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,13 +17,13 @@ import com.cargosetu.marketplace.enums.*;
 @AllArgsConstructor
 @Builder
 public class CreateLoadPostRequest {
-    @NotBlank private String originCity;
+    @NotBlank @Size(max = 100) private String originCity;
     private String originAddress;
     private String originState;
     private String originPincode;
     private Double originLat;
     private Double originLng;
-    @NotBlank private String destinationCity;
+    @NotBlank @Size(max = 100) private String destinationCity;
     private String destinationAddress;
     private String destinationState;
     private String destinationPincode;
@@ -33,16 +35,45 @@ public class CreateLoadPostRequest {
     private LocalDateTime deliveryTo;
     @NotNull private CargoType cargoType;
     private String cargoDescription;
-    @NotNull private Double weight;
+    @NotNull @Positive private Double weight;
     @NotNull private CapacityUnit weightUnit;
-    private Double volume;
-    private Integer packageCount;
+    @PositiveOrZero private Double volume;
+    @PositiveOrZero private Integer packageCount;
     private String requiredTruckType;
     private Double requiredTruckLength;
     private String requiredBodyType;
     private String priceType;
-    private BigDecimal askingPrice;
+    @PositiveOrZero private BigDecimal askingPrice;
     private PaymentTermType paymentTerms;
-    private String specialInstructions;
-    private BigDecimal declaredValue;
+    @Size(max = 2000) private String specialInstructions;
+    @PositiveOrZero private BigDecimal declaredValue;
+
+    @Min(0) @Max(100)
+    private Integer advancePercentage;
+
+    @JsonIgnore
+    @AssertTrue(message = "origin and destination must be different")
+    public boolean isDistinctRoute() {
+        return originCity == null || destinationCity == null
+                || !originCity.trim().equalsIgnoreCase(destinationCity.trim());
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "pickup date cannot be in the past")
+    public boolean isPickupNotPast() {
+        return pickupFrom == null || !pickupFrom.toLocalDate().isBefore(java.time.LocalDate.now());
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "pickup window end must be after its start")
+    public boolean isPickupWindowValid() {
+        return pickupFrom == null || pickupTo == null || !pickupTo.isBefore(pickupFrom);
+    }
+
+    @JsonIgnore
+    @AssertTrue(message = "delivery cannot be before pickup")
+    public boolean isDeliveryAfterPickup() {
+        LocalDateTime delivery = deliveryTo != null ? deliveryTo : deliveryFrom;
+        return pickupFrom == null || delivery == null || !delivery.toLocalDate().isBefore(pickupFrom.toLocalDate());
+    }
 }

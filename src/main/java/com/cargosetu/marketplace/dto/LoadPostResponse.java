@@ -26,6 +26,8 @@ public class LoadPostResponse {
     private LocalDateTime validFrom;
     private LocalDateTime validUntil;
     private LocalDateTime createdAt;
+    /** True when the listing belongs to the caller's company (shown as "Your post"). */
+    private Boolean ownListing;
     private LocalDateTime updatedAt;
     private String originCity;
     private String originAddress;
@@ -55,6 +57,7 @@ public class LoadPostResponse {
     private String priceType;
     private BigDecimal askingPrice;
     private PaymentTermType paymentTerms;
+    private Integer advancePercentage;
     private String specialInstructions;
     private BigDecimal declaredValue;
     private Double routeDistanceKm;

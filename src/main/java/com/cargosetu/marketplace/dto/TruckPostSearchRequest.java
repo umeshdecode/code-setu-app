@@ -33,6 +33,8 @@ public class TruckPostSearchRequest {
     private Double radiusKm;
     private Double maxDetourKm;
     private Boolean verifiedOnly;
+    /** Include the caller's own company's trucks (default false). */
+    private Boolean includeOwn;
     private Double minRating;
     @Builder.Default private Integer page = 0;
     @Builder.Default private Integer size = 20;

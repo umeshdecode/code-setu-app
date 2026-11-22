@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,10 +18,10 @@ import com.cargosetu.marketplace.enums.*;
 @Builder
 public class RatingRequest {
     @NotNull @Min(1) @Max(5) private Integer overallRating;
-    private Integer communicationRating;
-    private Integer punctualityRating;
-    private Integer professionalismRating;
-    private Integer paymentRating;
+    @Min(1) @Max(5) private Integer communicationRating;
+    @Min(1) @Max(5) private Integer punctualityRating;
+    @Min(1) @Max(5) private Integer professionalismRating;
+    @Min(1) @Max(5) private Integer paymentRating;
     private List<String> tags;
-    private String comment;
+    @Size(max = 2000) private String comment;
 }

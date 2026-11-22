@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.DisputeService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,14 @@ public class MarketplaceDisputeController {
 
     @PostMapping("/booking/{bookingId}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_DISPUTE_CREATE + "')")
-    public ResponseEntity<?> raiseDispute(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @RequestBody DisputeRequest request) {
+    public ResponseEntity<?> raiseDispute(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @Valid @RequestBody DisputeRequest request) {
         log.info("API entry for raiseDispute bookingId: {}", bookingId);
         try {
             GenericDataDTO response = disputeService.raiseDispute(user, bookingId, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in raiseDispute", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to raise dispute", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -43,11 +44,10 @@ public class MarketplaceDisputeController {
         log.info("API entry for getMyDisputes user: {}", user.getStaffId());
         try {
             GenericDataDTO response = disputeService.getMyDisputes(user);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getMyDisputes", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get disputes", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -57,25 +57,23 @@ public class MarketplaceDisputeController {
         log.info("API entry for getDispute id: {}", id);
         try {
             GenericDataDTO response = disputeService.getDispute(id);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getDispute", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get dispute", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_DISPUTE_UPDATE + "')")
-    public ResponseEntity<?> updateDispute(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody DisputeUpdateRequest request) {
+    public ResponseEntity<?> updateDispute(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody DisputeUpdateRequest request) {
         log.info("API entry for updateDispute id: {}", id);
         try {
             GenericDataDTO response = disputeService.updateDispute(user, id, request);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in updateDispute", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to update dispute", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -85,11 +83,10 @@ public class MarketplaceDisputeController {
         log.info("API entry for addEvidence id: {}", id);
         try {
             GenericDataDTO response = disputeService.addEvidence(user, id, evidenceType, fileRef, description);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in addEvidence", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to add evidence", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 }

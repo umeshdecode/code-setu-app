@@ -1,7 +1,8 @@
 package com.cargosetu.marketplace.dto;
 
 import com.cargosetu.marketplace.enums.PaymentTermType;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,9 +15,11 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class CounterBookingRequest {
-    @NotNull
+    @NotNull @Positive
+    @JsonAlias({"counterFreight", "amount"})
     private BigDecimal proposedFreight;
     private PaymentTermType paymentTerms;
+    @Min(0) @Max(100)
     private Integer advancePercentage;
     private String remarks;
 }

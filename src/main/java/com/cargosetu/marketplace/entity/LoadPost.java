@@ -19,7 +19,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "load_post")
+@Table(name = "load_post", indexes = {
+        @Index(name = "idx_load_post_origin_geo", columnList = "originLat,originLng"),
+        @Index(name = "idx_load_post_pickup", columnList = "pickupFrom")
+})
 public class LoadPost {
 
     @Id
@@ -75,6 +78,8 @@ public class LoadPost {
 
     @Enumerated(EnumType.STRING)
     private PaymentTermType paymentTerms;
+
+    private Integer advancePercentage;
 
     @Column(columnDefinition = "TEXT")
     private String specialInstructions;

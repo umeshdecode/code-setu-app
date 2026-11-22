@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.RatingService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +27,14 @@ public class MarketplaceRatingController {
 
     @PostMapping("/booking/{bookingId}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_RATING_CREATE + "')")
-    public ResponseEntity<?> submitRating(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @RequestBody RatingRequest request) {
+    public ResponseEntity<?> submitRating(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @Valid @RequestBody RatingRequest request) {
         log.info("API entry for submitRating bookingId: {}", bookingId);
         try {
             GenericDataDTO response = ratingService.submitRating(user, bookingId, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in submitRating", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to submit rating", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -43,11 +44,10 @@ public class MarketplaceRatingController {
         log.info("API entry for getRatingsForBooking bookingId: {}", bookingId);
         try {
             GenericDataDTO response = ratingService.getRatingsForBooking(bookingId);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getRatingsForBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get ratings", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -57,11 +57,10 @@ public class MarketplaceRatingController {
         log.info("API entry for getCompanyRatings companyId: {}", companyId);
         try {
             GenericDataDTO response = ratingService.getCompanyRatings(companyId);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getCompanyRatings", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get company ratings", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 }

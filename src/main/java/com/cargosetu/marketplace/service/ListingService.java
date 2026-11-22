@@ -56,6 +56,9 @@ public class ListingService {
     private final LoadPostMapper loadPostMapper;
     private final TruckPostMapper truckPostMapper;
     private final MarketplaceAuditService auditService;
+    private final MarketplaceOfferRepository offerRepository;
+    private final MarketplaceBookingRepository bookingRepository;
+    private final SavedSearchRepository savedSearchRepository;
     private final ObjectMapper objectMapper;
     private final StaffRepository staffRepository;
     private final ApplicationEventPublisher eventPublisher;
@@ -71,8 +74,7 @@ public class ListingService {
             listing.setValidUntil(LocalDateTime.now().plusHours(72));
             listing.setCompanyId(user.getCompanyId());
             listing.setPostedByStaffId(user.getStaffId());
-            long count = listingRepository.count() + 1;
-            listing.setListingNumber(String.format("LD-%s-%04d", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")), count));
+            listing.setListingNumber(com.cargosetu.marketplace.util.MarketplaceNumbers.next("LD"));
             listing = listingRepository.save(listing);
 
             LoadPost loadPost = loadPostMapper.toEntity(request);
@@ -101,8 +103,11 @@ public class ListingService {
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Load post created successfully");
 
-            notifyLoadAvailable(loadPost, listing);
+            final LoadPost createdLoad = loadPost;
+            final MarketplaceListing createdListing = listing;
+            afterCommit(() -> notifyLoadAvailable(createdLoad, createdListing));
         } catch (Exception e) {
+            com.cargosetu.marketplace.util.MarketplaceResponses.rollback();
             log.error("Error creating load post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("Failed to create load post");
@@ -114,11 +119,16 @@ public class ListingService {
     public GenericDataDTO createTruckPost(LoggedInUser user, CreateTruckPostRequest request) {
         GenericDataDTO response = new GenericDataDTO();
         try {
-            if (request.getVehicleId() != null && !vehicleRepository.existsById(request.getVehicleId())) {
-                var fallbackVehicle = vehicleRepository.findAll().stream().findFirst().orElse(null);
-                if (fallbackVehicle != null) {
-                    request.setVehicleId(fallbackVehicle.getId());
-                }
+            if (user == null || user.getCompanyId() == null) {
+                response.setResponseCode(CommonStatusCode.UNAUTHORIZED);
+                response.setResponseMessege("Authentication required");
+                return response;
+            }
+            String fleetError = validateFleetOwnership(request.getVehicleId(), request.getDriverId(), user.getCompanyId());
+            if (fleetError != null) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege(fleetError);
+                return response;
             }
 
             MarketplaceListing listing = new MarketplaceListing();
@@ -128,8 +138,7 @@ public class ListingService {
             listing.setValidUntil(LocalDateTime.now().plusHours(72));
             listing.setCompanyId(user.getCompanyId());
             listing.setPostedByStaffId(user.getStaffId());
-            long count = listingRepository.count() + 1;
-            listing.setListingNumber(String.format("TK-%s-%04d", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")), count));
+            listing.setListingNumber(com.cargosetu.marketplace.util.MarketplaceNumbers.next("TK"));
             listing = listingRepository.save(listing);
 
             TruckPost truckPost = truckPostMapper.toEntity(request);
@@ -173,8 +182,11 @@ public class ListingService {
             response.setResponseCode(CommonStatusCode.CREATED);
             response.setResponseMessege("Truck post created successfully");
 
-            notifyDriverAvailable(truckPost, listing);
+            final TruckPost createdTruck = truckPost;
+            final MarketplaceListing createdListing = listing;
+            afterCommit(() -> notifyDriverAvailable(createdTruck, createdListing));
         } catch (Exception e) {
+            com.cargosetu.marketplace.util.MarketplaceResponses.rollback();
             log.error("Error creating truck post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
             response.setResponseMessege("Failed to create truck post");
@@ -190,8 +202,27 @@ public class ListingService {
         List<TruckPost> publishedTrucks = truckPostRepository.findByListingStatus(ListingStatus.PUBLISHED);
         Set<Integer> recipientCompanyIds = new HashSet<>();
         for (TruckPost truck : publishedTrucks) {
-            if (truck.getListing() != null && !truck.getListing().getCompanyId().equals(listing.getCompanyId())) {
+            if (truck.getListing() == null || truck.getListing().getCompanyId() == null
+                    || truck.getListing().getCompanyId().equals(listing.getCompanyId())) {
+                continue;
+            }
+            // Only alert trucks that are near the load's pickup point.
+            Double[] truckPoint = firstValidPoint(
+                    new Double[]{truck.getCurrentLat(), truck.getCurrentLng()},
+                    new Double[]{truck.getRouteFromLat(), truck.getRouteFromLng()});
+            if (isWithinAlertRadius(truckPoint, loadPost.getOriginLat(), loadPost.getOriginLng())) {
                 recipientCompanyIds.add(truck.getListing().getCompanyId());
+            }
+        }
+        // Companies with a saved "LOAD" search that matches this load.
+        for (SavedSearch ss : savedSearchRepository.findAll()) {
+            if (Boolean.TRUE.equals(ss.getActive()) && "LOAD".equalsIgnoreCase(ss.getSearchType())
+                    && ss.getCompanyId() != null && !ss.getCompanyId().equals(listing.getCompanyId())
+                    && cityMatches(ss.getOriginCity(), loadPost.getOriginCity())
+                    && cityMatches(ss.getDestinationCity(), loadPost.getDestinationCity())
+                    && (ss.getCargoType() == null || ss.getCargoType() == CargoType.ALL || ss.getCargoType() == loadPost.getCargoType())
+                    && (ss.getMaxPrice() == null || loadPost.getAskingPrice() == null || loadPost.getAskingPrice().compareTo(ss.getMaxPrice()) <= 0)) {
+                recipientCompanyIds.add(ss.getCompanyId());
             }
         }
         if (recipientCompanyIds.isEmpty()) {
@@ -216,9 +247,28 @@ public class ListingService {
     private void notifyDriverAvailable(TruckPost truckPost, MarketplaceListing listing) {
         List<LoadPost> publishedLoads = loadPostRepository.findByListingStatus(ListingStatus.PUBLISHED);
         Set<Integer> recipientCompanyIds = new HashSet<>();
+        Double[] truckPoint = firstValidPoint(
+                new Double[]{truckPost.getCurrentLat(), truckPost.getCurrentLng()},
+                new Double[]{truckPost.getRouteFromLat(), truckPost.getRouteFromLng()});
         for (LoadPost load : publishedLoads) {
-            if (load.getListing() != null && !load.getListing().getCompanyId().equals(listing.getCompanyId())) {
+            if (load.getListing() == null || load.getListing().getCompanyId() == null
+                    || load.getListing().getCompanyId().equals(listing.getCompanyId())) {
+                continue;
+            }
+            // Only alert shippers whose load picks up near this truck.
+            if (isWithinAlertRadius(truckPoint, load.getOriginLat(), load.getOriginLng())) {
                 recipientCompanyIds.add(load.getListing().getCompanyId());
+            }
+        }
+        // Companies with a saved "TRUCK" search that matches this truck.
+        String truckFrom = truckPost.getRouteFrom() != null && !truckPost.getRouteFrom().isBlank() ? truckPost.getRouteFrom() : truckPost.getCurrentCity();
+        for (SavedSearch ss : savedSearchRepository.findAll()) {
+            if (Boolean.TRUE.equals(ss.getActive()) && "TRUCK".equalsIgnoreCase(ss.getSearchType())
+                    && ss.getCompanyId() != null && !ss.getCompanyId().equals(listing.getCompanyId())
+                    && cityMatches(ss.getOriginCity(), truckFrom)
+                    && cityMatches(ss.getDestinationCity(), truckPost.getRouteTo())
+                    && (ss.getMinCapacity() == null || truckPost.getAvailableCapacity() == null || truckPost.getAvailableCapacity() >= ss.getMinCapacity())) {
+                recipientCompanyIds.add(ss.getCompanyId());
             }
         }
         if (recipientCompanyIds.isEmpty()) {
@@ -240,6 +290,160 @@ public class ListingService {
         if (!recipients.isEmpty()) {
             eventPublisher.publishEvent(new GenericNotificationEvent(
                     NotificationEventType.DRIVER_AVAILABLE, recipients, NotificationChannel.PUSH, variables));
+        }
+    }
+
+    /** Radius used to decide which counterparties get a "new load / truck near you" push. */
+    private static final double ALERT_RADIUS_KM = 150.0;
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final Set<String> LOAD_SORT_FIELDS = Set.of("createdAt", "pickupFrom", "askingPrice", "weight");
+    private static final Set<String> TRUCK_SORT_FIELDS = Set.of("createdAt", "availableCapacity", "expectedEta", "pricePerKm");
+    private static final List<ListingStatus> SEARCHABLE_STATUSES = List.of(ListingStatus.PUBLISHED, ListingStatus.NEGOTIATING);
+
+    private static boolean isOwnedBy(MarketplaceListing listing, LoggedInUser user) {
+        return listing != null && user != null && user.getCompanyId() != null
+                && user.getCompanyId().equals(listing.getCompanyId());
+    }
+
+    /** A blank criterion matches anything; otherwise a case-insensitive "contains" on the city name. */
+    private static boolean cityMatches(String criterion, String actual) {
+        if (criterion == null || criterion.isBlank()) return true;
+        return actual != null && actual.toLowerCase().contains(criterion.trim().toLowerCase());
+    }
+
+    private static Double[] firstValidPoint(Double[]... candidates) {
+        for (Double[] p : candidates) {
+            if (p != null && com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(p[0], p[1])) return p;
+        }
+        return null;
+    }
+
+    private static boolean isWithinAlertRadius(Double[] point, Double lat, Double lng) {
+        if (point == null || !com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(lat, lng)) {
+            return false; // unknown location: don't spam
+        }
+        return com.cargosetu.marketplace.util.GeoDistanceUtils.haversineKm(point[0], point[1], lat, lng) <= ALERT_RADIUS_KM;
+    }
+
+    /** Runs the action after the surrounding transaction commits (immediately if there is none). */
+    private static void afterCommit(Runnable action) {
+        Runnable safe = () -> {
+            try { action.run(); } catch (Exception e) { log.warn("Post-commit marketplace action failed: {}", e.getMessage()); }
+        };
+        if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                    new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit() { safe.run(); }
+                    });
+        } else {
+            safe.run();
+        }
+    }
+
+    /** Returns an error message when the vehicle/driver do not belong to {@code companyId}, otherwise null. */
+    private String validateFleetOwnership(Long vehicleId, Long driverId, Integer companyId) {
+        if (vehicleId != null) {
+            Vehicle vehicle = vehicleRepository.findById(vehicleId).orElse(null);
+            if (vehicle == null) return "Selected vehicle not found";
+            if (vehicle.getCompanyId() == null || !vehicle.getCompanyId().equals(companyId)) {
+                return "Selected vehicle does not belong to your company";
+            }
+        }
+        if (driverId != null) {
+            var driver = driverRepository.findById(driverId).orElse(null);
+            if (driver == null) return "Selected driver not found";
+            if (driver.getCompanyId() == null || !driver.getCompanyId().equals(companyId)) {
+                return "Selected driver does not belong to your company";
+            }
+        }
+        return null;
+    }
+
+    private static Sort resolveSort(String sortBy, String sortDir, Set<String> allowed, Sort fallback) {
+        if (sortBy == null || sortBy.isBlank() || !allowed.contains(sortBy.trim())) return fallback;
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return Sort.by(direction, sortBy.trim()).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private static int clampSize(Integer size) {
+        return (size != null && size > 0) ? Math.min(size, MAX_PAGE_SIZE) : 20;
+    }
+
+    /** Only live, unexpired, published listings are visible in public search. */
+    private static Predicate visibleListingPredicate(jakarta.persistence.criteria.CriteriaBuilder cb,
+                                                     Join<?, MarketplaceListing> listingJoin,
+                                                     Integer excludeCompanyId) {
+        List<Predicate> p = new ArrayList<>();
+        p.add(listingJoin.get("status").in(SEARCHABLE_STATUSES));
+        p.add(cb.or(cb.isNull(listingJoin.get("validUntil")),
+                cb.greaterThan(listingJoin.<LocalDateTime>get("validUntil"), LocalDateTime.now())));
+        if (excludeCompanyId != null) {
+            p.add(cb.or(cb.isNull(listingJoin.get("companyId")),
+                    cb.notEqual(listingJoin.get("companyId"), excludeCompanyId)));
+        }
+        return cb.and(p.toArray(new Predicate[0]));
+    }
+
+    // ───────────────────────────── renew / expiry ─────────────────────────────
+
+    /** Puts an expired (or about-to-expire) listing back on the market for another 72 hours. */
+    @Transactional
+    public GenericDataDTO renewListing(LoggedInUser user, Long listingId) {
+        GenericDataDTO response = new GenericDataDTO();
+        try {
+            MarketplaceListing listing = listingRepository.findById(listingId).orElse(null);
+            if (listing == null || user == null || !java.util.Objects.equals(listing.getCompanyId(), user.getCompanyId())) {
+                response.setResponseCode(CommonStatusCode.NOT_FOUND);
+                response.setResponseMessege("Listing not found or unauthorized");
+                return response;
+            }
+            if (listing.getStatus() != ListingStatus.EXPIRED && listing.getStatus() != ListingStatus.PUBLISHED
+                    && listing.getStatus() != ListingStatus.NEGOTIATING) {
+                response.setResponseCode(CommonStatusCode.CONFLICT);
+                response.setResponseMessege("Only active or expired listings can be renewed (current: " + listing.getStatus() + ")");
+                return response;
+            }
+            if (listing.getType() == ListingType.LOAD_POST && listing.getLoadPost() != null
+                    && listing.getLoadPost().getPickupFrom() != null
+                    && listing.getLoadPost().getPickupFrom().toLocalDate().isBefore(java.time.LocalDate.now())) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege("Pickup date has passed. Update the pickup date before renewing.");
+                return response;
+            }
+            String oldStatus = listing.getStatus().name();
+            if (listing.getStatus() == ListingStatus.EXPIRED) {
+                listing.setStatus(ListingStatus.PUBLISHED);
+            }
+            listing.setValidFrom(LocalDateTime.now());
+            listing.setValidUntil(LocalDateTime.now().plusHours(72));
+            listingRepository.save(listing);
+            auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceListing", listingId, "RENEW", oldStatus, listing.getStatus().name());
+            response.setResponseCode(CommonStatusCode.SUCCESS);
+            response.setResponseMessege("Listing renewed for 72 hours");
+        } catch (Exception e) {
+            com.cargosetu.marketplace.util.MarketplaceResponses.rollback();
+            log.error("Error renewing listing", e);
+            response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
+            response.setResponseMessege("Failed to renew listing");
+        }
+        return response;
+    }
+
+    /** Every 15 minutes, mark published/negotiating listings past validUntil as EXPIRED. */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "${marketplace.listing-expiry.interval-ms:900000}", initialDelay = 90000)
+    @Transactional
+    public void expireListings() {
+        try {
+            List<MarketplaceListing> stale = listingRepository.findByStatusInAndValidUntilBefore(SEARCHABLE_STATUSES, LocalDateTime.now());
+            for (MarketplaceListing l : stale) {
+                String old = l.getStatus().name();
+                l.setStatus(ListingStatus.EXPIRED);
+                listingRepository.save(l);
+                auditService.logEvent(l.getCompanyId(), null, "MarketplaceListing", l.getId(), "EXPIRE", old, "EXPIRED");
+            }
+            if (!stale.isEmpty()) log.info("Expired {} marketplace listings", stale.size());
+        } catch (Exception e) {
+            log.error("Listing expiry job failed", e);
         }
     }
 
@@ -298,9 +502,32 @@ public class ListingService {
                 return response;
             }
 
+            if (listing.getStatus() == ListingStatus.BOOKED || listing.getStatus() == ListingStatus.IN_PROGRESS) {
+                response.setResponseCode(CommonStatusCode.CONFLICT);
+                response.setResponseMessege("This listing has an active booking. Cancel the booking before closing the listing.");
+                return response;
+            }
+            if (listing.getStatus() == ListingStatus.CLOSED) {
+                response.setResponseCode(CommonStatusCode.SUCCESS);
+                response.setResponseMessege("Listing is already closed");
+                return response;
+            }
+
             String oldStatus = listing.getStatus() != null ? listing.getStatus().name() : null;
             listing.setStatus(ListingStatus.CLOSED);
             listingRepository.save(listing);
+
+            // Nothing can be negotiated on a closed listing any more.
+            for (MarketplaceOffer offer : offerRepository.findByListingIdAndStatus(listingId, OfferStatus.PENDING)) {
+                offer.setStatus(OfferStatus.WITHDRAWN);
+                offerRepository.save(offer);
+            }
+            for (MarketplaceBooking b : bookingRepository.findByListingIdAndStatusIn(listingId, List.of(
+                    BookingStatus.REQUESTED, BookingStatus.PENDING_APPROVAL, BookingStatus.COUNTERED))) {
+                b.setStatus(BookingStatus.REJECTED);
+                b.setRejectionReason("Listing was closed by the owner");
+                bookingRepository.save(b);
+            }
 
             auditService.logEvent(user.getCompanyId(), user.getStaffId(), "MarketplaceListing", listingId, "CLOSE", oldStatus, "CLOSED");
 
@@ -365,6 +592,7 @@ public class ListingService {
                 return response;
             }
             if (listing.getStatus() == ListingStatus.BOOKED ||
+                listing.getStatus() == ListingStatus.IN_PROGRESS ||
                 listing.getStatus() == ListingStatus.COMPLETED ||
                 listing.getStatus() == ListingStatus.CANCELLED ||
                 listing.getStatus() == ListingStatus.CLOSED) {
@@ -412,6 +640,7 @@ public class ListingService {
             if (request.getPriceType() != null) loadPost.setPriceType(request.getPriceType());
             if (request.getAskingPrice() != null) loadPost.setAskingPrice(request.getAskingPrice());
             if (request.getPaymentTerms() != null) loadPost.setPaymentTerms(request.getPaymentTerms());
+            if (request.getAdvancePercentage() != null) loadPost.setAdvancePercentage(request.getAdvancePercentage());
             if (request.getSpecialInstructions() != null) loadPost.setSpecialInstructions(request.getSpecialInstructions());
             if (request.getDeclaredValue() != null) loadPost.setDeclaredValue(request.getDeclaredValue());
 
@@ -427,7 +656,7 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error updating load post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to update load post: " + e.getMessage());
+            response.setResponseMessege("Failed to update load post");
         }
         return response;
     }
@@ -443,6 +672,7 @@ public class ListingService {
                 return response;
             }
             if (listing.getStatus() == ListingStatus.BOOKED ||
+                listing.getStatus() == ListingStatus.IN_PROGRESS ||
                 listing.getStatus() == ListingStatus.COMPLETED ||
                 listing.getStatus() == ListingStatus.CANCELLED ||
                 listing.getStatus() == ListingStatus.CLOSED) {
@@ -458,10 +688,21 @@ public class ListingService {
                 return response;
             }
 
-            if (request.getVehicleId() != null && vehicleRepository.existsById(request.getVehicleId())) {
-                truckPost.setVehicleId(request.getVehicleId());
+            String fleetError = validateFleetOwnership(request.getVehicleId(), request.getDriverId(), user.getCompanyId());
+            if (fleetError != null) {
+                response.setResponseCode(CommonStatusCode.FAIL);
+                response.setResponseMessege(fleetError);
+                return response;
             }
+            if (request.getVehicleId() != null) truckPost.setVehicleId(request.getVehicleId());
             if (request.getDriverId() != null) truckPost.setDriverId(request.getDriverId());
+            if (request.getPricePerKm() != null) truckPost.setPricePerKm(request.getPricePerKm());
+            if (request.getMinimumPrice() != null) truckPost.setMinimumPrice(request.getMinimumPrice());
+            if (request.getFixedFreight() != null) truckPost.setFixedFreight(request.getFixedFreight());
+            if (request.getPriceNegotiable() != null) truckPost.setPriceNegotiable(request.getPriceNegotiable());
+            if (request.getAvailableFrom() != null) truckPost.setAvailableFrom(request.getAvailableFrom());
+            if (request.getAvailableTo() != null) truckPost.setAvailableTo(request.getAvailableTo());
+            if (request.getReturnRoute() != null) truckPost.setReturnRoute(request.getReturnRoute());
             if (request.getCurrentCity() != null) truckPost.setCurrentCity(request.getCurrentCity());
             if (request.getCurrentState() != null) truckPost.setCurrentState(request.getCurrentState());
             if (request.getCurrentAddress() != null) truckPost.setCurrentAddress(request.getCurrentAddress());
@@ -503,31 +744,55 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error updating truck post", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to update truck post: " + e.getMessage());
+            response.setResponseMessege("Failed to update truck post");
         }
         return response;
     }
 
     public GenericDataDTO searchLoads(LoadPostSearchRequest searchRequest) {
+        return searchLoads(searchRequest, null);
+    }
+
+    /**
+     * Public load board. Only unexpired PUBLISHED/NEGOTIATING listings are returned, the caller's own
+     * company is excluded unless {@code includeOwn=true}, past pickups are hidden by default, and when
+     * origin coordinates are supplied the origin filter becomes a radius search instead of a text match.
+     */
+    public GenericDataDTO searchLoads(LoadPostSearchRequest searchRequest, LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             if (searchRequest == null) {
                 searchRequest = new LoadPostSearchRequest();
             }
             final LoadPostSearchRequest req = searchRequest;
+            // Own posts are shown (tagged "Your post") unless the caller passes includeOwn=false.
+            final Integer excludeCompanyId = (user != null && Boolean.FALSE.equals(req.getIncludeOwn())) ? user.getCompanyId() : null;
+            final boolean useOriginRadius = com.cargosetu.marketplace.util.GeoDistanceUtils.isValidCoordinate(req.getOriginLat(), req.getOriginLng());
+            final com.cargosetu.marketplace.util.GeoDistanceUtils.BoundingBox originBox = useOriginRadius
+                    ? com.cargosetu.marketplace.util.GeoDistanceUtils.computeBoundingBox(req.getOriginLat(), req.getOriginLng(),
+                            req.getOriginLat(), req.getOriginLng(),
+                            com.cargosetu.marketplace.util.GeoDistanceUtils.clampRadiusKm(req.getRadiusKm()))
+                    : null;
 
             Specification<LoadPost> spec = (root, query, cb) -> {
                 List<Predicate> predicates = new ArrayList<>();
 
-                // Join with listing (LEFT JOIN to include unlinked or active listings)
-                Join<LoadPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.LEFT);
-                predicates.add(cb.or(
-                        cb.isNull(listingJoin.get("id")),
-                        listingJoin.get("status").isNull(),
-                        cb.not(listingJoin.get("status").in(ListingStatus.CLOSED, ListingStatus.CANCELLED, ListingStatus.EXPIRED))
-                ));
+                Join<LoadPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.INNER);
+                predicates.add(visibleListingPredicate(cb, listingJoin, excludeCompanyId));
 
-                if (req.getOriginCity() != null && !req.getOriginCity().isBlank()) {
+                if (originBox != null) {
+                    Predicate inRadius = cb.and(
+                            cb.between(root.get("originLat"), originBox.minLat(), originBox.maxLat()),
+                            cb.between(root.get("originLng"), originBox.minLng(), originBox.maxLng()));
+                    if (req.getOriginCity() != null && !req.getOriginCity().isBlank()) {
+                        // Rows without coordinates fall back to the city text match.
+                        Predicate cityMatch = cb.and(cb.isNull(root.get("originLat")),
+                                cb.like(cb.lower(root.get("originCity")), "%" + req.getOriginCity().trim().toLowerCase() + "%"));
+                        predicates.add(cb.or(inRadius, cityMatch));
+                    } else {
+                        predicates.add(inRadius);
+                    }
+                } else if (req.getOriginCity() != null && !req.getOriginCity().isBlank()) {
                     predicates.add(cb.like(cb.lower(root.get("originCity")), "%" + req.getOriginCity().trim().toLowerCase() + "%"));
                 }
                 if (req.getDestinationCity() != null && !req.getDestinationCity().isBlank()) {
@@ -536,6 +801,10 @@ public class ListingService {
                 LocalDateTime fromDate = req.getPickupFrom() != null ? req.getPickupFrom() : req.getPickupDate();
                 if (fromDate != null) {
                     predicates.add(cb.greaterThanOrEqualTo(root.get("pickupFrom"), fromDate));
+                } else if (!Boolean.TRUE.equals(req.getIncludePastPickups())) {
+                    // Hide loads whose pickup day has already gone.
+                    predicates.add(cb.or(cb.isNull(root.get("pickupFrom")),
+                            cb.greaterThanOrEqualTo(root.<LocalDateTime>get("pickupFrom"), java.time.LocalDate.now().atStartOfDay())));
                 }
                 if (req.getPickupTo() != null) {
                     predicates.add(cb.lessThanOrEqualTo(root.get("pickupFrom"), req.getPickupTo()));
@@ -572,15 +841,9 @@ public class ListingService {
             };
 
             int page = (req.getPage() != null && req.getPage() >= 0) ? req.getPage() : 0;
-            int size = (req.getSize() != null && req.getSize() > 0) ? req.getSize() : 20;
-
-            Sort sort;
-            if (req.getSortBy() != null && !req.getSortBy().isBlank()) {
-                Sort.Direction direction = "asc".equalsIgnoreCase(req.getSortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
-                sort = Sort.by(direction, req.getSortBy());
-            } else {
-                sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
-            }
+            int size = clampSize(req.getSize());
+            Sort sort = resolveSort(req.getSortBy(), req.getSortDir(), LOAD_SORT_FIELDS,
+                    Sort.by(Sort.Direction.DESC, "createdAt", "id"));
 
             Pageable pageable = PageRequest.of(page, size, sort);
             Page<LoadPost> pagedResult = loadPostRepository.findAll(spec, pageable);
@@ -588,6 +851,7 @@ public class ListingService {
             List<LoadPostResponse> responseList = pagedResult.getContent().stream().map(post -> {
                 LoadPostResponse dto = loadPostMapper.toResponseWithListing(post);
                 enrichLoadPostResponse(dto, post);
+                dto.setOwnListing(isOwnedBy(post.getListing(), user));
                 return dto;
             }).toList();
 
@@ -601,18 +865,24 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error searching loads", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to search loads: " + e.getMessage());
+            response.setResponseMessege("Failed to search loads");
         }
         return response;
     }
 
     public GenericDataDTO searchTrucks(TruckPostSearchRequest searchRequest) {
+        return searchTrucks(searchRequest, null);
+    }
+
+    public GenericDataDTO searchTrucks(TruckPostSearchRequest searchRequest, LoggedInUser user) {
         GenericDataDTO response = new GenericDataDTO();
         try {
             if (searchRequest == null) {
                 searchRequest = new TruckPostSearchRequest();
             }
             final TruckPostSearchRequest req = searchRequest;
+            // Own posts are shown (tagged "Your post") unless the caller passes includeOwn=false.
+            final Integer excludeCompanyId = (user != null && Boolean.FALSE.equals(req.getIncludeOwn())) ? user.getCompanyId() : null;
 
             String originText = (req.getOriginCity() != null && !req.getOriginCity().isBlank())
                     ? req.getOriginCity().trim()
@@ -646,13 +916,8 @@ public class ListingService {
             Specification<TruckPost> spec = (root, query, cb) -> {
                 List<Predicate> predicates = new ArrayList<>();
 
-                // Join with listing (LEFT JOIN so unlinked or draft listings are not excluded)
-                Join<TruckPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.LEFT);
-                predicates.add(cb.or(
-                        cb.isNull(listingJoin.get("id")),
-                        listingJoin.get("status").isNull(),
-                        cb.not(listingJoin.get("status").in(ListingStatus.CLOSED, ListingStatus.CANCELLED, ListingStatus.EXPIRED))
-                ));
+                Join<TruckPost, MarketplaceListing> listingJoin = root.join("listing", JoinType.INNER);
+                predicates.add(visibleListingPredicate(cb, listingJoin, excludeCompanyId));
 
                 // Truck availability status: allow EMPTY_STANDING, EMPTY_MOVING, PARTIALLY_LOADED, FULL
                 if (req.getTruckStatus() != null) {
@@ -678,19 +943,23 @@ public class ListingService {
                     }
                 } else if (bbox != null) {
                     // Spatial bounding-box prefilter (allowing rows with null coordinates or planned routes to be evaluated via city fallback)
+                    // Index-friendly prefilter: the truck's current position, planned start or planned end
+                    // must fall inside the search box. Rows with no coordinates at all are kept and
+                    // resolved by the city-name fallback in matchesCorridorAndPopulateDistances.
                     Predicate inCurrentBbox = cb.and(
-                            cb.isNotNull(root.get("currentLat")),
-                            cb.isNotNull(root.get("currentLng")),
                             cb.between(root.get("currentLat"), bbox.minLat(), bbox.maxLat()),
-                            cb.between(root.get("currentLng"), bbox.minLng(), bbox.maxLng())
-                    );
-                    Predicate nullCoordsOrRoute = cb.or(
+                            cb.between(root.get("currentLng"), bbox.minLng(), bbox.maxLng()));
+                    Predicate inRouteFromBbox = cb.and(
+                            cb.between(root.get("routeFromLat"), bbox.minLat(), bbox.maxLat()),
+                            cb.between(root.get("routeFromLng"), bbox.minLng(), bbox.maxLng()));
+                    Predicate inRouteToBbox = cb.and(
+                            cb.between(root.get("routeToLat"), bbox.minLat(), bbox.maxLat()),
+                            cb.between(root.get("routeToLng"), bbox.minLng(), bbox.maxLng()));
+                    Predicate noCoordinates = cb.and(
                             cb.isNull(root.get("currentLat")),
-                            cb.isNull(root.get("currentLng")),
-                            cb.isNotNull(root.get("routeFrom")),
-                            cb.isNotNull(root.get("routeTo"))
-                    );
-                    predicates.add(cb.or(inCurrentBbox, nullCoordsOrRoute));
+                            cb.isNull(root.get("routeFromLat")),
+                            cb.isNull(root.get("routeToLat")));
+                    predicates.add(cb.or(inCurrentBbox, inRouteFromBbox, inRouteToBbox, noCoordinates));
                 }
 
                 if (req.getMinCapacity() != null && req.getMinCapacity() > 0) {
@@ -710,15 +979,10 @@ public class ListingService {
             };
 
             int page = (req.getPage() != null && req.getPage() >= 0) ? req.getPage() : 0;
-            int size = (req.getSize() != null && req.getSize() > 0) ? req.getSize() : 20;
-
-            Sort sort;
-            if (req.getSortBy() != null && !req.getSortBy().isBlank()) {
-                Sort.Direction direction = "asc".equalsIgnoreCase(req.getSortDir()) ? Sort.Direction.ASC : Sort.Direction.DESC;
-                sort = Sort.by(direction, req.getSortBy());
-            } else {
-                sort = Sort.by(Sort.Direction.DESC, "createdAt", "id");
-            }
+            int size = clampSize(req.getSize());
+            final boolean explicitSort = req.getSortBy() != null && TRUCK_SORT_FIELDS.contains(req.getSortBy().trim());
+            Sort sort = resolveSort(req.getSortBy(), req.getSortDir(), TRUCK_SORT_FIELDS,
+                    Sort.by(Sort.Direction.DESC, "createdAt", "id"));
 
             if (!useGeoCorridorSearch && req.getTruckType() == null && req.getBodyType() == null
                     && req.getTruckLength() == null && req.getCargoType() == null) {
@@ -728,6 +992,7 @@ public class ListingService {
                 List<TruckPostResponse> responseList = pagedResult.getContent().stream().map(post -> {
                     TruckPostResponse dto = truckPostMapper.toResponse(post);
                     enrichTruckPostResponse(dto, post);
+                    dto.setOwnListing(isOwnedBy(post.getListing(), user));
                     return dto;
                 }).toList();
 
@@ -752,6 +1017,7 @@ public class ListingService {
             for (TruckPost post : candidates) {
                 TruckPostResponse dto = truckPostMapper.toResponse(post);
                 enrichTruckPostResponse(dto, post);
+                dto.setOwnListing(isOwnedBy(post.getListing(), user));
 
                 // Additional vehicle/cargo filters
                 if (req.getTruckType() != null && !req.getTruckType().isBlank()) {
@@ -786,7 +1052,7 @@ public class ListingService {
                 matchedList.add(dto);
             }
 
-            if (useGeoCorridorSearch && (req.getSortBy() == null || req.getSortBy().isBlank())) {
+            if (useGeoCorridorSearch && !explicitSort) {
                 matchedList.sort((a, b) -> {
                     double ca = a.getDistanceFromCorridorKm() != null ? a.getDistanceFromCorridorKm() : Double.MAX_VALUE;
                     double cbDist = b.getDistanceFromCorridorKm() != null ? b.getDistanceFromCorridorKm() : Double.MAX_VALUE;
@@ -819,7 +1085,7 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error searching trucks", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to search trucks: " + e.getMessage());
+            response.setResponseMessege("Failed to search trucks");
         }
         return response;
     }
@@ -1006,6 +1272,7 @@ public class ListingService {
             List<LoadPostResponse> dtos = posts.stream().map(post -> {
                 LoadPostResponse dto = loadPostMapper.toResponseWithListing(post);
                 enrichLoadPostResponse(dto, post);
+                dto.setOwnListing(true);
                 return dto;
             }).toList();
             response.setDataList(dtos);
@@ -1015,7 +1282,7 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error fetching my load posts", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to fetch my load posts: " + e.getMessage());
+            response.setResponseMessege("Failed to fetch my load posts");
         }
         return response;
     }
@@ -1041,6 +1308,7 @@ public class ListingService {
             List<TruckPostResponse> dtos = posts.stream().map(post -> {
                 TruckPostResponse dto = truckPostMapper.toResponse(post);
                 enrichTruckPostResponse(dto, post);
+                dto.setOwnListing(true);
                 return dto;
             }).toList();
             response.setDataList(dtos);
@@ -1050,7 +1318,7 @@ public class ListingService {
         } catch (Exception e) {
             log.error("Error fetching my truck posts", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to fetch my truck posts: " + e.getMessage());
+            response.setResponseMessege("Failed to fetch my truck posts");
         }
         return response;
     }

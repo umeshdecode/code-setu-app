@@ -17,7 +17,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "marketplace_listing")
+@Table(name = "marketplace_listing", indexes = {
+        @Index(name = "idx_listing_status_valid_until", columnList = "status,validUntil"),
+        @Index(name = "idx_listing_company", columnList = "companyId")
+})
 public class MarketplaceListing {
 
     @Id

@@ -22,4 +22,5 @@ public interface MarketplaceListingRepository extends JpaRepository<MarketplaceL
     List<MarketplaceListing> findByTypeAndStatusAndValidUntilAfter(ListingType type, ListingStatus status, LocalDateTime now);
     Optional<MarketplaceListing> findByListingNumber(String listingNumber);
     long countByCompanyIdAndStatus(Integer companyId, ListingStatus status);
+    List<MarketplaceListing> findByStatusInAndValidUntilBefore(java.util.Collection<ListingStatus> statuses, LocalDateTime cutoff);
 }

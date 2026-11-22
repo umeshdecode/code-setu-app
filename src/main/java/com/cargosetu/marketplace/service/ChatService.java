@@ -213,7 +213,7 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error starting conversation", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to start conversation: " + e.getMessage());
+            response.setResponseMessege("Failed to start conversation");
         }
         return response;
     }
@@ -264,7 +264,7 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error sending message", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to send message: " + e.getMessage());
+            response.setResponseMessege("Failed to send message");
         }
         return response;
     }
@@ -288,7 +288,7 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error getting conversations", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to get conversations: " + e.getMessage());
+            response.setResponseMessege("Failed to get conversations");
         }
         return response;
     }
@@ -366,7 +366,7 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error getting messages", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to get messages: " + e.getMessage());
+            response.setResponseMessege("Failed to get messages");
         }
         return response;
     }
@@ -404,7 +404,7 @@ public class ChatService {
         } catch (Exception e) {
             log.error("Error marking messages as read", e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setResponseMessege("Failed to mark messages as read: " + e.getMessage());
+            response.setResponseMessege("Failed to mark messages as read");
         }
         return response;
     }
@@ -483,6 +483,12 @@ public class ChatService {
             companyRepository.findById(c.getParticipant2CompanyId()).ifPresent(comp -> dto.setParticipant2Name(comp.getCompanyName()));
         }
 
+        // Name the other company and say what the chat is about, so the list is readable.
+        boolean iAmParticipant1 = user.getCompanyId() != null && user.getCompanyId().equals(c.getParticipant1CompanyId());
+        dto.setOtherPartyCompanyId(iAmParticipant1 ? c.getParticipant2CompanyId() : c.getParticipant1CompanyId());
+        dto.setOtherPartyName(iAmParticipant1 ? dto.getParticipant2Name() : dto.getParticipant1Name());
+        applyConversationContext(dto, c);
+
         long unread = messageRepository.countByConversationIdAndReadAtIsNullAndSenderStaffIdNot(c.getId(), user.getStaffId());
         dto.setUnreadCount(unread);
 
@@ -496,6 +502,45 @@ public class ChatService {
             }
         }
         return dto;
+    }
+
+    private void applyConversationContext(com.cargosetu.marketplace.dto.ConversationResponse dto, ChatConversation c) {
+        try {
+            String bookingNumber = null;
+            Long listingId = c.getListingId();
+            if (c.getBookingId() != null) {
+                com.cargosetu.marketplace.entity.MarketplaceBooking booking = bookingRepository.findById(c.getBookingId()).orElse(null);
+                if (booking != null) {
+                    bookingNumber = booking.getBookingNumber();
+                    if (listingId == null && booking.getListing() != null) listingId = booking.getListing().getId();
+                }
+            }
+            com.cargosetu.marketplace.entity.MarketplaceListing listing = listingId != null
+                    ? listingRepository.findById(listingId).orElse(null) : null;
+            if (listing != null) {
+                boolean isLoad = com.cargosetu.marketplace.enums.ListingType.LOAD_POST.equals(listing.getType());
+                dto.setListingType(listing.getType() != null ? listing.getType().name() : null);
+                String from = null;
+                String to = null;
+                if (listing.getLoadPost() != null) {
+                    from = listing.getLoadPost().getOriginCity();
+                    to = listing.getLoadPost().getDestinationCity();
+                } else if (listing.getTruckPost() != null) {
+                    com.cargosetu.marketplace.entity.TruckPost tp = listing.getTruckPost();
+                    from = tp.getRouteFrom() != null && !tp.getRouteFrom().isBlank() ? tp.getRouteFrom() : tp.getCurrentCity();
+                    to = tp.getRouteTo();
+                }
+                if (from != null || to != null) {
+                    dto.setContextRoute((from != null ? from : "Anywhere") + " \u2192 " + (to != null && !to.isBlank() ? to : "Anywhere"));
+                }
+                String label = (isLoad ? "Load " : "Truck ") + (listing.getListingNumber() != null ? listing.getListingNumber() : "#" + listing.getId());
+                dto.setContextTitle(bookingNumber != null ? "Booking " + bookingNumber + " \u00b7 " + label : label);
+            } else if (bookingNumber != null) {
+                dto.setContextTitle("Booking " + bookingNumber);
+            }
+        } catch (Exception e) {
+            log.debug("Could not resolve chat context for conversation {}", c.getId(), e);
+        }
     }
 
     private String formatStaffName(com.cargosetu.model.Staff s) {

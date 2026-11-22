@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,7 +17,7 @@ import com.cargosetu.marketplace.enums.*;
 @AllArgsConstructor
 @Builder
 public class CreatePaymentOrderRequest {
-    @NotNull private BigDecimal amount;
+    @NotNull @Positive private BigDecimal amount;
     private PaymentMode paymentMode;
     private PaymentTermType paymentTerm;
     private String component;

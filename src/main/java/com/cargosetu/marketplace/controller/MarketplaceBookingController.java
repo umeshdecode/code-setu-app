@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.BookingService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,21 +27,20 @@ public class MarketplaceBookingController {
 
     @PostMapping("/listing/{listingId}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
-    public ResponseEntity<?> createBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long listingId, @RequestBody CreateBookingRequest request) {
+    public ResponseEntity<?> createBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long listingId, @Valid @RequestBody CreateBookingRequest request) {
         log.info("API entry for createBooking listingId: {}", listingId);
         try {
             GenericDataDTO response = bookingService.createBooking(user, listingId, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in createBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to create booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
-    public ResponseEntity<?> createBookingDirect(@AuthenticationPrincipal LoggedInUser user, @RequestBody CreateBookingRequest request) {
+    public ResponseEntity<?> createBookingDirect(@AuthenticationPrincipal LoggedInUser user, @Valid @RequestBody CreateBookingRequest request) {
         Long listingId = request != null ? request.getListingId() : null;
         log.info("API entry for createBookingDirect listingId: {}", listingId);
         if (listingId == null) {
@@ -47,11 +48,10 @@ public class MarketplaceBookingController {
         }
         try {
             GenericDataDTO response = bookingService.createBooking(user, listingId, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in createBookingDirect", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to create booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -64,11 +64,10 @@ public class MarketplaceBookingController {
         log.info("API entry for getMyBookings user: {}, status: {}, role: {}", user != null ? user.getStaffId() : null, status, role);
         try {
             GenericDataDTO response = bookingService.getMyBookings(user, status, role);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getMyBookings", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get bookings", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -78,26 +77,32 @@ public class MarketplaceBookingController {
         log.info("API entry for getBooking id: {}", id);
         try {
             GenericDataDTO response = bookingService.getBooking(user, id);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CREATE + "')")
-    public ResponseEntity<?> acceptBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id) {
+    public ResponseEntity<?> acceptBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id,
+                                           @RequestBody(required = false) AssignVehicleDriverRequest assignment,
+                                           @RequestParam(required = false) Long vehicleId,
+                                           @RequestParam(required = false) Long driverId) {
         log.info("API entry for acceptBooking id: {}", id);
         try {
-            GenericDataDTO response = bookingService.acceptBooking(user, id);
-            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
-            return ResponseEntity.status(status).body(response);
+            // Older app builds send vehicleId/driverId as query params; newer ones send a JSON body.
+            if (assignment == null && (vehicleId != null || driverId != null)) {
+                assignment = new AssignVehicleDriverRequest();
+                assignment.setVehicleId(vehicleId);
+                assignment.setDriverId(driverId);
+            }
+            GenericDataDTO response = bookingService.acceptBooking(user, id, assignment);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in acceptBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to accept booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -106,16 +111,14 @@ public class MarketplaceBookingController {
     public ResponseEntity<?> rejectBooking(
             @AuthenticationPrincipal LoggedInUser user,
             @PathVariable Long id,
-            @RequestBody(required = false) RejectBookingRequest request) {
+            @Valid @RequestBody(required = false) RejectBookingRequest request) {
         log.info("API entry for rejectBooking id: {}", id);
         try {
             GenericDataDTO response = bookingService.rejectBooking(user, id, request);
-            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
-            return ResponseEntity.status(status).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in rejectBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to reject booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -124,44 +127,40 @@ public class MarketplaceBookingController {
     public ResponseEntity<?> counterBooking(
             @AuthenticationPrincipal LoggedInUser user,
             @PathVariable Long id,
-            @RequestBody CounterBookingRequest request) {
+            @Valid @RequestBody CounterBookingRequest request) {
         log.info("API entry for counterBooking id: {}", id);
         try {
             GenericDataDTO response = bookingService.counterBooking(user, id, request);
-            int status = response.getResponseCode() != null ? response.getResponseCode() : CommonStatusCode.SUCCESS;
-            return ResponseEntity.status(status).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in counterBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to counter booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_CANCEL + "')")
-    public ResponseEntity<?> cancelBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody(required = false) CancellationRequest request) {
+    public ResponseEntity<?> cancelBooking(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody(required = false) CancellationRequest request) {
         log.info("API entry for cancelBooking id: {}", id);
         try {
             GenericDataDTO response = bookingService.cancelBooking(user, id, request);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in cancelBooking", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to cancel booking", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping("/{id}/assign")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_BOOKING_ASSIGN + "')")
-    public ResponseEntity<?> assignVehicleDriver(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody AssignVehicleDriverRequest request) {
+    public ResponseEntity<?> assignVehicleDriver(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody AssignVehicleDriverRequest request) {
         log.info("API entry for assignVehicleDriver id: {}", id);
         try {
             GenericDataDTO response = bookingService.assignVehicleDriver(user, id, request);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in assignVehicleDriver", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to assign vehicle/driver", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 }

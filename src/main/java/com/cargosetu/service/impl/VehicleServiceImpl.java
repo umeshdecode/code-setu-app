@@ -66,6 +66,13 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    public List<Vehicle> getVehiclesByCompany(Integer companyId) {
+        log.info("Fetching vehicles for company {}", companyId);
+        if (companyId == null) return List.of();
+        return vehicleRepository.findByCompanyIdOrderByIdDesc(companyId);
+    }
+
+    @Override
     public Vehicle updateVehicle(Long id, VehicleDto updatedVehicle) {
         try {
             log.info("Updating vehicle id: {}", id);

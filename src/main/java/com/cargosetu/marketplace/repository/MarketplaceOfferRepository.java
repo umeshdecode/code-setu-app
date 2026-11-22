@@ -15,4 +15,7 @@ public interface MarketplaceOfferRepository extends JpaRepository<MarketplaceOff
     List<MarketplaceOffer> findByBidderCompanyId(Integer companyId);
     Optional<MarketplaceOffer> findByListingIdAndBidderCompanyId(Long listingId, Integer companyId);
     long countByListingIdAndStatus(Long listingId, OfferStatus status);
+    /** Every offer on listings owned by the given company (incoming bids). */
+    List<MarketplaceOffer> findByListingCompanyIdOrderByCreatedAtDesc(Integer companyId);
+    List<MarketplaceOffer> findByStatusAndValidUntilBefore(OfferStatus status, java.time.LocalDateTime cutoff);
 }

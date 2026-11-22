@@ -38,6 +38,8 @@ public class MarketplaceOffer {
     @Enumerated(EnumType.STRING)
     private PaymentTermType paymentTerms;
 
+    private Integer advancePercentage;
+
     private LocalDateTime validUntil;
 
     @Enumerated(EnumType.STRING)

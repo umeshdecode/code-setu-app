@@ -48,11 +48,27 @@ public class MarketplaceTripService {
     private final TripEventMapper eventMapper;
     private final MarketplaceAuditService auditService;
 
+    /**
+     * Creates the trip once the booking has both a vehicle and a driver (trip columns are NOT NULL).
+     * A load booked through an accepted offer has neither yet: the trip is then created later,
+     * when the transporter assigns them (BookingService#assignVehicleDriver). Idempotent.
+     */
+    @Transactional
+    public MarketplaceTrip createTripIfReady(MarketplaceBooking booking) {
+        if (booking == null || booking.getId() == null
+                || booking.getVehicleId() == null || booking.getDriverId() == null) {
+            return null;
+        }
+        if (tripRepository.findByBookingId(booking.getId()).isPresent()) {
+            return null;
+        }
+        return createTripFromBooking(booking);
+    }
+
     @Transactional
     public MarketplaceTrip createTripFromBooking(MarketplaceBooking booking) {
         MarketplaceTrip trip = new MarketplaceTrip();
-        long count = tripRepository.count() + 1;
-        trip.setTripNumber(String.format("MT-%s-%04d", LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")), count));
+        trip.setTripNumber(com.cargosetu.marketplace.util.MarketplaceNumbers.next("MT"));
         trip.setBookingId(booking.getId());
         trip.setVehicleId(booking.getVehicleId());
         trip.setDriverId(booking.getDriverId());

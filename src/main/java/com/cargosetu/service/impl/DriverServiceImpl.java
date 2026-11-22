@@ -58,6 +58,13 @@ public class DriverServiceImpl implements DriverService {
     }
 
     @Override
+    public List<Driver> getDriversByCompany(Integer companyId) {
+        log.info("Fetching drivers for company {}", companyId);
+        if (companyId == null) return List.of();
+        return driverRepository.findByCompanyIdOrderByIdDesc(companyId);
+    }
+
+    @Override
     public Driver updateDriver(Long id, DriverDto updated) {
         try {
             log.info("Updating driver id: {}", id);

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +18,6 @@ import com.cargosetu.marketplace.enums.*;
 @Builder
 public class ChatMessageRequest {
     @Builder.Default private String messageType = "TEXT";
-    @NotBlank private String message;
+    @NotBlank @Size(max = 4000) private String message;
     private String attachmentRef;
 }

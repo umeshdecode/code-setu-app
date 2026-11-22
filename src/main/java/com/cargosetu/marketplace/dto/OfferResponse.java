@@ -37,6 +37,13 @@ public class OfferResponse {
     private String offeredByName;
     private BigDecimal amount;
     private PaymentTermType paymentTerms;
+    private Integer advancePercentage;
+    /** Company that authored this particular offer row (bidder for bids, owner for owner counters). */
+    private Integer createdByCompanyId;
+    /** Company expected to respond (accept / reject / counter). Null once the offer is closed. */
+    private Integer awaitingCompanyId;
+    /** Booking created when this offer was accepted, if any. */
+    private Long bookingId;
     private LocalDateTime validUntil;
     private OfferStatus status;
     private String message;

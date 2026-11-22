@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.ListingService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +27,7 @@ public class MarketplaceLoadController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_CREATE + "')")
-    public ResponseEntity<?> createLoad(@AuthenticationPrincipal LoggedInUser user, @RequestBody CreateLoadPostRequest request) {
+    public ResponseEntity<?> createLoad(@AuthenticationPrincipal LoggedInUser user, @Valid @RequestBody CreateLoadPostRequest request) {
         log.info("API: Create Load Post by staff: {}", user.getStaffId());
         GenericDataDTO response = new GenericDataDTO();
         try {
@@ -33,26 +35,26 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error creating load post: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_READ + "')")
-    public ResponseEntity<?> searchLoads(LoadPostSearchRequest searchRequest) {
+    public ResponseEntity<?> searchLoads(@AuthenticationPrincipal LoggedInUser user, LoadPostSearchRequest searchRequest) {
         log.info("API: Search Loads");
         GenericDataDTO response = new GenericDataDTO();
         try {
-            response = listingService.searchLoads(searchRequest);
+            response = listingService.searchLoads(searchRequest, user);
         } catch (Exception e) {
             log.error("Error searching loads: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping("/my")
@@ -67,10 +69,10 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error fetching my loads: {}", e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @GetMapping("/{id}")
@@ -83,15 +85,15 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error getting load post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_UPDATE + "')")
-    public ResponseEntity<?> updateLoad(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @RequestBody CreateLoadPostRequest request) {
+    public ResponseEntity<?> updateLoad(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id, @Valid @RequestBody CreateLoadPostRequest request) {
         log.info("API: Update Load Post ID: {}", id);
         GenericDataDTO response = new GenericDataDTO();
         try {
@@ -99,10 +101,10 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error updating load post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PostMapping("/{id}/publish")
@@ -115,10 +117,10 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error publishing load post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
     }
 
     @PostMapping("/{id}/close")
@@ -131,9 +133,21 @@ public class MarketplaceLoadController {
         } catch (Exception e) {
             log.error("Error closing load post {}: {}", id, e.getMessage(), e);
             response.setResponseCode(CommonStatusCode.INTERNAL_SERVER_ERROR);
-            response.setErrors(new Object[]{e.getMessage()});
-            return ResponseEntity.internalServerError().body(response);
+            response.setErrors(null);
+            return MarketplaceResponses.error();
         }
-        return ResponseEntity.ok(response);
+        return MarketplaceResponses.of(response);
+    }
+
+    @PostMapping("/{id}/renew")
+    @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_LOAD_CREATE + "')")
+    public ResponseEntity<?> renew(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long id) {
+        log.info("API: Renew listing ID: {}", id);
+        try {
+            return MarketplaceResponses.of(listingService.renewListing(user, id));
+        } catch (Exception e) {
+            log.error("Error renewing listing {}", id, e);
+            return MarketplaceResponses.error();
+        }
     }
 }

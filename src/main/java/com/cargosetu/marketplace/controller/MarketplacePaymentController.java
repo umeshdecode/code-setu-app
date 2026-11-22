@@ -7,7 +7,9 @@ import com.cargosetu.marketplace.service.PaymentService;
 import com.cargosetu.utils.BaseURL;
 import com.cargosetu.utils.CommonStatusCode;
 import com.cargosetu.utils.GenericDataDTO;
+import com.cargosetu.marketplace.util.MarketplaceResponses;
 import com.cargosetu.utils.PermissionConstants;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -31,25 +33,23 @@ public class MarketplacePaymentController {
         log.info("API entry for getPaymentHistory bookingId: {}", bookingId);
         try {
             GenericDataDTO response = paymentService.getPaymentHistory(bookingId);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getPaymentHistory", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get payment history", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
     @PostMapping(MarketplaceUrlConstants.BOOKINGS + "/{bookingId}" + MarketplaceUrlConstants.PAYMENTS)
     @PreAuthorize("hasAuthority('" + PermissionConstants.MARKETPLACE_PAYMENT_CREATE + "')")
-    public ResponseEntity<?> createPayment(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @RequestBody CreatePaymentOrderRequest request) {
+    public ResponseEntity<?> createPayment(@AuthenticationPrincipal LoggedInUser user, @PathVariable Long bookingId, @Valid @RequestBody CreatePaymentOrderRequest request) {
         log.info("API entry for createPayment bookingId: {}", bookingId);
         try {
             GenericDataDTO response = paymentService.createPaymentOrder(user, bookingId, request);
-            return ResponseEntity.status(CommonStatusCode.CREATED).body(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in createPayment", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to create payment", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -58,11 +58,10 @@ public class MarketplacePaymentController {
         log.info("API entry for handleWebhook");
         try {
             GenericDataDTO response = paymentService.handleWebhook(payload);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in handleWebhook", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to handle webhook", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 
@@ -72,11 +71,10 @@ public class MarketplacePaymentController {
         log.info("API entry for getWalletStatement user: {}", user.getStaffId());
         try {
             GenericDataDTO response = paymentService.getWalletStatement(user);
-            return ResponseEntity.ok(response);
+            return MarketplaceResponses.of(response);
         } catch (Exception e) {
             log.error("Exception in getWalletStatement", e);
-            return ResponseEntity.status(CommonStatusCode.INTERNAL_SERVER_ERROR)
-                    .body(new GenericDataDTO(CommonStatusCode.INTERNAL_SERVER_ERROR, "Failed to get wallet statement", null, new Object[]{e.getMessage()}));
+            return MarketplaceResponses.error();
         }
     }
 }

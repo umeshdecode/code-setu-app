@@ -2,6 +2,9 @@ package com.cargosetu.handler;
 
 import com.cargosetu.config.dto.ApiResponseDto;
 import com.cargosetu.utils.CommonStatusCode;
+import com.cargosetu.utils.GenericDataDTO;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +14,25 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /**
+     * Bean-validation failures on {@code @Valid @RequestBody} DTOs. Returns 400 with a
+     * readable first message plus every "field: message" pair in {@code errors}.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<GenericDataDTO> handleBeanValidation(MethodArgumentNotValidException ex) {
+        Object[] errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .toArray();
+        FieldError first = ex.getBindingResult().getFieldError();
+        String message = first != null
+                ? first.getField() + " " + first.getDefaultMessage()
+                : CommonStatusCode.MSG_VALIDATION_FAILED;
+        log.warn("Request validation failed: {}", (Object) errors);
+        return ResponseEntity.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(new GenericDataDTO(CommonStatusCode.FAIL, message, null, errors));
+    }
 
     @ExceptionHandler(CustomValidationException.class)
     public ResponseEntity<ApiResponseDto> handleCustomValidation(

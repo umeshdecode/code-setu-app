@@ -30,6 +30,14 @@ public class LoadPostSearchRequest {
     private BigDecimal maxPrice;
     private PaymentTermType paymentTerms;
     private Boolean verifiedOnly;
+    /** Radius search around the pickup point (used when both are supplied). */
+    private Double originLat;
+    private Double originLng;
+    private Double radiusKm;
+    /** Include the caller's own company's loads (default false). */
+    private Boolean includeOwn;
+    /** Include loads whose pickup date has passed (default false). */
+    private Boolean includePastPickups;
     @Builder.Default private Integer page = 0;
     @Builder.Default private Integer size = 20;
     @Builder.Default private String sortBy = "createdAt";
